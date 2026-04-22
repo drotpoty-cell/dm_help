@@ -1,1 +1,7 @@
-{}
+{
+  "userIgnoreFilters": [
+    "node_modules/",
+    "node_modules/array.prototype.findlastindex/test/",
+    "node_modules/object.assign/dist/"
+  ]
+}
