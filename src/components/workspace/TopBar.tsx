@@ -6,8 +6,9 @@ interface TopBarProps {
   campaignId: string
   day: number
   hour: number
-  viewMode: 'map' | 'kanban'
-  onViewChange: (mode: 'map' | 'kanban') => void
+  // 1. Добавили 'story' в типы
+  viewMode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story' 
+  onViewChange: (mode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story') => void
   onTimeChange: (hours: number) => void
   onSave: () => void
   isSaving: boolean
@@ -23,25 +24,43 @@ export default function TopBar({ campaignId, day, hour, viewMode, onViewChange, 
         <button onClick={() => router.push('/hub')} className="text-zinc-500 hover:text-zinc-200 text-sm font-bold uppercase tracking-widest transition-colors">← Хаб</button>
         <div className="h-4 w-px bg-zinc-800"></div>
         
-        {/* ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ (КАРТА / СЮЖЕТ) */}
+        {/* ПЕРЕКЛЮЧАТЕЛЬ 5-ТИ РЕЖИМОВ */}
         <div className="flex bg-zinc-900/50 rounded-md p-1 border border-zinc-800">
+          <button 
+            onClick={() => onViewChange('archive')} 
+            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'archive' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            База Данных (Лор)
+          </button>
           <button 
             onClick={() => onViewChange('map')} 
             className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'map' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            Карта
+            Карта Мира
           </button>
           <button 
             onClick={() => onViewChange('kanban')} 
             className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'kanban' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            Доска Сюжетов
+            Сюжеты
+          </button>
+          <button 
+            onClick={() => onViewChange('calendar')} 
+            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'calendar' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            Календарь
+          </button>
+          {/* 2. НОВАЯ КНОПКА СЦЕНАРИЯ */}
+          <button 
+            onClick={() => onViewChange('story')} 
+            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'story' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            Сценарий
           </button>
         </div>
 
         <div className="h-4 w-px bg-zinc-800"></div>
 
-        {/* УМНЫЕ ЧАСЫ МАСТЕРА */}
         <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-md border border-zinc-800/80">
           <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-2 mr-2">Время</span>
           <button onClick={() => onTimeChange(-1)} className="px-2 py-1 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded text-xs transition-colors">-1ч</button>
@@ -50,7 +69,7 @@ export default function TopBar({ campaignId, day, hour, viewMode, onViewChange, 
             <span className="text-indigo-400 font-mono font-bold text-sm">{formattedHour}</span>
           </div>
           <button onClick={() => onTimeChange(1)} className="px-2 py-1 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded text-xs transition-colors">+1ч</button>
-          <button onClick={() => onTimeChange(8)} className="px-2 py-1 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded text-xs transition-colors">+8ч (Сон)</button>
+          <button onClick={() => onTimeChange(8)} className="px-2 py-1 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded text-xs transition-colors">+8ч</button>
         </div>
       </div>
 

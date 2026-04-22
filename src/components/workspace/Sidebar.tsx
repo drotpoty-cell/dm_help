@@ -10,9 +10,10 @@ interface SidebarProps {
   onClose: () => void
   onUpdateNode: (id: string, field: string, value: any) => void
   currentDay: number
+  onClearUpdate: (type: 'node' | 'npc', id: string) => void
 }
 
-// --- УМНЫЙ РЕДАКТОР С WIKI-ССЫЛКАМИ (ИСПРАВЛЕН ДЛЯ РУССКОГО ЯЗЫКА) ---
+// --- УМНЫЙ РЕДАКТОР С WIKI-ССЫЛКАМИ ---
 const SmartEditor = ({ value, onChange, library, placeholder }: any) => {
   const [isEditing, setIsEditing] = useState(false)
 
@@ -24,7 +25,7 @@ const SmartEditor = ({ value, onChange, library, placeholder }: any) => {
 
     allEntities.forEach(entity => {
       if (!entity.name) return
-      // Исправленная регулярка для кириллицы (негативное забегание вперед)
+      // Исправленная регулярка для кириллицы
       const regex = new RegExp(`@${entity.name}(?![\\wа-яА-ЯёЁ])`, 'gi')
       formattedText = formattedText.replace(regex, `<span class="text-indigo-400 bg-indigo-900/30 px-1.5 py-0.5 rounded font-bold cursor-pointer hover:bg-indigo-900/50 transition-colors border border-indigo-900/50">@${entity.name}</span>`)
     })
@@ -64,7 +65,7 @@ const SmartEditor = ({ value, onChange, library, placeholder }: any) => {
   )
 }
 
-export default function Sidebar({ selectedNode, nodes, library, onUpdateLibrary, onClose, onUpdateNode, currentDay }: SidebarProps) {
+export default function Sidebar({ selectedNode, nodes, library, onUpdateLibrary, onClose, onUpdateNode, currentDay, onClearUpdate }: SidebarProps) {
   const [activeTab, setActiveTab] = useState('general')
 
   if (!selectedNode) return null
@@ -108,6 +109,23 @@ export default function Sidebar({ selectedNode, nodes, library, onUpdateLibrary,
         <button onClick={onClose} className="text-zinc-500 hover:text-white text-2xl leading-none">×</button>
       </div>
 
+      {/* УВЕДОМЛЕНИЕ ДЛЯ ЛОКАЦИИ (!) */}
+      {selectedNode.data.needsUpdate && (
+        <div className="bg-red-950/40 border-b border-red-900/50 p-4 flex items-start gap-4">
+          <div className="bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center font-black animate-pulse shrink-0">!</div>
+          <div className="flex-1">
+            <h4 className="text-red-400 text-[10px] font-black uppercase tracking-widest mb-1">Сюжетный сдвиг</h4>
+            <p className="text-zinc-400 text-xs leading-relaxed mb-3">Один из квестов в этой зоне завершен. Внесите изменения в лор и описание локации.</p>
+            <button 
+              onClick={() => onClearUpdate('node', selectedNode.id)} 
+              className="bg-red-500/20 hover:bg-red-500/40 text-red-400 text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded transition-colors"
+            >
+              Последствия описаны (Снять метку)
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Вкладки */}
       <div className="flex bg-zinc-950 text-[10px] font-bold uppercase tracking-widest border-b border-zinc-900 shrink-0">
         {['general', 'npcs', 'quests', 'secrets'].map(t => (
@@ -136,7 +154,7 @@ export default function Sidebar({ selectedNode, nodes, library, onUpdateLibrary,
               <div className="text-center text-zinc-600 text-sm py-10">В этой локации пока нет персонажей. Добавьте их из Архива.</div>
             ) : (
               localNpcs.map((npc: any) => (
-                <div key={npc.id} className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex flex-col gap-3 group hover:border-zinc-700 transition-colors">
+                <div key={npc.id} className={`bg-zinc-900/30 border rounded-xl p-4 flex flex-col gap-3 group transition-colors ${npc.needsUpdate ? 'border-red-900/50 shadow-[0_0_15px_rgba(153,27,27,0.2)]' : 'border-zinc-800 hover:border-zinc-700'}`}>
                   <div className="flex justify-between items-center border-b border-zinc-800/50 pb-2">
                     <div>
                       <div className="text-zinc-100 font-bold">{npc.name}</div>
@@ -144,9 +162,18 @@ export default function Sidebar({ selectedNode, nodes, library, onUpdateLibrary,
                     </div>
                     <button onClick={() => deleteNpc(npc.id)} className="text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">×</button>
                   </div>
+                  
+                  {/* УВЕДОМЛЕНИЕ ДЛЯ НИПА (!) */}
+                  {npc.needsUpdate && (
+                    <div className="bg-red-500/10 text-red-400 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-md flex justify-between items-center mt-1">
+                      <span className="flex items-center gap-2"><span className="bg-red-500 w-2 h-2 rounded-full animate-ping"></span> Затронут сюжетом</span>
+                      <button onClick={() => onClearUpdate('npc', npc.id)} className="hover:text-white transition-colors underline">Очистить</button>
+                    </div>
+                  )}
+
                   <div className="text-sm text-zinc-400 leading-relaxed">{npc.description || 'Нет описания.'}</div>
                   <div className="pt-2 flex items-center justify-between border-t border-zinc-800/50 mt-1">
-                    <span className="text-[9px] font-bold text-zinc-500 uppercase">Текущее местоположение:</span>
+                    <span className="text-[9px] font-bold text-zinc-500 uppercase">Местоположение:</span>
                     <select 
                       value={npc.locationId || 'none'}
                       onChange={(e) => moveNpc(npc.id, e.target.value)}
@@ -164,7 +191,7 @@ export default function Sidebar({ selectedNode, nodes, library, onUpdateLibrary,
           </div>
         )}
 
-        {/* ВКЛАДКА: КВЕСТЫ (ПОЛНАЯ ВЕРСИЯ ВОССТАНОВЛЕНА) */}
+        {/* ВКЛАДКА: КВЕСТЫ */}
         {activeTab === 'quests' && (
           <div className="space-y-6">
             {quests.length === 0 && (

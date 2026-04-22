@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "cc3a094d2e670284",
+        "id": "8acb3a34e34d8e31",
         "type": "tabs",
         "children": [
           {
-            "id": "b2fe90643ca5ee3c",
+            "id": "07b2465e30070eab",
             "type": "leaf",
             "state": {
               "type": "graph",
@@ -176,6 +176,9 @@
       "bases:Создать новую базу": false
     }
   },
-  "active": "b2fe90643ca5ee3c",
-  "lastOpenFiles": []
+  "active": "1507f5ce7040bebe",
+  "lastOpenFiles": [
+    "src/components/workspace/Archive.tsx",
+    "README.md"
+  ]
 }

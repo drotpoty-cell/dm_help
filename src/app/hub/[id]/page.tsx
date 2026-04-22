@@ -8,9 +8,11 @@ import 'reactflow/dist/style.css'
 // Компоненты интерфейса
 import TopBar from '@/components/workspace/TopBar'
 import Sidebar from '@/components/workspace/Sidebar'
-import EntityArchive from '@/components/workspace/EntityArchive'
 import ContextMenu from '@/components/workspace/ContextMenu'
 import KanbanBoard from '@/components/workspace/KanbanBoard'
+import ArchiveBoard from '../../../components/workspace/ArchiveBoard'
+import CalendarBoard from '@/components/workspace/CalendarBoard'
+import StoryBoard from '@/components/workspace/StoryBoard' // ДОБАВЛЕН ИМПОРТ СЦЕНАРИЯ
 
 import { nodeTypes } from '@/components/workspace/CustomNodes'
 import TravelEdge from '@/components/workspace/CustomEdges'
@@ -25,14 +27,23 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
   const [edges, setEdges] = useState<Edge[]>([])
   const [currentDay, setCurrentDay] = useState(1)
   const [currentHour, setCurrentHour] = useState(8)
-  const [library, setLibrary] = useState({ npcs: [] as any[], quests: [] as any[], locations: [] as any[] })
+  
+  // СОСТОЯНИЕ ДЛЯ НОВОГО РЕЖИМА "СЦЕНАРИЙ"
+  const [story, setStory] = useState<any[]>([]) 
+  
+  // РАСШИРЕННАЯ ГЛОБАЛЬНАЯ БАЗА
+  const [library, setLibrary] = useState({ 
+    npcs: [] as any[], quests: [] as any[], locations: [] as any[],
+    secrets: [] as any[], loot: [] as any[], events: [] as any[]
+  })
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [menu, setMenu] = useState<{ id: string, x: number, y: number, overRegions: Node[] } | null>(null)
   
-  const [viewMode, setViewMode] = useState<'map' | 'kanban'>('map')
+  // РАСШИРЯЕМ ТИПИЗАЦИЮ: ТЕПЕРЬ 5 РЕЖИМОВ
+  const [viewMode, setViewMode] = useState<'map' | 'kanban' | 'archive' | 'calendar' | 'story'>('map')
 
   const paneRef = useRef<HTMLDivElement>(null)
 
@@ -45,7 +56,16 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
         setEdges(loadedEdges)
         setCurrentDay(data.map_data.currentDay || 1)
         setCurrentHour(data.map_data.currentHour || 8)
-        setLibrary(data.map_data.library || { npcs: [], quests: [], locations: [] })
+        
+        // Загружаем сохраненный сценарий (если есть)
+        setStory(data.map_data.story || [])
+        
+        // Гарантируем, что все 6 массивов существуют
+        const loadedLib = data.map_data.library || {}
+        setLibrary({
+          npcs: loadedLib.npcs || [], quests: loadedLib.quests || [], locations: loadedLib.locations || [],
+          secrets: loadedLib.secrets || [], loot: loadedLib.loot || [], events: loadedLib.events || []
+        })
       }
       setIsLoading(false)
     }
@@ -54,7 +74,8 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
 
   const saveMap = async () => {
     setIsSaving(true)
-    await supabase.from('campaigns').update({ map_data: { nodes, edges, currentDay, currentHour, library } }).eq('id', id)
+    // ДОБАВЛЯЕМ story В СОХРАНЕНИЕ
+    await supabase.from('campaigns').update({ map_data: { nodes, edges, currentDay, currentHour, library, story } }).eq('id', id)
     setIsSaving(false)
   }
 
@@ -62,29 +83,50 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
     let newHour = currentHour + addedHours
     let daysPassed = 0
     if (newHour >= 24) { daysPassed = Math.floor(newHour / 24); newHour = newHour % 24; }
-    else if (newHour < 0) {
-      if (currentDay > 1) { daysPassed = -1; newHour = 24 + newHour; }
-      else newHour = 0;
-    }
+    else if (newHour < 0) { if (currentDay > 1) { daysPassed = -1; newHour = 24 + newHour; } else newHour = 0; }
     setCurrentHour(newHour); setCurrentDay(prev => prev + daysPassed);
   }
 
+  // --- ДВИЖОК ПОСЛЕДСТВИЙ ---
   const handleUpdateQuestStatusGlobal = (nodeId: string, questId: string, newStatus: string) => {
+    const isTerminal = newStatus === 'completed' || newStatus === 'failed';
+
     setNodes(nds => nds.map(n => {
       if (n.id === nodeId) {
         const updatedQuests = n.data.quests.map((q: any) => {
           if (q.id === questId) {
-            const startDay = (newStatus === 'active' && q.status !== 'active' && !q.startDay) 
-              ? currentDay 
-              : q.startDay;
+            const startDay = (newStatus === 'active' && q.status !== 'active' && !q.startDay) ? currentDay : q.startDay;
             return { ...q, status: newStatus, startDay }
           }
           return q
         })
-        return { ...n, data: { ...n.data, quests: updatedQuests } }
+        
+        const needsUpdate = isTerminal ? true : n.data.needsUpdate;
+        
+        return { ...n, data: { ...n.data, quests: updatedQuests, needsUpdate } }
       }
       return n
     }))
+
+    if (isTerminal) {
+      setLibrary(prev => ({
+        ...prev,
+        npcs: prev.npcs.map(npc => 
+          npc.locationId === nodeId ? { ...npc, needsUpdate: true } : npc
+        )
+      }))
+    }
+  }
+
+  const clearNeedsUpdate = (type: 'node' | 'npc', targetId: string) => {
+    if (type === 'node') {
+      setNodes(nds => nds.map(n => n.id === targetId ? { ...n, data: { ...n.data, needsUpdate: false } } : n))
+    } else if (type === 'npc') {
+      setLibrary(prev => ({
+        ...prev,
+        npcs: prev.npcs.map(npc => npc.id === targetId ? { ...npc, needsUpdate: false } : npc)
+      }))
+    }
   }
 
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), [])
@@ -96,13 +138,9 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
     setNodes((nds) => [...nds, newNode])
   }
 
-  const updateNodeData = (nodeId: string, field: string, value: any) => { 
-    setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, [field]: value } } : n)) 
-  }
+  const updateNodeData = (nodeId: string, field: string, value: any) => { setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, [field]: value } } : n)) }
   
-  const updateLibrary = (category: string, items: any[]) => { 
-    setLibrary(prev => ({ ...prev, [category]: items })) 
-  }
+  const updateLibrary = (category: string, items: any[]) => { setLibrary(prev => ({ ...prev, [category]: items })) }
   
   const placeOnMap = (entity: any, category: string) => {
     if (category === 'locations') {
@@ -112,24 +150,7 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
         data: { label: entity.name, description: entity.description || '', entityId: entity.id, npcs: '', quests: [], secrets: '', loot: '' }
       }
       setNodes(nds => [...nds, newNode])
-    } 
-    else if (category === 'npcs') {
-      if (!selectedNodeId) { alert('Сначала выберите локацию на карте!'); return; }
-      const updatedNpcs = library.npcs.map((npc: any) => npc.id === entity.id ? { ...npc, locationId: selectedNodeId } : npc)
-      updateLibrary('npcs', updatedNpcs)
-      alert(`Персонаж "${entity.name}" прибыл в локацию!`)
-    } 
-    else if (category === 'quests') {
-      if (!selectedNodeId) { alert('Сначала выберите локацию на карте!'); return; }
-      setNodes(nds => nds.map(n => {
-        if (n.id === selectedNodeId) {
-          const currentQuests = Array.isArray(n.data.quests) ? n.data.quests : []
-          const newQuest = { id: `quest-${Date.now()}`, title: entity.name, hook: entity.description || '', description: '', giver: '', deadline: 3, startDay: null, status: 'available', reward: '', consequence: '' }
-          return { ...n, data: { ...n.data, quests: [...currentQuests, newQuest] } }
-        }
-        return n
-      }))
-      alert(`Квест "${entity.name}" добавлен в локацию!`)
+      setViewMode('map')
     }
   }
 
@@ -146,22 +167,9 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
     setMenu({ id: node.id, x: event.clientX - pane.left, y: event.clientY - pane.top, overRegions })
   }, [nodes])
 
-  // ВОТ ЭТИ ФУНКЦИИ Я СЛУЧАЙНО "ОБРЕЗАЛ" В ПРОШЛЫЙ РАЗ:
-  const changeNodeType = (id: string, newType: string) => {
-    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, type: newType, style: newType === 'region' ? { width: 500, height: 400, zIndex: -1 } : {} } : n))
-    setMenu(null)
-  }
-  
-  const attachToParent = (childId: string, parentId: string | null) => {
-    setNodes((nds) => nds.map((n) => n.id === childId ? { ...n, parentId: parentId || undefined, extent: parentId ? 'parent' : undefined } : n))
-    setMenu(null)
-  }
-  
-  const deleteNode = (id: string) => { 
-    setNodes(nds => nds.filter(n => n.id !== id))
-    setEdges(eds => eds.filter(e => e.source !== id && e.target !== id))
-    setMenu(null) 
-  }
+  const changeNodeType = (id: string, newType: string) => { setNodes((nds) => nds.map((n) => n.id === id ? { ...n, type: newType, style: newType === 'region' ? { width: 500, height: 400, zIndex: -1 } : {} } : n)); setMenu(null) }
+  const attachToParent = (childId: string, parentId: string | null) => { setNodes((nds) => nds.map((n) => n.id === childId ? { ...n, parentId: parentId || undefined, extent: parentId ? 'parent' : undefined } : n)); setMenu(null) }
+  const deleteNode = (id: string) => { setNodes(nds => nds.filter(n => n.id !== id)); setEdges(eds => eds.filter(e => e.source !== id && e.target !== id)); setMenu(null); }
 
   if (isLoading) return <div className="h-screen bg-zinc-950 flex items-center justify-center text-zinc-500 font-mono text-xs uppercase tracking-widest">Loading World...</div>
 
@@ -175,9 +183,27 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
       />
 
       <div className="flex-1 flex relative">
-        <EntityArchive library={library} onUpdateLibrary={updateLibrary} onPlaceOnMap={placeOnMap} />
+        
+        {/* РЕНДЕРИНГ 5 ВЗГЛЯДОВ (РЕЖИМОВ) */}
 
-        {viewMode === 'map' ? (
+        {viewMode === 'archive' && (
+          <ArchiveBoard library={library} onUpdateLibrary={updateLibrary} onPlaceOnMap={placeOnMap} nodes={nodes} />
+        )}
+
+        {viewMode === 'kanban' && (
+          <KanbanBoard nodes={nodes} currentDay={currentDay} onUpdateQuestStatus={handleUpdateQuestStatusGlobal} />
+        )}
+
+        {viewMode === 'calendar' && (
+          <CalendarBoard nodes={nodes} currentDay={currentDay} currentHour={currentHour} onTimeChange={handleTimeAdvance} />
+        )}
+
+        {/* НОВЫЙ БЛОК: СЦЕНАРИЙ (StoryBoard) */}
+        {viewMode === 'story' && (
+          <StoryBoard storyData={story} onChange={setStory} />
+        )}
+
+        {viewMode === 'map' && (
           <>
             <div className="w-16 border-r border-zinc-900 bg-zinc-950/80 flex flex-col items-center py-6 gap-6 z-20 shrink-0">
               <button onClick={() => addNewNode('safe')} className="w-8 h-8 rounded-full border border-emerald-500/50 bg-emerald-500/10 hover:border-emerald-500 transition-colors" title="Безопасно" />
@@ -208,15 +234,10 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
                  selectedNode={nodes.find(n => n.id === selectedNodeId)} nodes={nodes} library={library} 
                  onUpdateLibrary={updateLibrary} onClose={() => setSelectedNodeId(null)} 
                  onUpdateNode={updateNodeData} currentDay={currentDay}
+                 onClearUpdate={clearNeedsUpdate}
                />
             )}
           </>
-        ) : (
-          <KanbanBoard 
-            nodes={nodes} 
-            currentDay={currentDay} 
-            onUpdateQuestStatus={handleUpdateQuestStatusGlobal} 
-          />
         )}
       </div>
     </div>

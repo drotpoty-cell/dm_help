@@ -31,33 +31,77 @@ export default function HubPage() {
     fetchCampaigns()
   }, [router, supabase])
 
+  // --- ОБНОВЛЕННАЯ ФУНКЦИЯ СОЗДАНИЯ ---
   const createCampaign = async () => {
     const name = window.prompt('Название новой кампании:')
     if (!name || name.trim() === '') return
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    // Включаем индикатор загрузки, пока база думает
+    setIsLoading(true)
 
-    const { data, error } = await supabase
-      .from('campaigns')
-      .insert([{ name, user_id: user.id }])
-      .select()
-      .single()
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert("Ошибка: Вы не авторизованы!")
+        setIsLoading(false)
+        return
+      }
 
-    if (data) setCampaigns([data, ...campaigns])
+      // Базовая пустая структура для новой игры (ЭТО ОЧЕНЬ ВАЖНО)
+      const initialMapData = {
+        nodes: [],
+        edges: [],
+        currentDay: 1,
+        currentHour: 8,
+        library: { npcs: [], quests: [], locations: [], secrets: [], loot: [], events: [] }
+      }
+
+      console.log("Попытка создания кампании:", name)
+
+      const { data, error } = await supabase
+        .from('campaigns')
+        .insert([{ 
+          name: name, 
+          user_id: user.id,
+          map_data: initialMapData // Сразу закладываем пустой мир
+        }])
+        .select()
+        .single()
+
+      if (error) {
+        console.error("Ошибка Supabase при создании:", error)
+        alert(`Ошибка базы данных: ${error.message}`)
+      } else if (data) {
+        console.log("Кампания успешно создана:", data)
+        setCampaigns(prev => [data, ...prev])
+      }
+    } catch (err) {
+      console.error("Непредвиденная ошибка:", err)
+      alert("Произошла системная ошибка при создании кампании.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const deleteCampaign = async (e: React.MouseEvent, id: string, name: string) => {
-    e.stopPropagation() // Останавливаем клик, чтобы не открыть кампанию
+    e.stopPropagation();
     
-    // Защита от случайного удаления
-    if (window.confirm(`Вы уверены, что хотите навсегда удалить кампанию "${name}"? Все локации и квесты будут стерты.`)) {
-      const { error } = await supabase.from('campaigns').delete().eq('id', id)
+    if (window.confirm(`Вы уверены, что хотите удалить "${name}"?`)) {
+      console.log("Попытка удаления кампании с ID:", id);
       
-      if (!error) {
-        setCampaigns(campaigns.filter(c => c.id !== id))
+      // Выполняем реальное удаление в базе
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error("Ошибка Supabase при удалении:", error.message);
+        alert(`Ошибка базы данных: ${error.message}. Проверьте политики RLS!`);
       } else {
-        alert('Ошибка при удалении: ' + error.message)
+        console.log("Удаление успешно подтверждено базой.");
+        // Только если база подтвердила удаление, убираем из списка на экране
+        setCampaigns(prev => prev.filter(c => c.id !== id));
       }
     }
   }
