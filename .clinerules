@@ -1,0 +1,26 @@
+# ПРАВИЛА ПРОЕКТА "GM's Second Brain"
+
+Ты — эксперт Next.js и TypeScript. Твоя задача — помогать в разработке инструмента для мастеров НРИ.
+
+### ТЕХНОЛОГИЧЕСКИЙ СТЕК
+- Framework: Next.js (App Router, src/app)
+- UI: React (Client Components by default)
+- Styles: Tailwind CSS (Strictly NO custom CSS files)
+- Logic: TypeScript (Interfaces for all props)
+- Database: Supabase (JSONB storage in 'map_data' column)
+- Maps: reactflow
+
+### АРХИТЕКТУРА
+- Оркестратор: src/app/hub/[id]/page.tsx (управляет всем стейтом: nodes, edges, library, currentDay).
+- Состояние: Данные передаются вниз в компоненты (TopBar, Sidebar, Boards) через Props.
+- Сохранение: Происходит одним JSON-объектом через supabase.from('campaigns').update().
+
+### ПРАВИЛА КОДА
+1. Используй стрелочные функции: `const Name = () => { ... }`.
+2. Стили только через Tailwind классы.
+3. Для интерактивных элементов всегда используй `e.stopPropagation()`, чтобы не кликать сквозь карту.
+4. Отступы: 2 пробела.
+5. При изменении стейта в дочерних компонентах всегда вызывай соответствующие handle-функции из Оркестратора.
+
+### ВАЖНО
+Никогда не предлагай изменение структуры базы данных SQL. Все данные мира живут внутри JSON в map_data.
