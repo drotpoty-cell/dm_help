@@ -9,6 +9,12 @@ export default function HubPage() {
   const supabase = createClient()
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Состояние для модалки создания
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [newCampaignName, setNewCampaignName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchCampaigns = async () => {
@@ -18,7 +24,6 @@ export default function HubPage() {
         return
       }
 
-      // Получаем кампании, сортируем новые сверху
       const { data } = await supabase
         .from('campaigns')
         .select('*')
@@ -31,147 +36,204 @@ export default function HubPage() {
     fetchCampaigns()
   }, [router, supabase])
 
-  // --- ОБНОВЛЕННАЯ ФУНКЦИЯ СОЗДАНИЯ ---
   const createCampaign = async () => {
-    const name = window.prompt('Название новой кампании:')
-    if (!name || name.trim() === '') return
-
-    // Включаем индикатор загрузки, пока база думает
-    setIsLoading(true)
+    if (!newCampaignName.trim()) return
+    setCreating(true)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        alert("Ошибка: Вы не авторизованы!")
-        setIsLoading(false)
-        return
-      }
+      if (!user) return
 
-      // Базовая пустая структура для новой игры (ЭТО ОЧЕНЬ ВАЖНО)
+      // Стартовый контент, чтобы убить страх белого листа
       const initialMapData = {
-        nodes: [],
+        nodes: [
+          {
+            id: 'node-start',
+            type: 'safe',
+            position: { x: 400, y: 300 },
+            data: { label: 'Стартовая Таверна', description: 'Место, где всё начинается...', entityId: 'ent-start-loc' }
+          }
+        ],
         edges: [],
         currentDay: 1,
-        currentHour: 8,
-        library: { npcs: [], quests: [], locations: [], secrets: [], loot: [], events: [] }
+        currentHour: 12,
+        library: { 
+          npcs: [{ id: 'ent-start-npc', name: 'Старый Трактирщик', occupation: 'Информатор', description: 'Знает всё о местных слухах.' }], 
+          quests: [], 
+          locations: [{ id: 'ent-start-loc', name: 'Стартовая Таверна', description: 'Уютное место с запахом эля и жареного мяса.' }], 
+          secrets: [], 
+          loot: [], 
+          events: [] 
+        },
+        story: [{ id: 'part-1', title: 'Акт I: Пробуждение', chapters: [] }],
+        scratchpad: "# Заметки мастера\nЗдесь можно писать быстрые идеи во время игры."
       }
-
-      console.log("Попытка создания кампании:", name)
 
       const { data, error } = await supabase
         .from('campaigns')
         .insert([{ 
-          name: name, 
+          name: newCampaignName, 
           user_id: user.id,
-          map_data: initialMapData // Сразу закладываем пустой мир
+          map_data: initialMapData
         }])
         .select()
         .single()
 
-      if (error) {
-        console.error("Ошибка Supabase при создании:", error)
-        alert(`Ошибка базы данных: ${error.message}`)
-      } else if (data) {
-        console.log("Кампания успешно создана:", data)
+      if (data) {
         setCampaigns(prev => [data, ...prev])
+        setIsModalOpen(false)
+        setNewCampaignName('')
+        // Можно сразу редиректнуть в новую кампанию
+        router.push(`/hub/${data.id}`)
       }
     } catch (err) {
-      console.error("Непредвиденная ошибка:", err)
-      alert("Произошла системная ошибка при создании кампании.")
+      console.error(err)
     } finally {
-      setIsLoading(false)
+      setCreating(false)
     }
   }
 
-  const deleteCampaign = async (e: React.MouseEvent, id: string, name: string) => {
+  const deleteCampaign = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    
-    if (window.confirm(`Вы уверены, что хотите удалить "${name}"?`)) {
-      console.log("Попытка удаления кампании с ID:", id);
-      
-      // Выполняем реальное удаление в базе
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error("Ошибка Supabase при удалении:", error.message);
-        alert(`Ошибка базы данных: ${error.message}. Проверьте политики RLS!`);
-      } else {
-        console.log("Удаление успешно подтверждено базой.");
-        // Только если база подтвердила удаление, убираем из списка на экране
-        setCampaigns(prev => prev.filter(c => c.id !== id));
-      }
+    const { error } = await supabase.from('campaigns').delete().eq('id', id);
+    if (!error) {
+      setCampaigns(prev => prev.filter(c => c.id !== id));
+      setDeletingId(null);
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth')
-  }
-
-  if (isLoading) return <div className="h-screen bg-zinc-950 flex items-center justify-center text-zinc-500">Загрузка Хаба...</div>
+  if (isLoading) return <div className="h-screen bg-[#050505] flex items-center justify-center text-zinc-500 font-mono text-xs uppercase tracking-[0.3em] animate-pulse">Initializing Hub...</div>
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-200 p-8">
-      <div className="max-w-6xl mx-auto flex flex-col gap-8">
+    <div className="min-h-screen bg-[#050505] text-zinc-200 p-8 md:p-12 selection:bg-indigo-500/30">
+      <div className="max-w-6xl mx-auto">
         
-        {/* Шапка Хаба */}
-        <div className="flex justify-between items-center border-b border-zinc-800 pb-6">
+        {/* HEADER */}
+        <div className="flex justify-between items-start mb-16">
           <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">GM's Second Brain</h1>
-            <p className="text-zinc-500 text-sm mt-1">Управление кампаниями</p>
+            <h1 className="text-4xl font-black text-white tracking-tighter mb-2 bg-gradient-to-r from-white to-zinc-500 bg-clip-text text-transparent">
+              MY WORLDS
+            </h1>
+            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+              {campaigns.length} активных вселенных
+            </p>
           </div>
           <button 
-            onClick={handleLogout}
-            className="text-zinc-500 hover:text-red-400 text-sm font-semibold transition-colors"
+            onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
+            className="px-4 py-2 rounded-lg border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-all text-[10px] font-black uppercase tracking-widest"
           >
-            Выйти
+            Выход
           </button>
         </div>
 
-        {/* Сетка кампаний */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           
-          {/* Кнопка создания новой */}
+          {/* CREATE CARD */}
           <div 
-            onClick={createCampaign}
-            className="h-48 rounded-xl border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center text-zinc-500 hover:border-indigo-500 hover:text-indigo-400 transition-colors cursor-pointer bg-zinc-900/20 hover:bg-indigo-950/10"
+            onClick={() => setIsModalOpen(true)}
+            className="group h-64 rounded-2xl border-2 border-dashed border-zinc-900 bg-zinc-900/10 flex flex-col items-center justify-center transition-all cursor-pointer hover:border-indigo-500/50 hover:bg-indigo-500/5 relative overflow-hidden"
           >
-            <span className="text-3xl mb-2">+</span>
-            <span className="font-bold uppercase tracking-widest text-xs">Новая кампания</span>
+            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-2xl text-zinc-500 group-hover:scale-110 group-hover:text-indigo-400 group-hover:border-indigo-500/50 transition-all mb-4">
+              +
+            </div>
+            <span className="font-black uppercase tracking-[0.2em] text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">
+              Создать новую историю
+            </span>
           </div>
 
-          {/* Список существующих */}
+          {/* CAMPAIGN CARDS */}
           {campaigns.map((campaign) => (
             <div 
               key={campaign.id}
               onClick={() => router.push(`/hub/${campaign.id}`)}
-              className="h-48 rounded-xl border border-zinc-800 bg-zinc-900 p-6 flex flex-col justify-between cursor-pointer hover:border-zinc-600 transition-all group relative overflow-hidden"
+              className="group h-64 rounded-2xl border border-zinc-900 bg-zinc-900/40 p-8 flex flex-col justify-between cursor-pointer hover:border-indigo-500/40 hover:translate-y-[-4px] transition-all relative overflow-hidden shadow-2xl"
             >
+              <div className="absolute top-0 right-0 p-6">
+                <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+              </div>
+
               <div>
-                <h2 className="text-xl font-bold text-white mb-2">{campaign.name}</h2>
-                <p className="text-xs text-zinc-500 font-mono">ID: {campaign.id.substring(0,8)}</p>
+                <h2 className="text-2xl font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors">{campaign.name}</h2>
+                <div className="flex gap-4">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-zinc-600 uppercase">Локации</span>
+                        <span className="text-xs font-mono text-zinc-400">{campaign.map_data?.nodes?.length || 0}</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-zinc-600 uppercase">День</span>
+                        <span className="text-xs font-mono text-zinc-400">{campaign.map_data?.currentDay || 1}</span>
+                    </div>
+                </div>
               </div>
               
-              <div className="text-xs font-bold uppercase tracking-widest text-indigo-500">
-                Открыть рабочую область →
+              <div className="flex justify-between items-center pt-6 border-t border-zinc-800/50">
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                  Войти в сознание →
+                </span>
+                
+                {/* Инлайн-подтверждение удаления */}
+                {deletingId === campaign.id ? (
+                  <button
+                    onClick={(e) => deleteCampaign(e, campaign.id)}
+                    onMouseLeave={() => setDeletingId(null)}
+                    className="absolute top-4 right-4 text-[9px] font-black uppercase tracking-widest text-white bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded transition-all shadow-[0_0_15px_rgba(220,38,38,0.5)] z-10"
+                  >
+                    Сжечь мир?
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeletingId(campaign.id); }}
+                    className="absolute top-4 right-4 text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-2 z-10"
+                    title="Удалить кампанию"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
-
-              {/* Кнопка удаления (появляется при наведении) */}
-              <button
-                onClick={(e) => deleteCampaign(e, campaign.id, campaign.name)}
-                className="absolute top-4 right-4 text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-2"
-                title="Удалить кампанию"
-              >
-                ✕
-              </button>
             </div>
           ))}
-
         </div>
       </div>
+
+      {/* MODAL CREATE */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-sm bg-black/60">
+          <div className="bg-zinc-950 border border-zinc-800 w-full max-w-md rounded-3xl p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+            <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-6">Создание новой вселенной</h3>
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Название кампании</label>
+                <input 
+                  autoFocus
+                  value={newCampaignName}
+                  onChange={(e) => setNewCampaignName(e.target.value)}
+                  placeholder="Напр: Тени Фандалина"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                >
+                  Отмена
+                </button>
+                <button 
+                  onClick={createCampaign}
+                  disabled={creating || !newCampaignName}
+                  className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  {creating ? 'Создание...' : 'Сотворить Мир'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,81 +1,126 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 
 interface TopBarProps {
   campaignId: string
   day: number
   hour: number
-  // 1. Добавили 'story' в типы
-  viewMode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story' 
-  onViewChange: (mode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story') => void
+  viewMode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story' | 'weather'
+  onViewChange: (mode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story' | 'weather') => void
   onTimeChange: (hours: number) => void
   onSave: () => void
+  onSettingsOpen: () => void
   isSaving: boolean
 }
 
-export default function TopBar({ campaignId, day, hour, viewMode, onViewChange, onTimeChange, onSave, isSaving }: TopBarProps) {
-  const router = useRouter()
+// Вспомогательная функция для иконок погоды (минималистичные SVG)
+const getWeatherIcon = (condition: string) => {
+  switch(condition) {
+    case 'Ясно': return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42 1.42"/></svg>;
+    case 'Облачно': return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
+    case 'Дождь': return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>;
+    case 'Гроза': return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>;
+    case 'Снег': return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-200"><path d="M20 12h-6M4 12h6M12 20v-6M12 4v6M17.5 17.5l-4-4M6.5 6.5l 4 4M17.5 6.5l-4-4M6.5 17.5l 4-4"/></svg>;
+    default: return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
+  }
+}
+
+export default function TopBar({ campaignId, day, hour, viewMode, onViewChange, onTimeChange, onSave, onSettingsOpen, isSaving }: TopBarProps) {
+  const weather = useWorkspaceStore(state => state.weather)
+  
   const formattedHour = hour.toString().padStart(2, '0') + ':00'
+  const isDaytime = hour >= 6 && hour < 18
+
+  const navItems = [
+    { id: 'map', label: 'Карта' },
+    { id: 'kanban', label: 'Сюжеты' },
+    { id: 'calendar', label: 'Календарь' },
+    { id: 'archive', label: 'Архив' },
+    { id: 'story', label: 'Сценарий' },
+    { id: 'weather', label: 'Экология' }, // НАШ НОВЫЙ ПУНКТ
+  ]
 
   return (
-    <div className="h-14 border-b border-zinc-900 bg-zinc-950 flex items-center px-6 justify-between z-20 shrink-0">
-      <div className="flex items-center gap-6">
-        <button onClick={() => router.push('/hub')} className="text-zinc-500 hover:text-zinc-200 text-sm font-bold uppercase tracking-widest transition-colors">← Хаб</button>
-        <div className="h-4 w-px bg-zinc-800"></div>
+    <div className="h-16 bg-zinc-950 border-b border-zinc-900 flex items-center justify-between px-6 z-30 shrink-0 relative">
+      
+      {/* ЛЕВАЯ ЧАСТЬ: Навигация */}
+      <div className="flex gap-1">
+        {navItems.map(item => (
+          <button 
+            key={item.id}
+            onClick={() => onViewChange(item.id as any)} 
+            className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              viewMode === item.id 
+                ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' 
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 border border-transparent'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ЦЕНТР: Время и Погода */}
+      <div className="flex items-center bg-zinc-950/80 rounded-2xl border border-zinc-800/60 shadow-[0_4px_20px_rgba(0,0,0,0.5)] p-1.5 backdrop-blur-md">
         
-        {/* ПЕРЕКЛЮЧАТЕЛЬ 5-ТИ РЕЖИМОВ */}
-        <div className="flex bg-zinc-900/50 rounded-md p-1 border border-zinc-800">
-          <button 
-            onClick={() => onViewChange('archive')} 
-            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'archive' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-          >
-            База Данных (Лор)
-          </button>
-          <button 
-            onClick={() => onViewChange('map')} 
-            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'map' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-          >
-            Карта Мира
-          </button>
-          <button 
-            onClick={() => onViewChange('kanban')} 
-            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'kanban' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-          >
-            Сюжеты
-          </button>
-          <button 
-            onClick={() => onViewChange('calendar')} 
-            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'calendar' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-          >
-            Календарь
-          </button>
-          {/* 2. НОВАЯ КНОПКА СЦЕНАРИЯ */}
-          <button 
-            onClick={() => onViewChange('story')} 
-            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded transition-all ${viewMode === 'story' ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-          >
-            Сценарий
-          </button>
+        {/* Минус время */}
+        <div className="flex gap-1 pr-4 border-r border-zinc-800/50">
+          <button onClick={() => onTimeChange(-8)} className="w-8 h-8 rounded-xl hover:bg-red-500/10 transition-all text-zinc-600 hover:text-red-400 font-black text-[11px]">-8</button>
+          <button onClick={() => onTimeChange(-1)} className="w-8 h-8 rounded-xl hover:bg-orange-500/10 transition-all text-zinc-600 hover:text-orange-400 font-black text-[11px]">-1</button>
         </div>
 
-        <div className="h-4 w-px bg-zinc-800"></div>
+        {/* Инфо-блок */}
+        <div className="flex flex-col items-center justify-center px-6 min-w-[160px]">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-0.5">
+            <div className="flex items-center gap-1.5">
+              {isDaytime 
+                ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="text-amber-400"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="text-indigo-400"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              }
+              <span>День {day}</span>
+            </div>
 
-        <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-md border border-zinc-800/80">
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-2 mr-2">Время</span>
-          <button onClick={() => onTimeChange(-1)} className="px-2 py-1 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded text-xs transition-colors">-1ч</button>
-          <div className="px-3 text-center flex gap-2 items-center">
-            <span className="text-zinc-300 font-mono font-bold text-xs">День {day}</span>
-            <span className="text-indigo-400 font-mono font-bold text-sm">{formattedHour}</span>
+            {/* ПОКАЗЫВАЕМ ПОГОДУ ТОЛЬКО ЕСЛИ ОНА ВКЛЮЧЕНА */}
+            {weather.mode !== 'disabled' && (
+              <>
+                <div className="w-px h-3 bg-zinc-800 mx-1"></div>
+                <div className="flex items-center gap-1.5 text-zinc-400">
+                  {getWeatherIcon(weather.condition)}
+                  <span>{weather.temp}°C</span>
+                </div>
+              </>
+            )}
           </div>
-          <button onClick={() => onTimeChange(1)} className="px-2 py-1 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded text-xs transition-colors">+1ч</button>
-          <button onClick={() => onTimeChange(8)} className="px-2 py-1 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded text-xs transition-colors">+8ч</button>
+          <div className="text-2xl font-black text-indigo-400 tracking-widest leading-none drop-shadow-[0_0_12px_rgba(99,102,241,0.4)] mt-0.5">
+            {formattedHour}
+          </div>
+        </div>
+
+        {/* Плюс время */}
+        <div className="flex gap-1.5 pl-4 border-l border-zinc-800/50">
+          <button onClick={() => onTimeChange(1)} className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-indigo-500/15 text-zinc-400 hover:text-indigo-300 border border-zinc-800 text-[10px] font-black transition-all">+1ч</button>
+          <button onClick={() => onTimeChange(8)} className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-indigo-500/15 text-zinc-400 hover:text-indigo-300 border border-zinc-800 text-[10px] font-black transition-all">+8ч</button>
         </div>
       </div>
 
-      <button onClick={onSave} className="bg-zinc-200 text-zinc-950 px-5 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all shadow-lg shadow-zinc-200/5">
-        {isSaving ? 'Синхронизация...' : 'Сохранить мир'}
-      </button>
+      {/* Кнопка сохранения */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onSettingsOpen}
+          className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-all"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button 
+          onClick={onSave} 
+          disabled={isSaving}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-500 border border-emerald-500/30 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+        >
+          Сохранить
+        </button>
+      </div>
+      
     </div>
   )
 }

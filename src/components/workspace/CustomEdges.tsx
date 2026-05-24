@@ -1,10 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow } from 'reactflow'
+import { BaseEdge, EdgeLabelRenderer, getBezierPath } from 'reactflow'
+import { useWorkspaceStore } from '@/store/useWorkspaceStore' // Подключили наш стор
 
 export default function TravelEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, markerEnd, data }: any) {
-  const { setEdges } = useReactFlow()
+  // Вытягиваем глобальные данные и функции вместо локального useReactFlow
+  const edges = useWorkspaceStore(state => state.edges)
+  const setEdges = useWorkspaceStore(state => state.setEdges)
+  const updateEdgeData = useWorkspaceStore(state => state.updateEdgeData)
+  
   const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
 
   // Локальные состояния для инлайн-редактирования
@@ -16,16 +21,16 @@ export default function TravelEdge({ id, sourceX, sourceY, targetX, targetY, sou
   const onDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
     if(window.confirm('Удалить эту дорогу?')) {
-      setEdges((eds) => eds.filter((e) => e.id !== id))
+      // Удаляем дорогу прямо из глобального стора
+      setEdges(edges.filter((edge) => edge.id !== id))
     }
   }
 
   // Сохранение времени и выход из режима редактирования
   const onSave = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setEdges((eds) => eds.map((edge) => 
-      edge.id === id ? { ...edge, data: { ...edge.data, days: editDays, hours: editHours } } : edge
-    ))
+    // Обновляем данные через стор
+    updateEdgeData(id, { days: editDays, hours: editHours })
     setIsEditing(false)
   }
 
@@ -59,7 +64,7 @@ export default function TravelEdge({ id, sourceX, sourceY, targetX, targetY, sou
         >
           {isEditing ? (
             
-            /* --- КРАСИВАЯ ФОРМА ВВОДА (Вместо prompt) --- */
+            /* --- КРАСИВАЯ ФОРМА ВВОДА --- */
             <div 
               className="bg-zinc-950/90 backdrop-blur-md border border-indigo-500/50 shadow-2xl rounded-lg p-2.5 flex gap-3 items-center" 
               onClick={(e) => e.stopPropagation()}
