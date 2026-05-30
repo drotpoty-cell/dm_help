@@ -15,7 +15,7 @@ import { NpcForm } from '@/components/workspace/archive/NpcForm'
 import { QuestForm } from '@/components/workspace/archive/QuestForm'
 import { LootForm } from '@/components/workspace/archive/LootForm'
 import { EventForm } from '@/components/workspace/archive/EventForm'
-import { LocationForm } from '@/components/workspace/archive/LocationForm'
+import { LocationForm } from '@/components/workspace/archive/LocationForm' // <-- ВОТ ЭТОТ ИМПОРТ МЫ ПОТЕРЯЛИ
 import LootGeneratorModal from '@/components/workspace/ai/LootGeneratorModal'
 import { toast } from 'sonner'
 import EntityCard from './archive/EntityCard'
