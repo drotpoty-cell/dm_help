@@ -10,8 +10,7 @@ export async function POST(req: Request) {
     const normalizedProvider = String(provider || '').toLowerCase().trim();
     const cleanModel = String(model || '').trim().replace(/^models\//, '');
     
-    // ПЛАН Б: Сначала берем секретный ключ из переменных окружения Vercel (процесс на сервере).
-    // Если его там нет, берем то, что пришло из браузера (для локальной разработки).
+    // ПЛАН Б: Берем ключ из секретных переменных сервера Vercel
     const serverKey = process.env.OPENROUTER_API_KEY;
     const clientKey = String(body.apiKey || '').replace(/[\r\n\s"']/g, '');
     const safeApiKey = serverKey || clientKey;
@@ -24,10 +23,21 @@ export async function POST(req: Request) {
     });
 
     if (!safeApiKey) {
-      return NextResponse.json({ error: 'API ключ не найден ни на сервере, ни в запросе' }, { status: 401 });
+      return NextResponse.json({ error: 'API ключ не найден на сервере' }, { status: 401 });
     }
 
-    const combinedText = `[SYSTEM INSTRUCTION]\n${systemPrompt || ''}\n\n[CONTEXT]\n${context || 'Нет контекста'}\n\n[USER REQUEST]\n${prompt}`;
+    // Формируем железобетонную системную инструкцию прямо на бэкенде
+    const baseSystemPrompt = systemPrompt || 'Ты — креативный помощник Мастера Подземелий D&D 5e.';
+    const strictRules = `
+УСТАНОВКА ДЛЯ ИИ:
+1. Сгенерируй ОДИН вариант готового художественного текста для карточки.
+2. Объём текста должен быть строго в пределах 20-30 слов (коротко, ёмко и атмосферно).
+3. Полностью сопоставь и используй все известные данные из предоставленного контекста карточки (JSON данные персонажа/локации).
+4. Если пользователь передал конкретный запрос (USER REQUEST), адаптируй текст и стилистику под это пожелание. Если запрос пустой — просто сделай сочное художественное описание на основе карточки.
+5. Выведи ТОЛЬКО чистый итоговый текст. Никаких кавычек на всю строку, никаких вводных слов ("Вот ваше описание:", "Вариант:"), никаких пояснений и списков.
+`;
+
+    const combinedText = `[SYSTEM INSTRUCTION]\n${baseSystemPrompt}\n${strictRules}\n\n[CARD CONTEXT (ДАННЫЕ ИЗ КАРТОЧКИ)]\n${context || 'Нет данных'}\n\n[USER REQUEST (ДОПОЛНИТЕЛЬНЫЙ ЗАПРОС)]\n${prompt || 'Просто сделай красивое описание на основе всей карточки'}`;
 
     let url = '';
     let headers: Record<string, string> = {
@@ -48,7 +58,8 @@ export async function POST(req: Request) {
       
       fetchBody = { 
         model: cleanModel, 
-        messages: [{ role: 'user', content: combinedText }] 
+        messages: [{ role: 'user', content: combinedText }],
+        max_tokens: 1000 // Решает проблему лимита кредитов (MORE CREDITS ERROR)
       };
     } 
     else {
@@ -70,9 +81,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: errorMessage }, { status: res.status });
     }
 
-    const text = normalizedProvider === 'gemini' 
+    let text = normalizedProvider === 'gemini' 
       ? data.candidates?.[0]?.content?.parts?.[0]?.text 
       : data.choices?.[0]?.message?.content;
+
+    if (text) {
+      // Подчищаем случайные кавычки, которые ИИ по привычке может поставить в начале и конце
+      text = text.trim().replace(/^["']|["']$/g, '');
+    }
 
     return NextResponse.json({ text: text || 'Пустой ответ от ИИ' });
   } catch (error: any) {
