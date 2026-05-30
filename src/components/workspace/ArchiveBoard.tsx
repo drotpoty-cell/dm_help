@@ -15,6 +15,7 @@ import { NpcForm } from '@/components/workspace/archive/NpcForm'
 import { QuestForm } from '@/components/workspace/archive/QuestForm'
 import { LootForm } from '@/components/workspace/archive/LootForm'
 import { EventForm } from '@/components/workspace/archive/EventForm'
+import { LocationForm } from '@/components/workspace/archive/LocationForm'
 import LootGeneratorModal from '@/components/workspace/ai/LootGeneratorModal'
 import { toast } from 'sonner'
 import EntityCard from './archive/EntityCard'
@@ -104,7 +105,7 @@ export default function ArchiveBoard() {
       } catch (parseError: any) {
         console.error('Ошибка парсинга JSON:', parseError);
         alert(`Синтаксическая ошибка в файле:\n${parseError.message}`);
-        return;
+        return; 
       }
 
       try {
@@ -190,9 +191,10 @@ export default function ArchiveBoard() {
       const newNode = {
         id: `node-${Date.now()}`, type: 'safe',
         position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-        data: { label: entity.name, description: entity.description || '', entityId: entity.id, quests: [], needsUpdate: false }
+        data: { label: entity.name, description: entity.description || '', entityId: entity.id, quests: [], needsUpdate: false, checks: entity.checks || [] }
       }
       setNodes([...nodes, newNode])
+      toast.success('Локация добавлена на карту!')
     }
   }
 
@@ -287,33 +289,30 @@ export default function ArchiveBoard() {
                     {activeTab === 'loot' && <LootForm loot={entity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', entity.id, data)} />}
                     {activeTab === 'events' && <EventForm event={entity as Event} onUpdate={(data) => updateEntity('events', entity.id, data)} />}
                     {activeTab === 'quests' && <QuestForm quest={entity as Quest} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('quests', entity.id, data)} />}
-                    {!['quests', 'events', 'npcs', 'heroes'].includes(activeTab) && (
+                    {activeTab === 'locations' && <LocationForm location={entity} onUpdate={(data) => updateEntity('locations', entity.id, data)} onPlaceOnMap={() => handlePlaceOnMap(entity)} />}
+                    
+                    {/* Форма для секретов */}
+                    {activeTab === 'secrets' && (
                       <div className="flex flex-col gap-3">
                         <div className="flex justify-between items-center">
                           <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                             {activeTab === 'locations' ? 'Описание локации' : 'Описание / Лор'}
+                            Скрытая информация
                           </label>
                           <AiWand 
-                            mode={activeTab === 'locations' ? 'location' : 'general'}
+                            mode="general"
                             currentValue={entity.description || ''}
                             contextData={entity}
-                            onApply={(text) => updateEntity(activeTab as LibraryCategory, entity.id, { description: text })}
+                            onApply={(text) => updateEntity('secrets', entity.id, { description: text })}
                           />
                         </div>
                         <textarea
                           value={entity.description || ''}
-                          onChange={(e) => updateEntity(activeTab as LibraryCategory, entity.id, { description: e.target.value })}
-                          placeholder={activeTab === 'loot' ? 'Свойства предмета и лор...' : 'Детальное описание (лор)...'}
-                          className={`bg-transparent text-sm text-zinc-400 w-full resize-none outline-none leading-relaxed ${activeTab === 'loot' ? 'h-16' : 'h-24'}`}
+                          onChange={(e) => updateEntity('secrets', entity.id, { description: e.target.value })}
+                          placeholder="Детальное описание секрета..."
+                          className="bg-zinc-950/50 border border-zinc-800 p-3 text-sm text-zinc-300 w-full resize-none outline-none leading-relaxed h-24 rounded-xl focus:border-indigo-500"
                         />
                         <div className="pt-3 border-t border-zinc-800/50">
-                          {activeTab === 'locations' ? (
-                            <button onClick={() => handlePlaceOnMap(entity)} className="w-full py-2 bg-zinc-800 hover:bg-indigo-900/50 hover:text-indigo-300 text-zinc-400 text-[10px] font-bold uppercase tracking-widest rounded transition-colors border border-zinc-700 hover:border-indigo-500/50">
-                              Создать узел на Карте
-                            </button>
-                          ) : (
-                            <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest text-center">Доступно через @Упоминания</div>
-                          )}
+                          <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest text-center">Доступно через @Упоминания в других местах</div>
                         </div>
                       </div>
                     )}
