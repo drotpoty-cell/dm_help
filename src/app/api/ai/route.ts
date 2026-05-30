@@ -1,4 +1,3 @@
-// Эта строчка ЖЕСТКО запрещает Vercel кэшировать ответы этого роута
 export const dynamic = 'force-dynamic'; 
 
 import { NextResponse } from 'next/server';
@@ -11,24 +10,29 @@ export async function POST(req: Request) {
     const normalizedProvider = String(provider || '').toLowerCase().trim();
     const cleanModel = String(model || '').trim().replace(/^models\//, '');
     
-    // Удаляем любые случайные кавычки, невидимые пробелы и переносы
-    const safeApiKey = String(body.apiKey || '').replace(/[\r\n\s"']/g, '');
+    // ПЛАН Б: Сначала берем секретный ключ из переменных окружения Vercel (процесс на сервере).
+    // Если его там нет, берем то, что пришло из браузера (для локальной разработки).
+    const serverKey = process.env.OPENROUTER_API_KEY;
+    const clientKey = String(body.apiKey || '').replace(/[\r\n\s"']/g, '');
+    const safeApiKey = serverKey || clientKey;
     
-    console.log('🤖 ИИ Запрос:', { normalizedProvider, cleanModel, hasKey: !!safeApiKey });
+    console.log('🤖 ИИ Запрос:', { 
+      normalizedProvider, 
+      cleanModel, 
+      hasKey: !!safeApiKey,
+      source: serverKey ? 'vercel-env' : 'browser'
+    });
 
     if (!safeApiKey) {
-      return NextResponse.json({ error: 'API ключ не предоставлен сервером' }, { status: 401 });
+      return NextResponse.json({ error: 'API ключ не найден ни на сервере, ни в запросе' }, { status: 401 });
     }
 
     const combinedText = `[SYSTEM INSTRUCTION]\n${systemPrompt || ''}\n\n[CONTEXT]\n${context || 'Нет контекста'}\n\n[USER REQUEST]\n${prompt}`;
 
     let url = '';
-    
-    // Используем простой объект вместо класса Headers (самый безотказный метод для Node.js)
     let headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
-
     let fetchBody: any = {};
 
     if (normalizedProvider === 'gemini') {
@@ -51,7 +55,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Неизвестный провайдер: ${normalizedProvider}` }, { status: 400 });
     }
 
-    // Отправляем запрос, явно запрещая использовать кэш
     const res = await fetch(url, { 
       method: 'POST', 
       headers, 
