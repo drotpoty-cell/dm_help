@@ -1,3 +1,6 @@
+// Эта строчка ЖЕСТКО запрещает Vercel кэшировать ответы этого роута
+export const dynamic = 'force-dynamic'; 
+
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -8,34 +11,36 @@ export async function POST(req: Request) {
     const normalizedProvider = String(provider || '').toLowerCase().trim();
     const cleanModel = String(model || '').trim().replace(/^models\//, '');
     
-    // ЖЕСТКАЯ ОЧИСТКА КЛЮЧА: удаляем абсолютно все пробелы, переносы строк и невидимые символы
-    const apiKey = String(body.apiKey || '').replace(/[\r\n\s]+/g, '').trim();
+    // Удаляем любые случайные кавычки, невидимые пробелы и переносы
+    const safeApiKey = String(body.apiKey || '').replace(/[\r\n\s"']/g, '');
     
-    console.log('🤖 ИИ Запрос:', { normalizedProvider, cleanModel, hasKey: !!apiKey });
+    console.log('🤖 ИИ Запрос:', { normalizedProvider, cleanModel, hasKey: !!safeApiKey });
 
-    if (!apiKey) {
+    if (!safeApiKey) {
       return NextResponse.json({ error: 'API ключ не предоставлен сервером' }, { status: 401 });
     }
 
     const combinedText = `[SYSTEM INSTRUCTION]\n${systemPrompt || ''}\n\n[CONTEXT]\n${context || 'Нет контекста'}\n\n[USER REQUEST]\n${prompt}`;
 
     let url = '';
-    // Используем строгий класс Headers, который Vercel обрабатывает без ошибок
-    const headers = new Headers();
-    headers.append('Content-Type', 'application/json');
+    
+    // Используем простой объект вместо класса Headers (самый безотказный метод для Node.js)
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
 
     let fetchBody: any = {};
 
     if (normalizedProvider === 'gemini') {
       const baseUrl = process.env.GEMINI_PROXY_URL || 'https://generativelanguage.googleapis.com';
-      url = `${baseUrl}/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
+      url = `${baseUrl}/v1beta/models/${cleanModel}:generateContent?key=${safeApiKey}`;
       fetchBody = { contents: [{ parts: [{ text: combinedText }] }] };
     } 
     else if (normalizedProvider === 'openrouter') {
       url = 'https://openrouter.ai/api/v1/chat/completions';
-      headers.append('Authorization', `Bearer ${apiKey}`);
-      headers.append('HTTP-Referer', process.env.NEXT_PUBLIC_SITE_URL || 'https://dm-help.vercel.app');
-      headers.append('X-Title', 'GM Assistant');
+      headers['Authorization'] = `Bearer ${safeApiKey}`;
+      headers['HTTP-Referer'] = process.env.NEXT_PUBLIC_SITE_URL || 'https://dm-help.vercel.app';
+      headers['X-Title'] = 'GM Assistant';
       
       fetchBody = { 
         model: cleanModel, 
@@ -46,7 +51,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Неизвестный провайдер: ${normalizedProvider}` }, { status: 400 });
     }
 
-    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(fetchBody) });
+    // Отправляем запрос, явно запрещая использовать кэш
+    const res = await fetch(url, { 
+      method: 'POST', 
+      headers, 
+      body: JSON.stringify(fetchBody),
+      cache: 'no-store' 
+    });
+    
     const data = await res.json();
 
     if (!res.ok) {
