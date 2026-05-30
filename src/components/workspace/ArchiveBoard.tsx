@@ -15,7 +15,7 @@ import { NpcForm } from '@/components/workspace/archive/NpcForm'
 import { QuestForm } from '@/components/workspace/archive/QuestForm'
 import { LootForm } from '@/components/workspace/archive/LootForm'
 import { EventForm } from '@/components/workspace/archive/EventForm'
-import { LocationForm } from '@/components/workspace/archive/LocationForm' // <-- ВОТ ЭТОТ ИМПОРТ МЫ ПОТЕРЯЛИ
+import { LocationForm } from '@/components/workspace/archive/LocationForm'
 import LootGeneratorModal from '@/components/workspace/ai/LootGeneratorModal'
 import { toast } from 'sonner'
 import EntityCard from './archive/EntityCard'
@@ -150,11 +150,79 @@ export default function ArchiveBoard() {
 
   const handleDownloadTemplate = () => {
     const template = {
-      heroes: {},
-      npcs: {},
-      quests: {},
-      locations: {},
-      loot: {},
+      _INSTRUCTION_FOR_AI_: "Ты — гениальный Dungeon Master. Твоя задача — сгенерировать глубокий, взаимосвязанный лор для D&D кампании и вернуть его СТРОГО в этом JSON-формате. Не пиши никакого текста до или после JSON. Выдай только чистый код.",
+      _RULES_: [
+        "1. ОБЪЕМ: Сгенерируй минимум 5-7 локаций, 10-15 NPC, 4-5 квестов и 5-10 артефактов (loot).",
+        "2. ЛОКАЦИИ: Обязательно добавь массив checks (проверки навыков, ловушки, секреты) в каждую локацию.",
+        "3. NPC (МАССОВКА И КЛЮЧЕВЫЕ): Если персонаж говорит больше одного предложения или важен для сюжета — он КЛЮЧЕВОЙ (isMajor: true). Для ключевых ОБЯЗАТЕЛЬНО заполни поля: stats, goal, secret, personalLoot, notes. Для массовки (isMajor: false) достаточно имени, профессии и описания.",
+        "4. СВЯЗИ (ВАЖНО!): У каждого NPC и Квеста поле locationId должно строго совпадать с id одной из сгенерированных локаций. Персонажи не должны висеть в пустоте!",
+        "5. ID: Используй понятные ID на английском, например 'loc-tavern', 'npc-blacksmith', 'quest-rats'."
+      ],
+      heroes: {
+        "hero-1": { "id": "hero-1", "name": "Имя Героя", "playerName": "Имя Игрока", "raceClass": "Раса и Класс", "level": 1, "hp": 10, "maxHp": 10, "ac": 10, "initiativeModifier": 0, "passivePerception": 10, "description": "Предыстория" }
+      },
+      locations: {
+        "loc-tavern": {
+          "id": "loc-tavern",
+          "name": "Таверна 'Хромый Гоблин'",
+          "description": "Запах кислого эля и жареного мяса. В углу кто-то тихо бренчит на лютне...",
+          "checks": [
+             { "id": "chk-1", "skill": "Внимательность", "dc": 14, "passText": "Под одним из столов вы замечаете кровавый след.", "failText": "Вы ничего не замечаете из-за густого дыма." }
+          ]
+        }
+      },
+      npcs: {
+        "npc-bartender": {
+          "id": "npc-bartender",
+          "name": "Гаррак",
+          "occupation": "Трактирщик",
+          "locationId": "loc-tavern",
+          "isMajor": true,
+          "isMerchant": true,
+          "description": "Хмурый полуорк с полотенцем на плече.",
+          "goal": "Накопить денег, чтобы выкупить брата из тюрьмы.",
+          "secret": "Подливает воду в дорогое вино.",
+          "personalLoot": "Ключ от подвала, 15 золотых, кинжал.",
+          "stats": "AC: 12, HP: 22",
+          "notes": "Боится мышей."
+        },
+        "npc-drunkard": {
+          "id": "npc-drunkard",
+          "name": "Пьянчуга",
+          "occupation": "Посетитель",
+          "locationId": "loc-tavern",
+          "isMajor": false,
+          "isMerchant": false,
+          "description": "Спит лицом в тарелке с похлебкой."
+        }
+      },
+      quests: {
+        "quest-rats": {
+          "id": "quest-rats",
+          "title": "Шорох в темноте",
+          "locationId": "loc-tavern",
+          "giver": "npc-bartender",
+          "hook": "Трактирщик жалуется на огромных крыс в подвале.",
+          "description": "Крысы оказались фамильярами местного некроманта.",
+          "reward": "50 золотых и бесплатная выпивка.",
+          "consequence": "Крысы прогрызут пол, и таверна закроется.",
+          "status": "available",
+          "deadline": 0,
+          "startDay": 1
+        }
+      },
+      loot: {
+        "loot-1": {
+          "id": "loot-1",
+          "name": "Ржавый кинжал",
+          "rarity": "common",
+          "price": 2,
+          "weight": 0.5,
+          "stats": "1d4 колющий",
+          "description": "Старый кинжал со следами засохшей крови.",
+          "ownerId": "npc-bartender"
+        }
+      },
       secrets: {},
       events: {}
     }
