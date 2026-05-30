@@ -20,6 +20,7 @@ import { toast } from 'sonner'
 import EntityCard from './archive/EntityCard'
 import { ArchiveHeader } from './archive/ArchiveHeader'
 import { ArchiveSidebar } from './archive/ArchiveSidebar'
+import { AiWand } from './ai/AiWand'
 
 type ArchiveEntity = Hero | NPC | Quest | Loot | Event | { id: string; name?: string; title?: string; description?: string }
 
@@ -92,9 +93,7 @@ export default function ArchiveBoard() {
       let rawText = e.target?.result as string;
       let parsedData = null;
 
-      // ШАГ 1: Очистка и парсинг
       try {
-        // Удаляем BOM-символ (если есть), очищаем от маркдауна (```json) и пробелов
         const cleanText = rawText
           .replace(/^\uFEFF/, '') 
           .replace(/^```(json)?\s*/i, '')
@@ -105,10 +104,9 @@ export default function ArchiveBoard() {
       } catch (parseError: any) {
         console.error('Ошибка парсинга JSON:', parseError);
         alert(`Синтаксическая ошибка в файле:\n${parseError.message}`);
-        return; // Прерываем выполнение!
+        return;
       }
 
-      // ШАГ 2: Нормализация и загрузка в стор
       try {
         const forceRecord = (data: any) => {
           if (!data) return {};
@@ -131,7 +129,6 @@ export default function ArchiveBoard() {
           events: forceRecord(parsedData.events),
         };
 
-        // Вызываем setState напрямую из стора
         useWorkspaceStore.setState((state: any) => ({
           ...state,
           ...forcedState
@@ -144,7 +141,6 @@ export default function ArchiveBoard() {
         alert(`Ошибка обновления Архива:\n${stateError.message}`);
       }
       
-      // Сбрасываем input, чтобы можно было загрузить этот же файл повторно
       event.target.value = '';
     };
     
@@ -293,9 +289,20 @@ export default function ArchiveBoard() {
                     {activeTab === 'quests' && <QuestForm quest={entity as Quest} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('quests', entity.id, data)} />}
                     {!['quests', 'events', 'npcs', 'heroes'].includes(activeTab) && (
                       <div className="flex flex-col gap-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                             {activeTab === 'locations' ? 'Описание локации' : 'Описание / Лор'}
+                          </label>
+                          <AiWand 
+                            mode={activeTab === 'locations' ? 'location' : 'general'}
+                            currentValue={entity.description || ''}
+                            contextData={entity}
+                            onApply={(text) => updateEntity(activeTab as LibraryCategory, entity.id, { description: text })}
+                          />
+                        </div>
                         <textarea
                           value={entity.description || ''}
-                          onChange={(e) => updateEntity(activeTab, entity.id, { description: e.target.value })}
+                          onChange={(e) => updateEntity(activeTab as LibraryCategory, entity.id, { description: e.target.value })}
                           placeholder={activeTab === 'loot' ? 'Свойства предмета и лор...' : 'Детальное описание (лор)...'}
                           className={`bg-transparent text-sm text-zinc-400 w-full resize-none outline-none leading-relaxed ${activeTab === 'loot' ? 'h-16' : 'h-24'}`}
                         />

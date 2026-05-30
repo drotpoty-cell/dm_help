@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
+import { AiWand } from './ai/AiWand'
 
 const storyTemplates = {
   classic: "### 🪝 Завязка (Hook)\n[Что привлекает внимание героев?]\n\n### ⚔️ Развитие (Conflict)\n[С какими препятствиями они столкнутся?]\n\n### 🌪 Твист (Plot Twist)\n[Что идет не по плану?]\n\n### 👑 Развязка (Resolution)\n[Чем всё заканчивается и какая награда?]",
@@ -19,7 +20,7 @@ const plotTwists = [
 ]
 
 // --- ИНТЕРАКТИВНЫЙ ПАРСЕР ТЕКСТА ---
-const SmartContent = ({ content, onChange }: { content: string, onChange: (val: string) => void }) => {
+const SmartContent = ({ content, onChange, contextData }: { content: string, onChange: (val: string) => void, contextData?: any }) => {
   const [isEditing, setIsEditing] = useState(false)
   const setViewedEntityId = useWorkspaceStore(state => state.setViewedEntityId)
 
@@ -53,7 +54,6 @@ const SmartContent = ({ content, onChange }: { content: string, onChange: (val: 
         const cleanName = part.slice(1).toLowerCase()
         const id = entityMap.get(cleanName)
         if (id) {
-          // Определяем тип для иконки
           const isNpc = library.npcs.find((n: any) => n.id === id)
           const isQuest = library.quests.find((q: any) => q.id === id)
           const icon = isNpc ? '👤' : isQuest ? '📜' : '📍'
@@ -81,23 +81,31 @@ const SmartContent = ({ content, onChange }: { content: string, onChange: (val: 
         <span className="text-[10px] text-zinc-500 font-medium">
           {isEditing ? 'Используйте @Имя для создания кликабельных ссылок' : 'Кликните по тексту для редактирования'}
         </span>
-        <button onClick={() => setIsEditing(!isEditing)} className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-indigo-400 bg-zinc-900/50 px-3 py-1.5 rounded-lg border border-zinc-800 transition-colors">
-          {isEditing ? 'Сохранить и смотреть' : 'Редактировать текст'}
-        </button>
+        <div className="flex items-center gap-3">
+           <AiWand 
+             mode="general"
+             currentValue={content}
+             contextData={contextData}
+             onApply={(val) => { onChange(val); setIsEditing(false); }}
+           />
+           <button onClick={() => setIsEditing(!isEditing)} className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-indigo-400 bg-zinc-900/50 px-3 py-1.5 rounded-lg border border-zinc-800 transition-colors">
+             {isEditing ? 'Сохранить и смотреть' : 'Редактировать текст'}
+           </button>
+        </div>
       </div>
 
       {isEditing ? (
         <textarea
           value={content}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 w-full bg-zinc-950/80 border border-indigo-900/50 rounded-xl p-6 text-sm text-zinc-300 resize-none outline-none focus:border-indigo-500 leading-relaxed font-mono shadow-inner"
+          className="flex-1 w-full bg-zinc-950/80 border border-indigo-900/50 rounded-xl p-6 text-sm text-zinc-300 resize-none outline-none focus:border-indigo-500 leading-relaxed font-mono shadow-inner custom-scrollbar"
           placeholder="Опишите события главы. Помните о завязке, развитии и наградах..."
           autoFocus
         />
       ) : (
         <div 
           onClick={() => setIsEditing(true)} 
-          className="flex-1 w-full p-6 text-sm text-zinc-300 cursor-text hover:bg-zinc-900/40 rounded-xl leading-relaxed border border-transparent transition-colors"
+          className="flex-1 w-full p-6 text-sm text-zinc-300 cursor-text hover:bg-zinc-900/40 rounded-xl leading-relaxed border border-transparent transition-colors custom-scrollbar"
         >
           {renderText()}
         </div>
@@ -115,7 +123,6 @@ export default function StoryBoard() {
   const story = useWorkspaceStore(state => state.story)
   const setStory = useWorkspaceStore(state => state.setStory)
   
-  // Достаем узлы и квесты для привязки
   const nodes = useWorkspaceStore(state => state.nodes.filter(n => n.type !== 'region'))
   const quests = useWorkspaceStore(state => state.quests)
 
@@ -165,7 +172,6 @@ export default function StoryBoard() {
 
   const activeSelection = getSelectedChapter()
 
-  // Вспомогательная функция для получения статуса главы на основе привязанного квеста
   const getChapterStatus = (questId?: string | null) => {
     if (!questId) return null
     const quest = quests[questId]
@@ -234,7 +240,6 @@ export default function StoryBoard() {
                     >
                       <span className="truncate">{chapter.title}</span>
                       
-                      {/* Индикатор статуса квеста */}
                       {status && (
                         <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${status.bg}`} title={status.label}></span>
                       )}
@@ -252,7 +257,6 @@ export default function StoryBoard() {
         {activeSelection ? (
           <div className="max-w-5xl mx-auto w-full flex flex-col h-full gap-6">
             
-            {/* ШАПКА ГЛАВЫ И НАСТРОЙКИ */}
             <div className="flex flex-col gap-4 border-b border-zinc-800/80 pb-6">
               <div className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500/50 flex items-center gap-2">
                 <span>{activeSelection.part.title}</span>
@@ -267,10 +271,7 @@ export default function StoryBoard() {
                   placeholder="Название главы..."
                 />
 
-                {/* БЛОК ПРИВЯЗОК (Связь с Картой и Архивом) */}
                 <div className="flex flex-col gap-3 min-w-[250px] shrink-0 bg-zinc-900/30 p-4 rounded-xl border border-zinc-800/50 shadow-inner">
-                  
-                  {/* Привязка к Локации */}
                   <div>
                     <label className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">📍 Место действия (Карта)</label>
                     <select 
@@ -283,7 +284,6 @@ export default function StoryBoard() {
                     </select>
                   </div>
 
-                  {/* Привязка к Квесту */}
                   <div>
                     <label className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">📜 Связанный сюжет (Квест)</label>
                     <select 
@@ -295,7 +295,6 @@ export default function StoryBoard() {
                       {Object.values(quests).map((q: any) => <option key={q.id} value={q.id}>{q.title}</option>)}
                     </select>
                     
-                    {/* Статус-бар квеста под селектом */}
                     {activeSelection.chapter.questId && getChapterStatus(activeSelection.chapter.questId) && (
                       <div className={`mt-2 text-[8px] font-black uppercase tracking-widest px-2 py-1.5 rounded border inline-block ${getChapterStatus(activeSelection.chapter.questId)?.bg} ${getChapterStatus(activeSelection.chapter.questId)?.color} border-current/20`}>
                         Статус: {getChapterStatus(activeSelection.chapter.questId)?.label}
@@ -306,12 +305,12 @@ export default function StoryBoard() {
               </div>
             </div>
             
-            {/* ТЕКСТ СЦЕНАРИЯ И БОКОВАЯ ПАНЕЛЬ СОВЕТОВ */}
             <div className="flex flex-1 gap-10 mt-2">
-              <div className="flex-1 min-w-0"> {/* min-w-0 для правильного truncate внутри */}
+              <div className="flex-1 min-w-0">
                 <SmartContent 
                   content={activeSelection.chapter.content} 
                   onChange={(val) => updateChapterData(activeSelection.part.id, activeSelection.chapter.id, { content: val })} 
+                  contextData={activeSelection.chapter}
                 />
               </div>
               

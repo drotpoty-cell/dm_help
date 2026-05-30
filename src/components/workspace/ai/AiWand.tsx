@@ -9,9 +9,11 @@ interface AiWandProps {
   contextData: any;
   onApply: (text: string) => void;
   title?: string;
+  // Добавляем режим генерации
+  mode?: 'character' | 'location' | 'general'; 
 }
 
-export const AiWand: React.FC<AiWandProps> = ({ currentValue, contextData, onApply }) => {
+export const AiWand: React.FC<AiWandProps> = ({ currentValue, contextData, onApply, title, mode = 'character' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,16 +37,21 @@ export const AiWand: React.FC<AiWandProps> = ({ currentValue, contextData, onApp
   const handleGenerate = async (useCurrentValue: boolean) => {
     setIsLoading(true);
     try {
-      // Строгие инструкции для ИИ, чтобы он не болтал лишнего
-      const rules = `ВАЖНО: Верни ТОЛЬКО готовый текст. Будь краток (1-3 предложения). Никаких вариантов на выбор, никаких пояснений, никаких приветствий, никаких упоминаний JSON, полей или контекста. Только художественный результат.`;
+      // Базовые правила для персонажей и заметок
+      let rules = `ВАЖНО: Верни ТОЛЬКО готовый текст. Будь краток (1-3 предложения). Никаких вариантов на выбор, никаких пояснений, никаких приветствий, никаких упоминаний JSON, полей или контекста. Только художественный результат.`;
+
+      // Правила для локаций (кинематографичный режим)
+      if (mode === 'location') {
+        rules = `ВАЖНО: Сделай подробное, кинематографичное описание локации. Используй 3-5 развернутых предложений. Обязательно опиши визуальные детали, звуки, освещение и запахи, чтобы игроки полностью погрузились в сцену. Верни ТОЛЬКО готовый текст без пояснений, кавычек и вариантов.`;
+      }
 
       const finalPrompt = useCurrentValue
         ? `Улучши текст для D&D кампании, сделай его более атмосферным. Текущий текст: "${currentValue}". Дополнительные пожелания: ${prompt || 'нет'}. \n\n${rules}`
-        : `Сгенерируй короткий текст для D&D по запросу: "${prompt}". \n\n${rules}`;
+        : `Сгенерируй текст для D&D по запросу: "${prompt}". \n\n${rules}`;
       
       const response = await generateAiText(finalPrompt, JSON.stringify(contextData));
       
-      // Очищаем возможные маркдаун-кавычки, если ИИ всё же попытается их вставить
+      // Очищаем возможные маркдаун-кавычки
       const cleanedResponse = response.replace(/^["']|["']$/g, '').trim();
       
       onApply(cleanedResponse);
@@ -73,7 +80,7 @@ export const AiWand: React.FC<AiWandProps> = ({ currentValue, contextData, onApp
         <span className="absolute z-50 bg-zinc-900 border border-zinc-700 p-3 rounded-xl w-72 shadow-2xl mt-1 right-0" onClick={(e) => e.stopPropagation()}>
           <Textarea
             className="mb-3"
-            placeholder="Что сгенерировать? Укажи детали..."
+            placeholder={mode === 'location' ? "Опиши детали (например: мрачная пещера, пахнет серой...)" : "Что сгенерировать? Укажи детали..."}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={3}
@@ -93,7 +100,7 @@ export const AiWand: React.FC<AiWandProps> = ({ currentValue, contextData, onApp
             
             <button 
               onClick={() => handleGenerate(false)}
-              disabled={isLoading || !prompt.trim()}
+              disabled={isLoading || (mode !== 'location' && !prompt.trim())}
               className="flex items-center justify-center gap-2 w-full bg-zinc-700 hover:bg-zinc-600 text-white text-xs py-2 rounded-lg transition-colors disabled:opacity-50"
             >
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Сгенерировать с нуля'}

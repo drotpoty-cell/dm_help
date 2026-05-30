@@ -2,13 +2,14 @@
 
 import { useState, useMemo } from 'react'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
+import { AiWand } from './ai/AiWand'
 
 interface SidebarProps {
   selectedNodeId: string
   onClose: () => void
 }
 
-const SmartEditor = ({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder: string }) => {
+const SmartEditor = ({ value, onChange, placeholder, mode, contextData }: { value: string, onChange: (val: string) => void, placeholder: string, mode?: 'location' | 'general', contextData?: any }) => {
   const [isEditing, setIsEditing] = useState(false)
   const library = useWorkspaceStore(state => ({
     npcs: Object.values(state.npcs), quests: Object.values(state.quests), locations: Object.values(state.locations)
@@ -30,10 +31,21 @@ const SmartEditor = ({ value, onChange, placeholder }: { value: string, onChange
 
   return (
     <div className="w-full h-full min-h-[300px] flex flex-col">
-      <div className="flex justify-end mb-2">
-        <button onClick={() => setIsEditing(!isEditing)} className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-indigo-400">
-          {isEditing ? 'Режим просмотра' : 'Режим редактирования'}
-        </button>
+      <div className="flex justify-between items-center mb-2">
+        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+          {mode === 'location' ? 'Описание локации' : 'Описание / Секрет'}
+        </label>
+        <div className="flex items-center gap-3">
+          <AiWand 
+            mode={mode} 
+            currentValue={value || ''} 
+            contextData={contextData} 
+            onApply={(text) => { onChange(text); setIsEditing(false); }} 
+          />
+          <button onClick={() => setIsEditing(!isEditing)} className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 hover:text-indigo-400">
+            {isEditing ? 'Режим просмотра' : 'Режим редактирования'}
+          </button>
+        </div>
       </div>
       {isEditing ? (
         <textarea 
@@ -73,18 +85,14 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
     availableQuests: allQuests.filter((q: any) => q.locationId !== selectedNodeId),
   }), [allNpcs, allQuests, loot, selectedNodeId])
 
-  // --- НОВОЕ: Двусторонняя синхронизация (Карта -> Архив) ---
   const updateNodeData = (field: string, value: any) => {
-    // 1. Обновляем визуальный узел на Карте
     setNodes(nodes.map(n => n.id === selectedNodeId ? { ...n, data: { ...n.data, [field]: value } } : n))
     
-    // 2. Если у узла есть привязка к Архиву, обновляем данные и там
     if (selectedNode.data.entityId) {
       const updateData: any = {}
       if (field === 'label') updateData.name = value
       if (field === 'description') updateData.description = value
       
-      // Обновляем Архив
       if (Object.keys(updateData).length > 0) {
         updateEntity('locations', selectedNode.data.entityId, updateData)
       }
@@ -135,7 +143,9 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
           <SmartEditor 
             value={selectedNode.data[activeTab === 'general' ? 'description' : 'secrets']}
             onChange={(val: string) => updateNodeData(activeTab === 'general' ? 'description' : 'secrets', val)}
-            placeholder={`Введите данные для ${activeTab}...`}
+            placeholder={activeTab === 'general' ? "Опишите влажный воздух, запахи и звуки..." : "Скрытая информация..."}
+            mode={activeTab === 'general' ? 'location' : 'general'}
+            contextData={selectedNode.data}
           />
         )}
 
@@ -189,7 +199,6 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
                   key={npc.id} 
                   className={`rounded-xl p-4 flex flex-col gap-3 transition-colors ${isMajor ? 'bg-indigo-950/10 border-2 border-indigo-900/50 shadow-[0_0_15px_rgba(99,102,241,0.05)]' : 'bg-zinc-900/30 border border-zinc-800'}`}
                 >
-                  {/* ШАПКА КАРТОЧКИ */}
                   <div className="flex justify-between items-center border-b border-zinc-800/50 pb-2">
                     <div>
                       <div className={`font-bold flex items-center gap-2 ${isMajor ? 'text-indigo-400' : 'text-zinc-100'}`}>
@@ -200,7 +209,6 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
                     <button onClick={() => updateEntity('npcs', npc.id, { locationId: null })} className="text-zinc-600 hover:text-amber-500 text-[10px] uppercase font-bold transition-colors">Отвязать</button>
                   </div>
                   
-                  {/* ОБЩЕЕ ОПИСАНИЕ И АКТИВНОСТЬ */}
                   <div className="text-sm text-zinc-400 leading-relaxed">{npc.description || 'Нет описания.'}</div>
 
                   {npc.currentActivity && (
@@ -209,7 +217,6 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
                     </div>
                   )}
 
-                  {/* ДОП. ПОЛЯ ТОЛЬКО ДЛЯ КЛЮЧЕВЫХ */}
                   {isMajor && (
                     <div className="flex flex-col gap-2 mt-2">
                       {npc.showStats && npc.stats && (
@@ -230,7 +237,6 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
                         <div className="relative group bg-red-950/20 border border-red-900/30 p-3 rounded-lg overflow-hidden cursor-help">
                           <div className="text-[8px] font-black uppercase text-red-500 tracking-widest mb-1">🤫 Скелет в шкафу</div>
                           <div className="text-xs text-red-200 blur-[3px] group-hover:blur-none transition-all duration-300">{npc.secret}</div>
-                          
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
                             <span className="bg-red-950/90 text-red-400 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-md border border-red-900/50 backdrop-blur-sm shadow-xl shadow-red-900/20">
                               Наведите, чтобы раскрыть
@@ -255,7 +261,6 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
                     </div>
                   )}
 
-                  {/* РЕАЛЬНЫЙ ЛУТ (ИЗ БАЗЫ АРТЕФАКТОВ) */}
                   {npcLoot.length > 0 && (
                     <div className="mt-2 pt-3 border-t border-zinc-800/50">
                       <div className="text-[9px] font-bold text-zinc-500 uppercase mb-2 tracking-widest">Инвентарь (Механика):</div>
