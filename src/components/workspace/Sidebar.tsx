@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { AiWand } from './ai/AiWand'
+import LocationLootGenerator from './ai/LocationLootGenerator'
 
 interface SidebarProps {
   selectedNodeId: string
@@ -152,6 +153,15 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
         {/* --- ВКЛАДКА ЛУТ --- */}
         {activeTab === 'loot' && (
           <div className="space-y-4">
+            
+            {/* НОВЫЙ БЛОК ГЕНЕРАЦИИ ЛУТА */}
+            <LocationLootGenerator 
+              locationId={selectedNode.id}
+              locationName={selectedNode.data.label}
+              locationDescription={selectedNode.data.description}
+              locationType={selectedNode.type || ''}
+            />
+
             {localLoot.length === 0 ? (
               <div className="text-center text-zinc-600 text-sm py-10 border border-dashed border-zinc-800 rounded-xl">В этой локации нет спрятанных предметов. Добавьте их через Архив.</div>
             ) : (
