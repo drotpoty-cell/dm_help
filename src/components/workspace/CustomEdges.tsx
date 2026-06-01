@@ -12,7 +12,7 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
   const setEdges = useWorkspaceStore(state => state.setEdges)
   const updateEdgeData = useWorkspaceStore(state => state.updateEdgeData)
   const nodes = useWorkspaceStore(state => state.nodes)
-  const partyLocationId = useWorkspaceStore(state => state.partyLocationId) // Достали положение шлема отряда
+  const partyLocationId = useWorkspaceStore(state => state.partyLocationId) // Положение шлема отряда
   
   const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
 
@@ -56,7 +56,7 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
     const nodeA = nodes.find(n => n.id === source)
     const nodeB = nodes.find(n => n.id === target)
     
-    // УМНЫЙ ФИКС: Если маркер отряда стоит на узле B, значит игроки идут из B в A!
+    // Проверка направления: если маркер отряда равен target, значит мы идем в обратную сторону
     const isReversed = partyLocationId === target
     
     const sourceNode = isReversed ? nodeB : nodeA
@@ -67,6 +67,12 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
     const sourceDesc = sourceNode?.data?.description || ''
     const targetDesc = targetNode?.data?.description || ''
 
+    // 🗺️ ДИАГНОСТИЧЕСКИЙ ТОСТ (Поможет проверить логику до ответа ИИ)
+    toast.info(`🗺️ Маршрут в коде: из "${sourceName}" в "${targetName}"`, {
+      description: `Кубик: ${roll}. Переворот пути: ${isReversed ? 'Да' : 'Нет'}. Отправляем ИИ...`,
+      duration: 4000
+    })
+
     setIsGenerating(true)
     setEncounterData(null)
 
@@ -74,15 +80,18 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
       const prompt = `Игроки путешествуют из точки "${sourceName}" (${sourceDesc}) в точку "${targetName}" (${targetDesc}).
 Результат броска d20 на случайное дорожное событие: ${roll} из 20.
 
-Твоя задача — сгенерировать живое описание путешествия по следующим правилам:
+Ты — Dungeon Master. Твоя задача — сгенерировать живое описание путешествия строго по следующим правилам:
 
-1. ОБЯЗАТЕЛЬНЫЙ РАЗДЕЛ "### 🌲 Атмосфера пути":
+1. СТРОГОЕ НАПРАВЛЕНИЕ (КРИТИЧЕСКИ ВАЖНО):
+Игроки выходят ИМЕННО из "${sourceName}" и направляются В "${targetName}". Художественный текст должен четко отражать это движение (они оставляют первое место позади и приближаются ко второму). Не меняй их местами!
+
+2. ОБЯЗАТЕЛЬНЫЙ РАЗДЕЛ "### 🌲 Атмосфера пути":
 Опиши сам переход, смену пейзажа, погоду, дорожную рутину, запахи или звуки, которые логично связывают эти два места. (2-4 предложения). Мастер должен зачитать это игрокам в любом случае.
 
-2. ЕСЛИ БРОСОК ${roll} РАВЕН 15 ИЛИ ВЫШЕ:
+3. ЕСЛИ БРОСОК ${roll} РАВЕН 15 ИЛИ ВЫШЕ:
 Происшествий нет. Опиши в первом разделе, как отряд благополучно и спокойно добирается до места назначения. Больше никаких разделов не нужно.
 
-3. ЕСЛИ БРОСОК ${roll} МЕНЬШЕ 15:
+4. ЕСЛИ БРОСОК ${roll} МЕНЬШЕ 15:
 Добавь раздел "### ⚠️ Происшествие в дороге". Опиши неожиданную встречу или препятствие в зависимости от броска (чем меньше число, тем опаснее ситуация. 1 — критический провал, засада). 
 Исходя из природы созданного тобой события, ОБЯЗАТЕЛЬНО добавь ОДИН из следующих механических блоков в самый конец:
 - Если это ВРАГИ/МОНСТРЫ: Добавь блок "⚔️ Боевые статы:" (укажи кратко AC, HP, основные атаки и их урон).
@@ -128,37 +137,24 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
         >
           {isEditing ? (
             /* ФОРМА ВВОДА ВРЕМЕНИ */
-            <div 
-              className="bg-zinc-950/90 backdrop-blur-md border border-indigo-500/50 shadow-2xl rounded-lg p-2.5 flex gap-3 items-center" 
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="bg-zinc-950/90 backdrop-blur-md border border-indigo-500/50 shadow-2xl rounded-lg p-2.5 flex gap-3 items-center" onClick={(e) => e.stopPropagation()}>
               <div className="flex flex-col gap-1">
                 <label className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Дни</label>
-                <input 
-                  type="number" min="0" value={editDays} 
-                  onChange={(e) => setEditDays(parseInt(e.target.value) || 0)}
-                  className="w-14 bg-zinc-900 border border-zinc-700 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 font-mono text-center"
-                />
+                <input type="number" min="0" value={editDays} onChange={(e) => setEditDays(parseInt(e.target.value) || 0)} className="w-14 bg-zinc-900 border border-zinc-700 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 font-mono text-center" />
               </div>
               <div className="text-zinc-600 font-bold mt-3">:</div>
               <div className="flex flex-col gap-1">
                 <label className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Часы</label>
-                <input 
-                  type="number" min="0" max="23" value={editHours} 
-                  onChange={(e) => setEditHours(parseInt(e.target.value) || 0)}
-                  className="w-14 bg-zinc-900 border border-zinc-700 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 font-mono text-center"
-                />
+                <input type="number" min="0" max="23" value={editHours} onChange={(e) => setEditHours(parseInt(e.target.value) || 0)} className="w-14 bg-zinc-900 border border-zinc-700 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 font-mono text-center" />
               </div>
               <div className="flex flex-col gap-1 ml-1 mt-3">
                 <button onClick={onSave} className="w-5 h-5 flex items-center justify-center rounded bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/40 font-bold text-xs transition-colors">✓</button>
                 <button onClick={onCancel} className="w-5 h-5 flex items-center justify-center rounded bg-red-500/20 text-red-500 hover:bg-red-500/40 font-bold text-xs transition-colors">✕</button>
               </div>
             </div>
-
           ) : (
             /* СТАНДАРТНОЕ ОТОБРАЖЕНИЕ */
             <div className="flex items-center gap-2 group relative">
-              
               <button 
                 onClick={handleRollEncounter} 
                 disabled={isGenerating}
@@ -169,10 +165,7 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
               </button>
 
               <div className="relative flex items-center justify-center cursor-pointer">
-                <div 
-                  onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} 
-                  className={`flex items-center justify-center transition-all bg-zinc-900 border hover:border-indigo-500 hover:bg-zinc-800 ${hasTime ? 'px-2.5 py-1 rounded-md border-indigo-500/30 shadow-lg shadow-indigo-900/20' : 'w-4 h-4 rounded-full border-zinc-700'}`}
-                >
+                <div onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className={`flex items-center justify-center transition-all bg-zinc-900 border hover:border-indigo-500 hover:bg-zinc-800 ${hasTime ? 'px-2.5 py-1 rounded-md border-indigo-500/30 shadow-lg shadow-indigo-900/20' : 'w-4 h-4 rounded-full border-zinc-700'}`}>
                   {hasTime ? (
                     <span className="text-[10px] font-bold text-indigo-300 font-mono whitespace-nowrap">
                       {data.days > 0 && `${data.days}д `}{data.hours > 0 && `${data.hours}ч`}
@@ -181,44 +174,23 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
                     <span className="text-zinc-500 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">⏱</span>
                   )}
                 </div>
-                
-                <button 
-                  onClick={onDelete} 
-                  className={`absolute text-zinc-500 hover:text-red-500 text-[10px] font-black transition-opacity ${hasTime ? '-top-2.5 -right-2.5 opacity-0 group-hover:opacity-100 bg-zinc-900 rounded-full w-4 h-4 flex items-center justify-center border border-zinc-700 shadow-md' : '-top-3 -right-3 opacity-0 group-hover:opacity-100 bg-zinc-900 rounded-full w-4 h-4 flex items-center justify-center border border-zinc-700 shadow-md'}`}
-                  title="Удалить дорогу"
-                >
-                  ✕
-                </button>
+                <button onClick={onDelete} className={`absolute text-zinc-500 hover:text-red-500 text-[10px] font-black transition-opacity ${hasTime ? '-top-2.5 -right-2.5 opacity-0 group-hover:opacity-100 bg-zinc-900 rounded-full w-4 h-4 flex items-center justify-center border border-zinc-700 shadow-md' : '-top-3 -right-3 opacity-0 group-hover:opacity-100 bg-zinc-900 rounded-full w-4 h-4 flex items-center justify-center border border-zinc-700 shadow-md'}`} title="Удалить дорогу">✕</button>
               </div>
             </div>
           )}
 
           {/* ПОПАП С ИТОГОМ ПУТЕШЕСТВИЯ */}
           {encounterData && (
-            <div 
-              className="absolute top-10 left-1/2 -translate-x-1/2 w-96 bg-zinc-950/95 backdrop-blur-xl border border-indigo-500/50 rounded-xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-3" 
-              onClick={e => e.stopPropagation()}
-            >
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 w-96 bg-zinc-950/95 backdrop-blur-xl border border-indigo-500/50 rounded-xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-3" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center border-b border-indigo-900/50 pb-3">
                  <div className="flex items-center gap-2">
                    <span className="text-lg">🎲</span>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
-                     Кубик Судьбы: {encounterData.roll}
-                   </span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Кубик Судьбы: {encounterData.roll}</span>
                  </div>
                  <button onClick={closeEncounter} className="text-zinc-500 hover:text-white transition-colors">✕</button>
               </div>
-              
-              <div className="text-xs text-zinc-300 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar whitespace-pre-wrap font-medium">
-                 {encounterData.text}
-              </div>
-              
-              <button 
-                onClick={closeEncounter} 
-                className="mt-2 w-full bg-indigo-600/10 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/20 py-2.5 rounded-lg text-[10px] uppercase font-black tracking-widest transition-colors"
-              >
-                Продолжить путь
-              </button>
+              <div className="text-xs text-zinc-300 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar whitespace-pre-wrap font-medium">{encounterData.text}</div>
+              <button onClick={closeEncounter} className="mt-2 w-full bg-indigo-600/10 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/20 py-2.5 rounded-lg text-[10px] uppercase font-black tracking-widest transition-colors">Продолжить путь</button>
             </div>
           )}
         </div>
