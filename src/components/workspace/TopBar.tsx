@@ -26,11 +26,44 @@ const getWeatherIcon = (condition: string) => {
   }
 }
 
-export default function TopBar({ campaignId, day, hour, viewMode, onViewChange, onTimeChange, onSave, onSettingsOpen, isSaving }: TopBarProps) {
+export default function TopBar({ campaignId, day: propDay, hour: propHour, viewMode, onViewChange, onTimeChange, onSave, onSettingsOpen, isSaving }: TopBarProps) {
+  // Берём время напрямую из глобального стора (источник правды)
+  const currentDay = useWorkspaceStore(state => state.currentDay)
+  const currentHour = useWorkspaceStore(state => state.currentHour)
   const weather = useWorkspaceStore(state => state.weather)
   
-  const formattedHour = hour.toString().padStart(2, '0') + ':00'
-  const isDaytime = hour >= 6 && hour < 18
+  const formattedHour = currentHour.toString().padStart(2, '0') + ':00'
+  const isDaytime = currentHour >= 6 && currentHour < 18
+
+  // БОЕВАЯ МАТЕМАТИКА ВРЕМЕНИ (Вперёд и Назад с перелистыванием дней)
+  const handleTimeChange = (hoursToChange: number) => {
+    useWorkspaceStore.setState((state) => {
+      let newHour = state.currentHour + hoursToChange
+      let newDay = state.currentDay
+
+      if (newHour >= 24) {
+        const daysToAdd = Math.floor(newHour / 24)
+        newDay += daysToAdd
+        newHour = newHour % 24
+      } else if (newHour < 0) {
+        // Вычисляем сколько дней нужно отнять назад
+        const daysToSubtract = Math.ceil(Math.abs(newHour) / 24)
+        newDay -= daysToSubtract
+        newHour = (newHour % 24 + 24) % 24
+      }
+
+      // Ограничение: нельзя уйти раньше 1 дня
+      if (newDay < 1) {
+        newDay = 1
+        newHour = 0
+      }
+
+      return {
+        currentHour: newHour,
+        currentDay: newDay
+      }
+    })
+  }
 
   const navItems = [
     { id: 'map', label: 'Карта' },
@@ -38,7 +71,7 @@ export default function TopBar({ campaignId, day, hour, viewMode, onViewChange, 
     { id: 'calendar', label: 'Календарь' },
     { id: 'archive', label: 'Архив' },
     { id: 'story', label: 'Сценарий' },
-    { id: 'weather', label: 'Экология' }, // НАШ НОВЫЙ ПУНКТ
+    { id: 'weather', label: 'Экология' },
   ]
 
   return (
@@ -64,10 +97,20 @@ export default function TopBar({ campaignId, day, hour, viewMode, onViewChange, 
       {/* ЦЕНТР: Время и Погода */}
       <div className="flex items-center bg-zinc-950/80 rounded-2xl border border-zinc-800/60 shadow-[0_4px_20px_rgba(0,0,0,0.5)] p-1.5 backdrop-blur-md">
         
-        {/* Минус время */}
+        {/* Минус время — теперь яркие, рабочие и красивые */}
         <div className="flex gap-1 pr-4 border-r border-zinc-800/50">
-          <button onClick={() => onTimeChange(-8)} className="w-8 h-8 rounded-xl hover:bg-red-500/10 transition-all text-zinc-600 hover:text-red-400 font-black text-[11px]">-8</button>
-          <button onClick={() => onTimeChange(-1)} className="w-8 h-8 rounded-xl hover:bg-orange-500/10 transition-all text-zinc-600 hover:text-orange-400 font-black text-[11px]">-1</button>
+          <button 
+            onClick={() => handleTimeChange(-8)} 
+            className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-red-500/15 text-zinc-400 hover:text-red-400 border border-zinc-800 text-[10px] font-black transition-all"
+          >
+            -8ч
+          </button>
+          <button 
+            onClick={() => handleTimeChange(-1)} 
+            className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-orange-500/15 text-zinc-400 hover:text-orange-400 border border-zinc-800 text-[10px] font-black transition-all"
+          >
+            -1ч
+          </button>
         </div>
 
         {/* Инфо-блок */}
@@ -78,10 +121,9 @@ export default function TopBar({ campaignId, day, hour, viewMode, onViewChange, 
                 ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="text-amber-400"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
                 : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="text-indigo-400"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
               }
-              <span>День {day}</span>
+              <span>День {currentDay}</span>
             </div>
 
-            {/* ПОКАЗЫВАЕМ ПОГОДУ ТОЛЬКО ЕСЛИ ОНА ВКЛЮЧЕНА */}
             {weather.mode !== 'disabled' && (
               <>
                 <div className="w-px h-3 bg-zinc-800 mx-1"></div>
@@ -99,8 +141,18 @@ export default function TopBar({ campaignId, day, hour, viewMode, onViewChange, 
 
         {/* Плюс время */}
         <div className="flex gap-1.5 pl-4 border-l border-zinc-800/50">
-          <button onClick={() => onTimeChange(1)} className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-indigo-500/15 text-zinc-400 hover:text-indigo-300 border border-zinc-800 text-[10px] font-black transition-all">+1ч</button>
-          <button onClick={() => onTimeChange(8)} className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-indigo-500/15 text-zinc-400 hover:text-indigo-300 border border-zinc-800 text-[10px] font-black transition-all">+8ч</button>
+          <button 
+            onClick={() => handleTimeChange(1)} 
+            className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-indigo-500/15 text-zinc-400 hover:text-indigo-300 border border-zinc-800 text-[10px] font-black transition-all"
+          >
+            +1ч
+          </button>
+          <button 
+            onClick={() => handleTimeChange(8)} 
+            className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-indigo-500/15 text-zinc-400 hover:text-indigo-300 border border-zinc-800 text-[10px] font-black transition-all"
+          >
+            +8ч
+          </button>
         </div>
       </div>
 
