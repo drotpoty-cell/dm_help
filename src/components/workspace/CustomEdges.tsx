@@ -12,6 +12,7 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
   const setEdges = useWorkspaceStore(state => state.setEdges)
   const updateEdgeData = useWorkspaceStore(state => state.updateEdgeData)
   const nodes = useWorkspaceStore(state => state.nodes)
+  const partyLocationId = useWorkspaceStore(state => state.partyLocationId) // Достали положение шлема отряда
   
   const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
 
@@ -44,17 +45,23 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
     setEditHours(data?.hours || 0)
   }
 
-  // --- МОДЕРНИЗИРОВАННАЯ ЛОГИКА СЛУЧАЙНЫХ СОБЫТИЙ ---
+  // --- УМНАЯ ЛОГИКА ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЯ И ГЕНЕРАЦИИ ---
   const handleRollEncounter = async (e: React.MouseEvent) => {
     e.stopPropagation()
     
     // Бросаем кубик (1-20)
     const roll = Math.floor(Math.random() * 20) + 1
 
-    // Находим локации для контекста
-    const sourceNode = nodes.find(n => n.id === source)
-    const targetNode = nodes.find(n => n.id === target)
+    // Находим базовые узлы по техническому направлению React Flow
+    const nodeA = nodes.find(n => n.id === source)
+    const nodeB = nodes.find(n => n.id === target)
     
+    // УМНЫЙ ФИКС: Если маркер отряда стоит на узле B, значит игроки идут из B в A!
+    const isReversed = partyLocationId === target
+    
+    const sourceNode = isReversed ? nodeB : nodeA
+    const targetNode = isReversed ? nodeA : nodeB
+
     const sourceName = sourceNode?.data?.label || 'Неизвестное место'
     const targetName = targetNode?.data?.label || 'Неизвестное место'
     const sourceDesc = sourceNode?.data?.description || ''
@@ -152,7 +159,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
             /* СТАНДАРТНОЕ ОТОБРАЖЕНИЕ */
             <div className="flex items-center gap-2 group relative">
               
-              {/* Кнопка кубика — теперь генерирует ВСЕГДА */}
               <button 
                 onClick={handleRollEncounter} 
                 disabled={isGenerating}
@@ -162,7 +168,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
                 {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : '🎲'}
               </button>
 
-              {/* Плашка времени */}
               <div className="relative flex items-center justify-center cursor-pointer">
                 <div 
                   onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} 
@@ -177,7 +182,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
                   )}
                 </div>
                 
-                {/* Кнопка удаления */}
                 <button 
                   onClick={onDelete} 
                   className={`absolute text-zinc-500 hover:text-red-500 text-[10px] font-black transition-opacity ${hasTime ? '-top-2.5 -right-2.5 opacity-0 group-hover:opacity-100 bg-zinc-900 rounded-full w-4 h-4 flex items-center justify-center border border-zinc-700 shadow-md' : '-top-3 -right-3 opacity-0 group-hover:opacity-100 bg-zinc-900 rounded-full w-4 h-4 flex items-center justify-center border border-zinc-700 shadow-md'}`}
@@ -189,7 +193,7 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
             </div>
           )}
 
-          {/* УВЕЛИЧЕННЫЙ ПОПАП С ИТОГОМ ПУТЕШЕСТВИЯ */}
+          {/* ПОПАП С ИТОГОМ ПУТЕШЕСТВИЯ */}
           {encounterData && (
             <div 
               className="absolute top-10 left-1/2 -translate-x-1/2 w-96 bg-zinc-950/95 backdrop-blur-xl border border-indigo-500/50 rounded-xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-3" 
@@ -205,7 +209,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
                  <button onClick={closeEncounter} className="text-zinc-500 hover:text-white transition-colors">✕</button>
               </div>
               
-              {/* Расширенная зона для красивого чтения маркдауна */}
               <div className="text-xs text-zinc-300 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar whitespace-pre-wrap font-medium">
                  {encounterData.text}
               </div>
