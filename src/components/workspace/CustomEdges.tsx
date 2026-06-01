@@ -44,19 +44,14 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
     setEditHours(data?.hours || 0)
   }
 
-  // --- ЛОГИКА СЛУЧАЙНЫХ СОБЫТИЙ ---
+  // --- МОДЕРНИЗИРОВАННАЯ ЛОГИКА СЛУЧАЙНЫХ СОБЫТИЙ ---
   const handleRollEncounter = async (e: React.MouseEvent) => {
     e.stopPropagation()
     
     // Бросаем кубик (1-20)
     const roll = Math.floor(Math.random() * 20) + 1
 
-    if (roll >= 15) {
-      toast.success(`🎲 Бросок ${roll}: Путь безопасен. Вы спокойно добираетесь до цели, не встретив преград.`)
-      return
-    }
-
-    // Если событие случилось, собираем контекст
+    // Находим локации для контекста
     const sourceNode = nodes.find(n => n.id === source)
     const targetNode = nodes.find(n => n.id === target)
     
@@ -65,21 +60,30 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
     const sourceDesc = sourceNode?.data?.description || ''
     const targetDesc = targetNode?.data?.description || ''
 
-    const severity = roll === 1 ? 'КРИТИЧЕСКАЯ ОПАСНОСТЬ (засада, сильный монстр, катастрофа, смертельная ловушка)'
-                   : roll <= 5 ? 'Высокая опасность (агрессивные существа, бандиты, опасное явление)'
-                   : roll <= 10 ? 'Среднее событие (поломка телеги, странный путник, тяжелая погода)'
-                   : 'Легкое происшествие (интересная находка, пугающий звук, атмосферное событие)'
-
     setIsGenerating(true)
     setEncounterData(null)
 
     try {
-      const prompt = `Игроки путешествуют из локации "${sourceName}" (${sourceDesc}) в локацию "${targetName}" (${targetDesc}).
-На кубике случайных дорожных событий выпало ${roll} из 20.
-Тяжесть события: ${severity}.
+      const prompt = `Игроки путешествуют из точки "${sourceName}" (${sourceDesc}) в точку "${targetName}" (${targetDesc}).
+Результат броска d20 на случайное дорожное событие: ${roll} из 20.
 
-Сгенерируй короткое, кинематографичное дорожное происшествие на 1-2 абзаца, которое логично вписывается в этот маршрут и атмосферу мест. 
-Верни ТОЛЬКО художественный текст события без предисловий, вариантов и пояснений.`
+Твоя задача — сгенерировать живое описание путешествия по следующим правилам:
+
+1. ОБЯЗАТЕЛЬНЫЙ РАЗДЕЛ "### 🌲 Атмосфера пути":
+Опиши сам переход, смену пейзажа, погоду, дорожную рутину, запахи или звуки, которые логично связывают эти два места. (2-4 предложения). Мастер должен зачитать это игрокам в любом случае.
+
+2. ЕСЛИ БРОСОК ${roll} РАВЕН 15 ИЛИ ВЫШЕ:
+Происшествий нет. Опиши в первом разделе, как отряд благополучно и спокойно добирается до места назначения. Больше никаких разделов не нужно.
+
+3. ЕСЛИ БРОСОК ${roll} МЕНЬШЕ 15:
+Добавь раздел "### ⚠️ Происшествие в дороге". Опиши неожиданную встречу или препятствие в зависимости от броска (чем меньше число, тем опаснее ситуация. 1 — критический провал, засада). 
+Исходя из природы созданного тобой события, ОБЯЗАТЕЛЬНО добавь ОДИН из следующих механических блоков в самый конец:
+- Если это ВРАГИ/МОНСТРЫ: Добавь блок "⚔️ Боевые статы:" (укажи кратко AC, HP, основные атаки и их урон).
+- Если это ТОРГОВЕЦ: Добавь блок "💰 Ассортимент товаров:" (список из 2-3 предметов с ценами в gp).
+- Если это МЕСТНЫЕ ЖИТЕЛИ/ПУТНИКИ: Добавь блок "💬 О чем говорят:" (конкретные цитаты, слухи или зацепки к миру).
+- Если это ТЕЛЕГА/ЗАБРОШЕННОЕ МЕСТО/НАХОДКА: Добавь блок "📦 Содержимое (Лут):" (что ценного или странного они могут там вытащить).
+
+Верни только готовый, красиво структурированный художественный текст без лишних мета-комментариев и кавычек.`
 
       const response = await generateAiText(prompt)
       setEncounterData({ roll, text: response })
@@ -148,12 +152,12 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
             /* СТАНДАРТНОЕ ОТОБРАЖЕНИЕ */
             <div className="flex items-center gap-2 group relative">
               
-              {/* Кнопка генерации события */}
+              {/* Кнопка кубика — теперь генерирует ВСЕГДА */}
               <button 
                 onClick={handleRollEncounter} 
                 disabled={isGenerating}
                 className="opacity-0 group-hover:opacity-100 transition-all bg-zinc-900 hover:bg-indigo-600 border border-zinc-700 hover:border-indigo-500 text-zinc-400 hover:text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Бросить на дорожное событие"
+                title="Сгенерировать историю пути"
               >
                 {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : '🎲'}
               </button>
@@ -185,29 +189,32 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
             </div>
           )}
 
-          {/* ПОПАП С ИТОГОМ СОБЫТИЯ */}
+          {/* УВЕЛИЧЕННЫЙ ПОПАП С ИТОГОМ ПУТЕШЕСТВИЯ */}
           {encounterData && (
             <div 
-              className="absolute top-10 left-1/2 -translate-x-1/2 w-80 bg-zinc-950/95 backdrop-blur-xl border border-indigo-500/50 rounded-xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-3" 
+              className="absolute top-10 left-1/2 -translate-x-1/2 w-96 bg-zinc-950/95 backdrop-blur-xl border border-indigo-500/50 rounded-xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-3" 
               onClick={e => e.stopPropagation()}
             >
               <div className="flex justify-between items-center border-b border-indigo-900/50 pb-3">
                  <div className="flex items-center gap-2">
                    <span className="text-lg">🎲</span>
                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
-                     Результат: {encounterData.roll}
+                     Кубик Судьбы: {encounterData.roll}
                    </span>
                  </div>
                  <button onClick={closeEncounter} className="text-zinc-500 hover:text-white transition-colors">✕</button>
               </div>
-              <div className="text-xs text-zinc-300 leading-relaxed max-h-48 overflow-y-auto custom-scrollbar italic font-medium">
+              
+              {/* Расширенная зона для красивого чтения маркдауна */}
+              <div className="text-xs text-zinc-300 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar whitespace-pre-wrap font-medium">
                  {encounterData.text}
               </div>
+              
               <button 
                 onClick={closeEncounter} 
-                className="mt-2 w-full bg-indigo-600/10 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/20 py-2 rounded-lg text-[10px] uppercase font-black tracking-widest transition-colors"
+                className="mt-2 w-full bg-indigo-600/10 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/20 py-2.5 rounded-lg text-[10px] uppercase font-black tracking-widest transition-colors"
               >
-                Принять судьбу
+                Продолжить путь
               </button>
             </div>
           )}
