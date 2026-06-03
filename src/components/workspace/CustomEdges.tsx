@@ -24,7 +24,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
   const [editDays, setEditDays] = useState(data?.days || 0)
   const [editHours, setEditHours] = useState(data?.hours || 0)
   
-  // Расширили стейт, чтобы запоминать названия локаций для записи в историю
   const [isGenerating, setIsGenerating] = useState(false)
   const [encounterData, setEncounterData] = useState<{ roll: number, text: string, sourceName: string, targetName: string } | null>(null)
 
@@ -101,7 +100,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
 
       const response = await generateAiText(prompt)
       
-      // Запоминаем имена локаций для сохранения в историю
       setEncounterData({ roll, text: response, sourceName, targetName })
     } catch (error) {
       console.error(error)
@@ -114,18 +112,45 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
   const closeEncounter = (e: React.MouseEvent) => {
     e.stopPropagation()
     
-    // АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ В АРХИВ КАЛЕНДАРЯ
     if (encounterData) {
+      // 1. Создаем запись в Архиве Календаря
       const newEvent = {
         id: `event-enc-${Date.now()}`,
         name: `В пути: ${encounterData.sourceName} ➔ ${encounterData.targetName}`,
         description: `**Результат кубика: ${encounterData.roll}**\n\n${encounterData.text}`,
         startDay: currentDay,
-        duration: 1,
-        status: 'completed' // Сразу летит в архив
+        duration: data?.days > 0 ? data.days : 1, 
+        status: 'completed' 
       }
       addEntity('events', newEvent)
-      toast.success('Событие записано в Архив сюжетов!')
+
+      // 2. АВТОМАТИЧЕСКОЕ СПИСАНИЕ ВРЕМЕНИ (Дни и часы)
+      const hoursToAdd = (data?.days || 0) * 24 + (data?.hours || 0)
+      
+      if (hoursToAdd > 0) {
+        useWorkspaceStore.setState((state) => {
+          let newHour = state.currentHour + hoursToAdd
+          let newDay = state.currentDay
+
+          if (newHour >= 24) {
+            const daysToAdd = Math.floor(newHour / 24)
+            newDay += daysToAdd
+            newHour = newHour % 24
+          }
+
+          return {
+            currentHour: newHour,
+            currentDay: newDay
+          }
+        })
+        
+        // Красивое уведомление о списании
+        const dayStr = data?.days > 0 ? `${data.days} дн. ` : ''
+        const hourStr = data?.hours > 0 ? `${data.hours} ч.` : ''
+        toast.success(`Событие в Архиве. Путь занял: ${dayStr}${hourStr}`)
+      } else {
+        toast.success('Событие записано в Архив сюжетов!')
+      }
     }
     
     setEncounterData(null)
