@@ -108,7 +108,7 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
   }
 
   return (
-    // 1. Добавлен min-h-0 сюда, чтобы блок не растягивался
+    // 1. Убеждаемся, что сайдбар имеет flex-col, h-full, min-h-0.
     <div className="w-[500px] bg-zinc-950 border-l border-zinc-900 flex flex-col h-full min-h-0 shadow-2xl z-30 shrink-0">
       <div className="p-6 border-b border-zinc-900 flex justify-between items-center bg-zinc-900/20">
         <input 

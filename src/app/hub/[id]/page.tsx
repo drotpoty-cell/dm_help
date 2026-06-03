@@ -269,7 +269,7 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
 
         {viewMode === 'map' && (
           <>
-            <div className="w-64 border-r border-zinc-900 bg-zinc-950 flex flex-col z-20 shrink-0 overflow-hidden shadow-2xl">
+            <div className="w-64 border-r border-zinc-900 bg-zinc-950 flex flex-col z-20 shrink-0 h-full overflow-hidden shadow-2xl">
               <div className="p-5 border-b border-zinc-900 bg-zinc-900/20">
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Создать пустое</div>
                 <div className="flex gap-4 flex-wrap">
@@ -282,7 +282,7 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="p-5 pb-2">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Из Архива</div>
                 </div>
