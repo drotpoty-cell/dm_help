@@ -10,7 +10,6 @@ import SettingsModal from '@/components/workspace/SettingsModal'
 import TopBar from '@/components/workspace/TopBar'
 import Sidebar from '@/components/workspace/Sidebar'
 import ContextMenu from '@/components/workspace/ContextMenu'
-import KanbanBoard from '@/components/workspace/KanbanBoard'
 import ArchiveBoard from '@/components/workspace/ArchiveBoard'
 import CalendarBoard from '@/components/workspace/CalendarBoard'
 import StoryBoard from '@/components/workspace/StoryBoard'
@@ -263,7 +262,6 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
 
       <div className="flex-1 flex relative">
         {viewMode === 'archive' && <ArchiveBoard />}
-        {viewMode === 'kanban' && <KanbanBoard />}
         {viewMode === 'calendar' && <CalendarBoard />}
         {viewMode === 'story' && <StoryBoard />}
         {/* НОВАЯ ВКЛАДКА ЭКОЛОГИИ */}

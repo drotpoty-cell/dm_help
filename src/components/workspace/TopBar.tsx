@@ -67,7 +67,6 @@ export default function TopBar({ campaignId, day: propDay, hour: propHour, viewM
 
   const navItems = [
     { id: 'map', label: 'Карта' },
-    { id: 'kanban', label: 'Сюжеты' },
     { id: 'calendar', label: 'Календарь' },
     { id: 'archive', label: 'Архив' },
     { id: 'story', label: 'Сценарий' },
