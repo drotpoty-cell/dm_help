@@ -12,18 +12,21 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
   const setEdges = useWorkspaceStore(state => state.setEdges)
   const updateEdgeData = useWorkspaceStore(state => state.updateEdgeData)
   const nodes = useWorkspaceStore(state => state.nodes)
-  const partyLocationId = useWorkspaceStore(state => state.partyLocationId) // Положение шлема отряда
+  
+  // Достаем нужные данные для истории
+  const partyLocationId = useWorkspaceStore(state => state.partyLocationId)
+  const currentDay = useWorkspaceStore(state => state.currentDay)
+  const addEntity = useWorkspaceStore(state => state.addEntity)
   
   const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
 
-  // Локальные состояния
   const [isEditing, setIsEditing] = useState(false)
   const [editDays, setEditDays] = useState(data?.days || 0)
   const [editHours, setEditHours] = useState(data?.hours || 0)
   
-  // Состояния для ИИ-генератора событий
+  // Расширили стейт, чтобы запоминать названия локаций для записи в историю
   const [isGenerating, setIsGenerating] = useState(false)
-  const [encounterData, setEncounterData] = useState<{ roll: number, text: string } | null>(null)
+  const [encounterData, setEncounterData] = useState<{ roll: number, text: string, sourceName: string, targetName: string } | null>(null)
 
   const onDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -45,18 +48,14 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
     setEditHours(data?.hours || 0)
   }
 
-  // --- УМНАЯ ЛОГИКА ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЯ И ГЕНЕРАЦИИ ---
   const handleRollEncounter = async (e: React.MouseEvent) => {
     e.stopPropagation()
     
-    // Бросаем кубик (1-20)
     const roll = Math.floor(Math.random() * 20) + 1
 
-    // Находим базовые узлы по техническому направлению React Flow
     const nodeA = nodes.find(n => n.id === source)
     const nodeB = nodes.find(n => n.id === target)
     
-    // Проверка направления: если маркер отряда равен target, значит мы идем в обратную сторону
     const isReversed = partyLocationId === target
     
     const sourceNode = isReversed ? nodeB : nodeA
@@ -67,7 +66,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
     const sourceDesc = sourceNode?.data?.description || ''
     const targetDesc = targetNode?.data?.description || ''
 
-    // 🗺️ ДИАГНОСТИЧЕСКИЙ ТОСТ (Поможет проверить логику до ответа ИИ)
     toast.info(`🗺️ Маршрут в коде: из "${sourceName}" в "${targetName}"`, {
       description: `Кубик: ${roll}. Переворот пути: ${isReversed ? 'Да' : 'Нет'}. Отправляем ИИ...`,
       duration: 4000
@@ -102,7 +100,9 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
 Верни только готовый, красиво структурированный художественный текст без лишних мета-комментариев и кавычек.`
 
       const response = await generateAiText(prompt)
-      setEncounterData({ roll, text: response })
+      
+      // Запоминаем имена локаций для сохранения в историю
+      setEncounterData({ roll, text: response, sourceName, targetName })
     } catch (error) {
       console.error(error)
       toast.error('Не удалось сгенерировать событие')
@@ -113,6 +113,21 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
 
   const closeEncounter = (e: React.MouseEvent) => {
     e.stopPropagation()
+    
+    // АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ В АРХИВ КАЛЕНДАРЯ
+    if (encounterData) {
+      const newEvent = {
+        id: `event-enc-${Date.now()}`,
+        name: `В пути: ${encounterData.sourceName} ➔ ${encounterData.targetName}`,
+        description: `**Результат кубика: ${encounterData.roll}**\n\n${encounterData.text}`,
+        startDay: currentDay,
+        duration: 1,
+        status: 'completed' // Сразу летит в архив
+      }
+      addEntity('events', newEvent)
+      toast.success('Событие записано в Архив сюжетов!')
+    }
+    
     setEncounterData(null)
   }
 
@@ -136,7 +151,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
           className="nodrag nopan flex flex-col items-center justify-center z-50"
         >
           {isEditing ? (
-            /* ФОРМА ВВОДА ВРЕМЕНИ */
             <div className="bg-zinc-950/90 backdrop-blur-md border border-indigo-500/50 shadow-2xl rounded-lg p-2.5 flex gap-3 items-center" onClick={(e) => e.stopPropagation()}>
               <div className="flex flex-col gap-1">
                 <label className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Дни</label>
@@ -153,7 +167,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
               </div>
             </div>
           ) : (
-            /* СТАНДАРТНОЕ ОТОБРАЖЕНИЕ */
             <div className="flex items-center gap-2 group relative">
               <button 
                 onClick={handleRollEncounter} 
@@ -179,7 +192,6 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
             </div>
           )}
 
-          {/* ПОПАП С ИТОГОМ ПУТЕШЕСТВИЯ */}
           {encounterData && (
             <div className="absolute top-10 left-1/2 -translate-x-1/2 w-96 bg-zinc-950/95 backdrop-blur-xl border border-indigo-500/50 rounded-xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-3" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center border-b border-indigo-900/50 pb-3">
