@@ -260,7 +260,7 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
       />
       {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} />}
 
-      <div className="flex-1 flex relative">
+      <div className="flex-1 flex relative overflow-hidden">
         {viewMode === 'archive' && <ArchiveBoard />}
         {viewMode === 'calendar' && <CalendarBoard />}
         {viewMode === 'story' && <StoryBoard />}
