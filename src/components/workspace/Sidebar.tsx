@@ -108,7 +108,7 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
   }
 
   return (
-    <div className="absolute top-0 right-0 bottom-0 w-[500px] bg-zinc-950 border-l border-zinc-900 flex flex-col shadow-2xl z-50">
+    <div className="fixed top-16 right-0 bottom-0 w-[500px] bg-zinc-950 border-l border-zinc-900 flex flex-col shadow-2xl z-50">
       <div className="p-6 border-b border-zinc-900 flex justify-between items-center bg-zinc-900/20">
         <input 
           type="text" value={selectedNode.data.label} onChange={(e) => updateNodeData('label', e.target.value)}
@@ -140,7 +140,7 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
       </div>
 
       {/* 2. Добавлен min-h-0 сюда, чтобы скролл работал правильно */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
         {(activeTab === 'general' || activeTab === 'secrets') && (
           <SmartEditor 
             value={selectedNode.data[activeTab === 'general' ? 'description' : 'secrets']}
