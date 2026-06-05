@@ -151,6 +151,10 @@ export interface WorkspaceState {
   secrets: Record<string, BaseEntity>
   loot: Record<string, Loot>
   events: Record<string, Event>
+  characters: Record<string, any>
+  extras: Record<string, any>
+  bestiary: Record<string, any>
+  factions: Record<string, any>
 
   setNodes: (nodes: Node[]) => void
   setEdges: (edges: Edge[]) => void
@@ -178,5 +182,5 @@ export interface WorkspaceState {
 
 export type LibraryState = Pick<
   WorkspaceState,
-  'heroes' | 'npcs' | 'quests' | 'locations' | 'secrets' | 'loot' | 'events'
+  'heroes' | 'npcs' | 'quests' | 'locations' | 'secrets' | 'loot' | 'events' | 'characters' | 'extras' | 'bestiary' | 'factions'
 >
