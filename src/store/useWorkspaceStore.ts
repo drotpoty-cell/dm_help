@@ -362,6 +362,26 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     }),
     {
       name: 'gm-workspace-storage',
+      partialize: (state) => ({
+        nodes: state.nodes,
+        edges: state.edges,
+        story: state.story,
+        heroes: state.heroes,
+        npcs: state.npcs,
+        quests: state.quests,
+        locations: state.locations,
+        secrets: state.secrets,
+        loot: state.loot,
+        events: state.events,
+        characters: state.characters,
+        extras: state.extras,
+        bestiary: state.bestiary,
+        factions: state.factions,
+        currentDay: state.currentDay,
+        currentHour: state.currentHour,
+        weather: state.weather,
+        partyLocationId: state.partyLocationId
+      })
     }
   )
 )
