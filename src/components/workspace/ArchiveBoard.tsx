@@ -86,6 +86,7 @@ export default function ArchiveBoard() {
       secrets: Object.values(library.secrets || {}),
       loot: Object.values(library.loot || {}),
       events: Object.values(library.events || {}),
+      // Добавляем сюда для экспорта:
       characters: Object.values(library.characters || {}),
       extras: Object.values(library.extras || {}),
       bestiary: Object.values(library.bestiary || {}),
@@ -143,6 +144,11 @@ export default function ArchiveBoard() {
           secrets: forceRecord(parsedData.secrets),
           loot: forceRecord(parsedData.loot),
           events: forceRecord(parsedData.events),
+          // Добавляем то, что игнорировалось:
+          characters: forceRecord(parsedData.characters),
+          extras: forceRecord(parsedData.extras),
+          bestiary: forceRecord(parsedData.bestiary),
+          factions: forceRecord(parsedData.factions),
         };
 
         useWorkspaceStore.setState((state: any) => ({
