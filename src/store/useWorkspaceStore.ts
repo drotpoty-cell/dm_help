@@ -362,6 +362,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     }),
     {
       name: 'gm-workspace-storage',
+      version: 1,
       partialize: (state) => ({
         nodes: state.nodes,
         edges: state.edges,
