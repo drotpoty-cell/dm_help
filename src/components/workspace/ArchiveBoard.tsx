@@ -12,6 +12,7 @@ import {
 } from '@/types/workspace'
 import { HeroForm } from '@/components/workspace/archive/HeroForm'
 import { NpcForm } from '@/components/workspace/archive/NpcForm'
+import { CharacterForm } from '@/components/workspace/archive/CharacterForm'
 import { QuestForm } from '@/components/workspace/archive/QuestForm'
 import { LootForm } from '@/components/workspace/archive/LootForm'
 import { EventForm } from '@/components/workspace/archive/EventForm'
@@ -48,7 +49,11 @@ export default function ArchiveBoard() {
     quests: state.quests,
     secrets: state.secrets,
     loot: state.loot,
-    events: state.events
+    events: state.events,
+    characters: state.characters,
+    extras: state.extras,
+    bestiary: state.bestiary,
+    factions: state.factions
   }))
 
   const nodes = useWorkspaceStore((state) => state.nodes)
@@ -58,12 +63,15 @@ export default function ArchiveBoard() {
 
   const tabs = [
     { id: 'heroes', label: 'Герои' },
+    { id: 'characters', label: 'Действующие лица' },
+    { id: 'extras', label: 'Массовка' },
+    { id: 'factions', label: 'Фракции' },
+    { id: 'bestiary', label: 'Бестиарий' },
     { id: 'locations', label: 'Локации' },
-    { id: 'npcs', label: 'Персонажи' },
     { id: 'quests', label: 'Сюжеты' },
-    { id: 'secrets', label: 'Секреты' },
     { id: 'loot', label: 'Артефакты' },
-    { id: 'events', label: 'События' }
+    { id: 'events', label: 'События' },
+    { id: 'secrets', label: 'Секреты' }
   ]
 
   const handleExport = () => {
@@ -74,7 +82,11 @@ export default function ArchiveBoard() {
       quests: Object.values(library.quests || {}),
       secrets: Object.values(library.secrets || {}),
       loot: Object.values(library.loot || {}),
-      events: Object.values(library.events || {})
+      events: Object.values(library.events || {}),
+      characters: Object.values(library.characters || {}),
+      extras: Object.values(library.extras || {}),
+      bestiary: Object.values(library.bestiary || {}),
+      factions: Object.values(library.factions || {})
     }
     const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -241,15 +253,23 @@ export default function ArchiveBoard() {
     const newEntity =
       activeTab === 'heroes'
         ? ({ id, name: 'Новый герой', playerName: '', raceClass: '', level: 1, hp: 10, maxHp: 10, ac: 10, initiativeModifier: 0, passivePerception: 10, description: '' } satisfies Hero)
-        : activeTab === 'quests'
-          ? ({ id, title: 'Новый сюжет', description: '', hook: '', giver: '', reward: '', consequence: '', deadline: 0, status: 'available', locationId: null } satisfies Quest)
-          : activeTab === 'npcs'
-            ? ({ ...base, name: 'Новый персонаж', occupation: '', locationId: null, needsUpdate: false, isMajor: false, goal: '', secret: '', personalLoot: '', stats: '', notes: '', showSchedule: false, schedule: [] } satisfies NPC)
-            : activeTab === 'loot'
-              ? ({ ...base, name: 'Новый артефакт', rarity: 'common', price: 0, weight: 0, stats: '', ownerId: null } satisfies Loot)
-              : activeTab === 'events'
-                ? ({ ...base, name: 'Новое событие', startDay: 1, duration: 1, status: 'backlog' } satisfies Event)
-                : base
+        : activeTab === 'characters'
+          ? ({ ...base, name: 'Новое лицо', raceClass: '', role: '', appearance: '', trueNature: '', secret: '', goal: '', flaw: '', factionId: null, relation: 'neutral', stats: '', inventory: '', schedule: [] } as any)
+          : activeTab === 'extras'
+            ? ({ ...base, name: 'Новый житель', occupation: '', quirk: '', knowledge: '', state: '' } as any)
+            : activeTab === 'factions'
+              ? ({ ...base, name: 'Новая фракция', type: '', symbol: '', goal: '', leaderId: null, headquartersId: null, reputation: '' } as any)
+              : activeTab === 'bestiary'
+                ? ({ ...base, name: 'Новый монстр', type: '', cr: '', combatStats: { ac: 10, hp: 10, speed: '30 футов', resistances: '' }, actions: '', tactics: '', drops: '' } as any)
+                : activeTab === 'quests'
+                  ? ({ id, title: 'Новый сюжет', description: '', hook: '', giver: '', reward: '', consequence: '', deadline: 0, status: 'available', locationId: null } satisfies Quest)
+                  : activeTab === 'npcs'
+                    ? ({ ...base, name: 'Новый персонаж', occupation: '', locationId: null, needsUpdate: false, isMajor: false, goal: '', secret: '', personalLoot: '', stats: '', notes: '', showSchedule: false, schedule: [] } satisfies NPC)
+                    : activeTab === 'loot'
+                      ? ({ ...base, name: 'Новый артефакт', rarity: 'common', price: 0, weight: 0, stats: '', ownerId: null } satisfies Loot)
+                      : activeTab === 'events'
+                        ? ({ ...base, name: 'Новое событие', startDay: 1, duration: 1, status: 'backlog' } satisfies Event)
+                        : base
 
     addEntity(activeTab, newEntity)
   }
@@ -353,6 +373,7 @@ export default function ArchiveBoard() {
                 {selectedEntityId === entity.id && (
                   <div className="mt-3 p-4 bg-zinc-900 rounded-xl border border-zinc-800 animate-in fade-in slide-in-from-top-2 duration-200">
                     {activeTab === 'heroes' && <HeroForm hero={entity as Hero} onUpdate={(data) => updateEntity('heroes', entity.id, data)} />}
+                    {activeTab === 'characters' && <CharacterForm character={entity} nodes={nodes} onUpdate={(data) => updateEntity('characters', entity.id, data)} />}
                     {activeTab === 'npcs' && <NpcForm npc={entity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', entity.id, data)} />}
                     {activeTab === 'loot' && <LootForm loot={entity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', entity.id, data)} />}
                     {activeTab === 'events' && <EventForm event={entity as Event} onUpdate={(data) => updateEntity('events', entity.id, data)} />}
