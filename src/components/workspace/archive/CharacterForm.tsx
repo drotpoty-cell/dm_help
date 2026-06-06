@@ -1,9 +1,9 @@
 import type { Node } from 'reactflow'
-import { ArchiveTooltip } from './ArchiveTooltip'
 import { AiWand } from '../ai/AiWand'
 import { Input } from '../../ui/Input'
 import { Textarea } from '../../ui/Textarea'
 import { Label } from '../../ui/Label'
+import { ArchiveTooltip } from './ArchiveTooltip'
 
 const SectionButton = ({
   title,
@@ -39,7 +39,7 @@ const SectionButton = ({
   )
 }
 
-export function CharacterForm({
+export const CharacterForm = ({
   character,
   nodes,
   onUpdate
@@ -47,7 +47,7 @@ export function CharacterForm({
   character: any
   nodes: Node[]
   onUpdate: (data: any) => void
-}) {
+}) => {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-2">
@@ -55,22 +55,25 @@ export function CharacterForm({
           value={character.raceClass || ''}
           onChange={(e) => onUpdate({ ...character, raceClass: e.target.value })}
           placeholder="Раса и Класс"
+          className="text-indigo-300"
         />
         <Input
           value={character.role || ''}
           onChange={(e) => onUpdate({ ...character, role: e.target.value })}
-          placeholder="Роль в сюжете"
+          placeholder="Роль (Антагонист...)"
+          className="text-zinc-300"
         />
       </div>
       
       <select
         value={character.relation || 'neutral'}
         onChange={(e) => onUpdate({ ...character, relation: e.target.value })}
-        className="w-full bg-zinc-900 border border-zinc-800 text-[10px] p-2 rounded outline-none text-zinc-300 cursor-pointer focus:border-indigo-500"
+        className="bg-zinc-900 border border-zinc-800 text-[10px] p-2 rounded outline-none text-zinc-300 cursor-pointer focus:border-indigo-500"
       >
-        <option value="neutral">Нейтрально</option>
-        <option value="friendly">Дружелюбно</option>
-        <option value="hostile">Враждебно</option>
+        <option value="neutral">Нейтральное отношение</option>
+        <option value="allied">Союзник</option>
+        <option value="hostile">Антагонист</option>
+        <option value="friendly">Дружелюбный</option>
       </select>
 
       <SectionButton
@@ -79,35 +82,39 @@ export function CharacterForm({
         onClick={() => onUpdate({ ...character, showDescription: !character.showDescription })}
       />
       {character.showDescription && (
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            <Label>Внешность</Label>
-            <AiWand 
-              currentValue={character.appearance || ''}
-              contextData={character}
-              onApply={(text) => onUpdate({ ...character, appearance: text })}
+        <div className="flex flex-col gap-3 bg-zinc-950/40 border border-zinc-800 p-3 rounded-lg">
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <Label className="mb-0">Внешность</Label>
+              <AiWand 
+                currentValue={character.appearance || ''}
+                contextData={character}
+                onApply={(text) => onUpdate({ ...character, appearance: text })}
+              />
+            </div>
+            <Textarea
+              value={character.appearance || ''}
+              onChange={(e) => onUpdate({ ...character, appearance: e.target.value })}
+              placeholder="Для игроков..."
+              rows={3}
             />
           </div>
-          <Textarea
-            value={character.appearance || ''}
-            onChange={(e) => onUpdate({ ...character, appearance: e.target.value })}
-            placeholder="Внешность для игроков..."
-            rows={3}
-          />
-          <div className="flex justify-between items-center">
-            <Label>Истинная суть</Label>
-            <AiWand 
-              currentValue={character.trueNature || ''}
-              contextData={character}
-              onApply={(text) => onUpdate({ ...character, trueNature: text })}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <Label className="mb-0">Истинная суть</Label>
+              <AiWand 
+                currentValue={character.trueNature || ''}
+                contextData={character}
+                onApply={(text) => onUpdate({ ...character, trueNature: text })}
+              />
+            </div>
+            <Textarea
+              value={character.trueNature || ''}
+              onChange={(e) => onUpdate({ ...character, trueNature: e.target.value })}
+              placeholder="Для мастера..."
+              rows={3}
             />
           </div>
-          <Textarea
-            value={character.trueNature || ''}
-            onChange={(e) => onUpdate({ ...character, trueNature: e.target.value })}
-            placeholder="Истинная суть для мастера..."
-            rows={3}
-          />
         </div>
       )}
 
@@ -118,82 +125,140 @@ export function CharacterForm({
         onClick={() => onUpdate({ ...character, showPsychology: !character.showPsychology })}
       />
       {character.showPsychology && (
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            <Label>Цель</Label>
-            <AiWand currentValue={character.goal || ''} contextData={character} onApply={(text) => onUpdate({ ...character, goal: text })} />
-          </div>
-          <Textarea value={character.goal || ''} onChange={(e) => onUpdate({ ...character, goal: e.target.value })} placeholder="Цель..." />
-          
-          <div className="flex justify-between items-center">
-            <Label>Слабость</Label>
-            <AiWand currentValue={character.flaw || ''} contextData={character} onApply={(text) => onUpdate({ ...character, flaw: text })} />
-          </div>
-          <Textarea value={character.flaw || ''} onChange={(e) => onUpdate({ ...character, flaw: e.target.value })} placeholder="Слабость..." />
-          
-          <div className="flex justify-between items-center">
-            <Label>Секрет</Label>
-            <AiWand currentValue={character.secret || ''} contextData={character} onApply={(text) => onUpdate({ ...character, secret: text })} />
-          </div>
-          <Textarea value={character.secret || ''} onChange={(e) => onUpdate({ ...character, secret: e.target.value })} placeholder="Секрет..." />
+        <div className="flex flex-col gap-3 bg-zinc-950/40 border border-zinc-800 p-3 rounded-lg">
+          {['goal', 'flaw', 'secret'].map((field) => (
+            <div key={field}>
+              <div className="flex justify-between items-center mb-1">
+                <Label className="mb-0 capitalize">{field}</Label>
+                <AiWand 
+                  currentValue={character[field] || ''}
+                  contextData={character}
+                  onApply={(text) => onUpdate({ ...character, [field]: text })}
+                />
+              </div>
+              <Textarea
+                value={character[field] || ''}
+                onChange={(e) => onUpdate({ ...character, [field]: e.target.value })}
+                rows={2}
+              />
+            </div>
+          ))}
         </div>
       )}
 
       <SectionButton
         title="МЕХАНИКА И ИНВЕНТАРЬ"
+        tone="warning"
         open={!!character.showMechanics}
         onClick={() => onUpdate({ ...character, showMechanics: !character.showMechanics })}
       />
       {character.showMechanics && (
-        <div className="flex flex-col gap-2">
-          <Label>Статы</Label>
-          <Input value={character.stats || ''} onChange={(e) => onUpdate({ ...character, stats: e.target.value })} placeholder="AC, HP, Навыки..." />
-          <Label>Инвентарь</Label>
-          <Input value={character.inventory || ''} onChange={(e) => onUpdate({ ...character, inventory: e.target.value })} placeholder="Квестовые предметы..." />
+        <div className="flex flex-col gap-3 bg-zinc-950/40 border border-zinc-800 p-3 rounded-lg">
+          <Input
+            value={character.stats || ''}
+            onChange={(e) => onUpdate({ ...character, stats: e.target.value })}
+            placeholder="AC, HP, Навыки..."
+          />
+          <Input
+            value={character.inventory || ''}
+            onChange={(e) => onUpdate({ ...character, inventory: e.target.value })}
+            placeholder="Квестовые предметы..."
+          />
         </div>
       )}
 
-      <button
-        onClick={() => onUpdate({ ...character, showSchedule: !character.showSchedule })}
-        className="text-[8px] font-black uppercase tracking-widest px-2 py-1.5 rounded border border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300"
-      >
-        Расписание
-      </button>
+      <div className="flex gap-2">
+        <ArchiveTooltip text="Настройте время, чтобы персонаж автоматически перемещался по карте.">
+          <button
+            onClick={() => onUpdate({ ...character, showSchedule: !character.showSchedule })}
+            className={`text-[8px] font-black uppercase tracking-widest px-2 py-1.5 rounded border transition-colors ${
+              character.showSchedule
+                ? 'bg-indigo-950/30 border-indigo-900/50 text-indigo-400'
+                : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            Расписание
+          </button>
+        </ArchiveTooltip>
+      </div>
 
       {character.showSchedule && (
-        <div className="bg-zinc-950/80 border border-zinc-800 p-3 rounded-lg flex flex-col gap-3">
+        <div className="bg-zinc-950/80 border border-zinc-800 p-3 rounded-lg flex flex-col gap-3 shadow-inner">
+          <div className="text-[8px] font-bold text-indigo-500 uppercase tracking-widest">Распорядок дня</div>
           {(character.schedule || []).map((entry: any, index: number) => (
-            <div key={index} className="grid grid-cols-2 gap-2 pb-3 border-b border-zinc-900">
-              <Input type="number" placeholder="С" value={entry.startHour ?? ''} onChange={(e) => {
-                const newSched = [...(character.schedule || [])];
-                newSched[index] = { ...newSched[index], startHour: Number(e.target.value) };
-                onUpdate({ ...character, schedule: newSched });
-              }} />
-              <Input type="number" placeholder="По" value={entry.endHour ?? ''} onChange={(e) => {
-                const newSched = [...(character.schedule || [])];
-                newSched[index] = { ...newSched[index], endHour: Number(e.target.value) };
-                onUpdate({ ...character, schedule: newSched });
-              }} />
-              <select value={entry.locationId || 'none'} onChange={(e) => {
-                const newSched = [...(character.schedule || [])];
-                newSched[index] = { ...newSched[index], locationId: e.target.value === 'none' ? null : e.target.value };
-                onUpdate({ ...character, schedule: newSched });
-              }} className="col-span-2 bg-zinc-900 border border-zinc-800 p-1.5 rounded text-[10px]">
+            <div key={index} className="grid grid-cols-2 gap-2 pb-3 border-b border-zinc-900 last:border-0 last:pb-0">
+              <div className="flex gap-1">
+                <Input
+                  type="number"
+                  placeholder="С"
+                  value={entry.startHour ?? ''}
+                  onChange={(e) => {
+                    const newSched = [...(character.schedule || [])]
+                    newSched[index] = { ...newSched[index], startHour: Number.parseInt(e.target.value, 10) || 0 }
+                    onUpdate({ ...character, schedule: newSched })
+                  }}
+                />
+                <Input
+                  type="number"
+                  placeholder="По"
+                  value={entry.endHour ?? ''}
+                  onChange={(e) => {
+                    const newSched = [...(character.schedule || [])]
+                    newSched[index] = { ...newSched[index], endHour: Number.parseInt(e.target.value, 10) || 0 }
+                    onUpdate({ ...character, schedule: newSched })
+                  }}
+                />
+              </div>
+              <select
+                value={entry.locationId || 'none'}
+                onChange={(e) => {
+                  const newSched = [...(character.schedule || [])]
+                  newSched[index] = { ...newSched[index], locationId: e.target.value === 'none' ? null : e.target.value }
+                  onUpdate({ ...character, schedule: newSched })
+                }}
+                className="bg-zinc-900 border border-zinc-800 text-[10px] p-1.5 rounded outline-none text-zinc-300 cursor-pointer focus:border-indigo-500 truncate"
+              >
                 <option value="none">Вне карты</option>
-                {nodes.filter(n => n.type !== 'region').map(n => (
-                  <option key={n.id} value={n.id}>{(n.data as any)?.label || n.id}</option>
-                ))}
+                {nodes
+                  .filter((n) => n.type !== 'region')
+                  .map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {String((n.data as { label?: string })?.label || '')}
+                    </option>
+                  ))}
               </select>
-              <Input className="col-span-2" placeholder="Занятие" value={entry.activity || ''} onChange={(e) => {
-                const newSched = [...(character.schedule || [])];
-                newSched[index] = { ...newSched[index], activity: e.target.value };
-                onUpdate({ ...character, schedule: newSched });
-              }} />
+              <div className="col-span-2 flex gap-1 items-center">
+                <Input
+                  placeholder="Чем занимается?..."
+                  value={entry.activity || ''}
+                  onChange={(e) => {
+                    const newSched = [...(character.schedule || [])]
+                    newSched[index] = { ...newSched[index], activity: e.target.value }
+                    onUpdate({ ...character, schedule: newSched })
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const newSched = [...(character.schedule || [])]
+                    newSched.splice(index, 1)
+                    onUpdate({ ...character, schedule: newSched })
+                  }}
+                  className="w-7 h-7 flex items-center justify-center rounded bg-red-950/30 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           ))}
-          <button onClick={() => {
-            onUpdate({ ...character, schedule: [...(character.schedule || []), { startHour: 8, endHour: 18, locationId: null, activity: '' }] });
-          }} className="w-full py-2 border border-dashed border-zinc-800 text-[8px] text-zinc-500 uppercase rounded">+ Добавить время</button>
+          <button
+            onClick={() => {
+              const newSched = [...(character.schedule || []), { startHour: 8, endHour: 18, locationId: null, activity: '' }]
+              onUpdate({ ...character, schedule: newSched })
+            }}
+            className="w-full py-2 border border-dashed border-zinc-800 text-[8px] text-zinc-500 hover:text-indigo-400 hover:border-indigo-900/50 uppercase font-bold transition-colors rounded"
+          >
+            + Добавить время
+          </button>
         </div>
       )}
     </div>

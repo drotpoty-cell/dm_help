@@ -374,6 +374,7 @@ export default function ArchiveBoard() {
                   <div className="mt-3 p-4 bg-zinc-900 rounded-xl border border-zinc-800 animate-in fade-in slide-in-from-top-2 duration-200">
                     {activeTab === 'heroes' && <HeroForm hero={entity as Hero} onUpdate={(data) => updateEntity('heroes', entity.id, data)} />}
                     {activeTab === 'characters' && <CharacterForm character={entity} nodes={nodes} onUpdate={(data) => updateEntity('characters', entity.id, data)} />}
+                    {activeTab === 'characters' && <CharacterForm character={entity} nodes={nodes} onUpdate={(data) => updateEntity('characters', entity.id, data)} />}
                     {activeTab === 'npcs' && <NpcForm npc={entity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', entity.id, data)} />}
                     {activeTab === 'loot' && <LootForm loot={entity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', entity.id, data)} />}
                     {activeTab === 'events' && <EventForm event={entity as Event} onUpdate={(data) => updateEntity('events', entity.id, data)} />}
