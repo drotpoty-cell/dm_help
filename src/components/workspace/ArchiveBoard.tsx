@@ -145,7 +145,17 @@ export default function ArchiveBoard() {
 
       useWorkspaceStore.setState((state: any) => ({
         ...state,
-        ...safeState
+        heroes: { ...state.heroes, ...safeState.heroes },
+        locations: { ...state.locations, ...safeState.locations },
+        npcs: { ...state.npcs, ...safeState.npcs },
+        quests: { ...state.quests, ...safeState.quests },
+        secrets: { ...state.secrets, ...safeState.secrets },
+        loot: { ...state.loot, ...safeState.loot },
+        events: { ...state.events, ...safeState.events },
+        characters: { ...state.characters, ...safeState.characters },
+        extras: { ...state.extras, ...safeState.extras },
+        bestiary: { ...state.bestiary, ...safeState.bestiary },
+        factions: { ...state.factions, ...safeState.factions },
       }));
 
       toast.success('Архив успешно загружен и отвалидирован!');
