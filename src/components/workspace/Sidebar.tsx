@@ -13,13 +13,13 @@ interface SidebarProps {
 const SmartEditor = ({ value, onChange, placeholder, mode, contextData }: { value: string, onChange: (val: string) => void, placeholder: string, mode?: 'location' | 'general', contextData?: any }) => {
   const [isEditing, setIsEditing] = useState(false)
   const library = useWorkspaceStore(state => ({
-    npcs: Object.values(state.npcs), quests: Object.values(state.quests), locations: Object.values(state.locations)
+    characters: Object.values(state.characters), extras: Object.values(state.extras), factions: Object.values(state.factions), bestiary: Object.values(state.bestiary), quests: Object.values(state.quests), locations: Object.values(state.locations)
   }))
 
   const renderFormattedText = (text: string) => {
     if (!text) return <span className="text-zinc-600 italic">Пусто. Кликните, чтобы добавить...</span>
     let formattedText = text
-    const allEntities = [...library.npcs, ...library.quests, ...library.locations]
+    const allEntities = [...library.characters, ...library.extras, ...library.factions, ...library.bestiary, ...library.quests, ...library.locations]
     
     allEntities.forEach((entity: any) => {
       const name = entity.name || entity.title
@@ -63,28 +63,34 @@ const SmartEditor = ({ value, onChange, placeholder, mode, contextData }: { valu
   )
 }
 
-const TABS = ['general', 'npcs', 'quests', 'loot', 'secrets'] as const;
+const TABS = ['general', 'inhabitants', 'threats', 'quests', 'loot', 'secrets'] as const;
 type Tab = typeof TABS[number];
 
 export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<Tab>('general');
 
-  const { nodes, setNodes, currentDay, updateEntity, updateQuestStatus, clearNeedsUpdate, npcs, quests, loot: storeLoot } = useWorkspaceStore()
+  const { nodes, setNodes, currentDay, updateEntity, updateQuestStatus, clearNeedsUpdate, characters, extras, bestiary, factions, quests, loot: storeLoot } = useWorkspaceStore()
   const selectedNode = nodes.find(n => n.id === selectedNodeId)
 
   if (!selectedNode) return null
   
-  const allNpcs = useMemo(() => Object.values(npcs || {}), [npcs])
+  const allCharacters = useMemo(() => Object.values(characters || {}), [characters])
+  const allExtras = useMemo(() => Object.values(extras || {}), [extras])
+  const allBestiary = useMemo(() => Object.values(bestiary || {}), [bestiary])
   const allQuests = useMemo(() => Object.values(quests || {}), [quests])
   const loot = useMemo(() => Object.values(storeLoot || {}), [storeLoot])
 
-  const { localNpcs, localQuests, localLoot, availableNpcs, availableQuests } = useMemo(() => ({
-    localNpcs: allNpcs.filter((n: any) => n.locationId === selectedNodeId),
+  const { localCharacters, localExtras, localBestiary, localQuests, localLoot, availableCharacters, availableExtras, availableBestiary, availableQuests } = useMemo(() => ({
+    localCharacters: allCharacters.filter((c: any) => c.locationId === selectedNodeId),
+    localExtras: allExtras.filter((e: any) => e.locationId === selectedNodeId),
+    localBestiary: allBestiary.filter((b: any) => b.locationId === selectedNodeId),
     localQuests: allQuests.filter((q: any) => q.locationId === selectedNodeId),
     localLoot: loot.filter((l: any) => l.ownerId === selectedNodeId),
-    availableNpcs: allNpcs.filter((n: any) => n.locationId !== selectedNodeId),
+    availableCharacters: allCharacters.filter((c: any) => c.locationId !== selectedNodeId),
+    availableExtras: allExtras.filter((e: any) => e.locationId !== selectedNodeId),
+    availableBestiary: allBestiary.filter((b: any) => b.locationId !== selectedNodeId),
     availableQuests: allQuests.filter((q: any) => q.locationId !== selectedNodeId),
-  }), [allNpcs, allQuests, loot, selectedNodeId])
+  }), [allCharacters, allExtras, allBestiary, allQuests, loot, selectedNodeId])
 
   const updateNodeData = (field: string, value: any) => {
     setNodes(nodes.map(n => n.id === selectedNodeId ? { ...n, data: { ...n.data, [field]: value } } : n))
@@ -134,7 +140,7 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
       <div className="flex bg-zinc-950 text-[10px] font-bold uppercase tracking-widest border-b border-zinc-900 shrink-0">
         {TABS.map(t => (
           <button key={t} onClick={() => setActiveTab(t as Tab)} className={`px-5 py-4 flex-1 transition-all ${activeTab === t ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
-            {t === 'general' ? 'Мир' : t === 'npcs' ? `Жители (${localNpcs.length})` : t === 'quests' ? 'Квесты' : t === 'loot' ? `Лут (${localLoot.length})` : 'Секреты'}
+            {t === 'general' ? 'Мир' : t === 'inhabitants' ? `Жители (${localCharacters.length + localExtras.length})` : t === 'threats' ? `Угрозы (${localBestiary.length})` : t === 'quests' ? 'Квесты' : t === 'loot' ? `Лут (${localLoot.length})` : 'Секреты'}
           </button>
         ))}
       </div>
@@ -188,106 +194,68 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
         )}
 
         {/* --- ВКЛАДКА ЖИТЕЛИ --- */}
-        {activeTab === 'npcs' && (
+        {activeTab === 'inhabitants' && (
           <div className="space-y-4">
-            <div className="mb-4">
-              <select onChange={attachNpc} value="" className="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold uppercase p-3 rounded-lg outline-none focus:border-indigo-500 cursor-pointer">
-                <option value="" disabled>+ Призвать NPC из Архива</option>
-                {availableNpcs.map((n: any) => <option key={n.id} value={n.id}>{n.isMajor ? '⭐️ ' : ''}{n.name} {n.occupation ? `(${n.occupation})` : ''}</option>)}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <select onChange={(e) => updateEntity('characters', e.target.value, { locationId: selectedNodeId })} value="" className="bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px] font-bold uppercase p-2 rounded-lg outline-none focus:border-indigo-500 cursor-pointer">
+                <option value="" disabled>+ Призвать Действующее лицо</option>
+                {availableCharacters.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <select onChange={(e) => updateEntity('extras', e.target.value, { locationId: selectedNodeId })} value="" className="bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px] font-bold uppercase p-2 rounded-lg outline-none focus:border-indigo-500 cursor-pointer">
+                <option value="" disabled>+ Призвать Массовку</option>
+                {availableExtras.map((e: any) => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
             </div>
 
-            {localNpcs.length === 0 && availableNpcs.length > 0 && (
-               <div className="text-center text-zinc-600 text-[10px] uppercase font-bold tracking-widest py-10 border border-dashed border-zinc-800 rounded-xl">Никого нет.</div>
-            )}
-
-            {localNpcs.map((npc: any) => {
-              const npcLoot = loot.filter((l: any) => l.ownerId === npc.id)
-              const isMajor = npc.isMajor
-
+            {localCharacters.map((char: any) => {
+              const charLoot = loot.filter((l: any) => l.ownerId === char.id)
               return (
-                <div 
-                  key={npc.id} 
-                  className={`rounded-xl p-4 flex flex-col gap-3 transition-colors ${isMajor ? 'bg-indigo-950/10 border-2 border-indigo-900/50 shadow-[0_0_15px_rgba(99,102,241,0.05)]' : 'bg-zinc-900/30 border border-zinc-800'}`}
-                >
-                  <div className="flex justify-between items-center border-b border-zinc-800/50 pb-2">
-                    <div>
-                      <div className={`font-bold flex items-center gap-2 ${isMajor ? 'text-indigo-400' : 'text-zinc-100'}`}>
-                        {isMajor && <span title="Ключевой персонаж">⭐️</span>} {npc.name}
-                      </div>
-                      <div className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider">{npc.occupation || 'Житель'}</div>
-                    </div>
-                    <button onClick={() => updateEntity('npcs', npc.id, { locationId: null })} className="text-zinc-600 hover:text-amber-500 text-[10px] uppercase font-bold transition-colors">Отвязать</button>
+                <div key={char.id} className="bg-indigo-950/10 border border-indigo-900/50 rounded-xl p-4 flex flex-col gap-2">
+                  <div className="flex justify-between items-center border-b border-indigo-900/30 pb-2">
+                    <div className="font-bold text-indigo-400">{char.name}</div>
+                    <button onClick={() => updateEntity('characters', char.id, { locationId: null })} className="text-zinc-600 hover:text-red-500 text-[9px] uppercase font-bold">Убрать</button>
                   </div>
-                  
-                  <div className="text-sm text-zinc-400 leading-relaxed">{npc.description || 'Нет описания.'}</div>
-
-                  {npc.currentActivity && (
-                    <div className="bg-indigo-500/10 text-indigo-400 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-indigo-500/20 inline-block w-max mt-1">
-                      Сейчас: {npc.currentActivity}
-                    </div>
-                  )}
-
-                  {isMajor && (
-                    <div className="flex flex-col gap-2 mt-2">
-                      {npc.showStats && npc.stats && (
-                        <div className="bg-orange-950/20 border border-orange-900/30 p-3 rounded-lg">
-                          <div className="text-[8px] font-black uppercase text-orange-500 tracking-widest mb-1">⚔️ Боевые статы</div>
-                          <div className="text-xs text-orange-200 font-mono">{npc.stats}</div>
-                        </div>
-                      )}
-
-                      {npc.showGoal && npc.goal && (
-                        <div className="bg-emerald-950/20 border border-emerald-900/30 p-3 rounded-lg">
-                          <div className="text-[8px] font-black uppercase text-emerald-500 tracking-widest mb-1">🎯 Мотивация / Цель</div>
-                          <div className="text-xs text-emerald-200">{npc.goal}</div>
-                        </div>
-                      )}
-
-                      {npc.showSecret && npc.secret && (
-                        <div className="relative group bg-red-950/20 border border-red-900/30 p-3 rounded-lg overflow-hidden cursor-help">
-                          <div className="text-[8px] font-black uppercase text-red-500 tracking-widest mb-1">🤫 Скелет в шкафу</div>
-                          <div className="text-xs text-red-200 blur-[3px] group-hover:blur-none transition-all duration-300">{npc.secret}</div>
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
-                            <span className="bg-red-950/90 text-red-400 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-md border border-red-900/50 backdrop-blur-sm shadow-xl shadow-red-900/20">
-                              Наведите, чтобы раскрыть
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {npc.showLoot && npc.personalLoot && (
-                        <div className="bg-amber-950/20 border border-amber-900/30 p-3 rounded-lg">
-                          <div className="text-[8px] font-black uppercase text-amber-500 tracking-widest mb-1">💰 В карманах (Слухи/Лор)</div>
-                          <div className="text-xs text-amber-200">{npc.personalLoot}</div>
-                        </div>
-                      )}
-
-                      {npc.showNotes && npc.notes && (
-                        <div className="bg-cyan-950/20 border border-cyan-900/30 p-3 rounded-lg">
-                          <div className="text-[8px] font-black uppercase text-cyan-500 tracking-widest mb-1">📌 Заметки</div>
-                          <div className="text-xs text-cyan-200">{npc.notes}</div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {npcLoot.length > 0 && (
-                    <div className="mt-2 pt-3 border-t border-zinc-800/50">
-                      <div className="text-[9px] font-bold text-zinc-500 uppercase mb-2 tracking-widest">Инвентарь (Механика):</div>
-                      <div className="flex flex-wrap gap-2">
-                        {npcLoot.map((item: any) => (
-                          <div key={item.id} className={`text-[10px] px-2 py-1 rounded border flex flex-col gap-1 ${item.rarity === 'legendary' ? 'bg-orange-950/20 text-orange-400 border-orange-900/50' : item.rarity === 'epic' ? 'bg-purple-950/20 text-purple-400 border-purple-900/50' : item.rarity === 'rare' ? 'bg-blue-950/20 text-blue-400 border-blue-900/50' : 'bg-zinc-900/50 text-zinc-300 border-zinc-700'}`} title={item.description || 'Нет описания'}>
-                            <span className="font-bold">{item.name}</span>
-                            {item.stats && <span className="opacity-70 text-[8px] font-mono">{item.stats}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="text-xs text-zinc-300">{char.description}</div>
+                  <div className="text-[10px] text-indigo-300/80">Цель: {char.goal}</div>
+                  <div className="text-[10px] text-red-300/80">Секрет: {char.secret}</div>
+                  {char.currentActivity && <div className="text-[9px] bg-indigo-900/30 text-indigo-200 px-2 py-1 rounded">Деятельность: {char.currentActivity}</div>}
                 </div>
               )
             })}
+
+            {localExtras.map((extra: any) => (
+              <div key={extra.id} className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-3">
+                <div className="flex justify-between items-center">
+                  <div className="font-bold text-zinc-200">{extra.name} ({extra.occupation})</div>
+                  <button onClick={() => updateEntity('extras', extra.id, { locationId: null })} className="text-zinc-600 hover:text-red-500 text-[9px] uppercase font-bold">X</button>
+                </div>
+                <div className="text-[10px] text-zinc-400">{extra.quirk} / {extra.knowledge}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* --- ВКЛАДКА УГРОЗЫ --- */}
+        {activeTab === 'threats' && (
+          <div className="space-y-4">
+            <select onChange={(e) => updateEntity('bestiary', e.target.value, { locationId: selectedNodeId })} value="" className="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px] font-bold uppercase p-2 rounded-lg outline-none focus:border-red-500 cursor-pointer">
+              <option value="" disabled>+ Призвать Монстра/Угрозу</option>
+              {availableBestiary.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+            
+            {localBestiary.map((b: any) => (
+              <div key={b.id} className="bg-red-950/10 border-2 border-red-900/50 rounded-xl p-4">
+                <div className="flex justify-between items-center border-b border-red-900/30 pb-2 mb-2">
+                  <div className="font-bold text-red-400">{b.name} (CR {b.cr})</div>
+                  <button onClick={() => updateEntity('bestiary', b.id, { locationId: null })} className="text-red-900 hover:text-red-500 text-[9px] uppercase font-bold">X</button>
+                </div>
+                <div className="text-[10px] text-red-200/80 grid grid-cols-2 gap-1 mb-2">
+                  <div>AC: {b.combatStats?.ac}</div>
+                  <div>HP: {b.combatStats?.hp}</div>
+                </div>
+                <div className="text-[10px] text-zinc-400">Тактика: {b.tactics}</div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -338,9 +306,12 @@ export default function Sidebar({ selectedNodeId, onClose }: SidebarProps) {
                         className="w-full bg-zinc-950/50 border border-zinc-800 p-2 text-xs text-zinc-300 rounded outline-none cursor-pointer focus:border-indigo-500"
                       >
                         <option value="">-- Неизвестно / Нет --</option>
-                        {allNpcs.map((n: any) => (
-                          <option key={n.id} value={n.id}>{n.isMajor ? '⭐️ ' : ''}{n.name}</option>
-                        ))}
+                        <optgroup label="Действующие лица">
+                          {allCharacters.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </optgroup>
+                        <optgroup label="Массовка">
+                          {allExtras.map((e: any) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                        </optgroup>
                       </select>
                     </div>
                     <div className="w-24">
