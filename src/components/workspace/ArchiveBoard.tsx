@@ -165,22 +165,17 @@ export default function ArchiveBoard() {
 
   const handleDownloadTemplate = () => {
     const template = {
-      _INSTRUCTION_FOR_AI_: "Ты — Данжен Мастер. Твоя задача — сгенерировать глубокий лор и вернуть его СТРОГО в этом JSON-формате. КАТЕГОРИЧЕСКИ ЗАПРЕЩАЕТСЯ оставлять поля пустыми. Ты обязан заполнить ВСЕ поля.",
-      _RULES_: [
-        "1. СТРУКТУРА: Все категории (characters, extras, bestiary, factions, locations, quests, loot, events) ДОЛЖНЫ БЫТЬ МАССИВАМИ объектов.",
-        "2. СВЯЗИ: ID должны быть строковыми. Поля ссылок (locationId, factionId, ownerId) должны соответствовать ID других объектов."
-      ],
-      _GM_QUESTIONS_: [],
-      locations: [{ "id": "loc-example", "name": "", "description": "", "type": "safe", "checks": [] }],
-      factions: [{ "id": "fac-example", "name": "", "type": "", "goal": "", "reputation": "", "symbol": "", "leaderId": "", "headquartersId": "" }],
-      characters: [{ "id": "char-example", "name": "", "locationId": "", "factionId": "", "raceClass": "", "role": "", "appearance": "", "trueNature": "", "secret": "", "goal": "", "flaw": "", "relation": "neutral", "stats": "", "inventory": "", "schedule": [] }],
-      extras: [{ "id": "ext-example", "name": "", "locationId": "", "occupation": "", "quirk": "", "knowledge": "", "state": "", "schedule": [] }],
-      bestiary: [{ "id": "mob-example", "name": "", "type": "", "cr": "", "combatStats": { "ac": 10, "hp": 10, "speed": "", "resistances": "" }, "actions": "", "tactics": "", "drops": "" }],
-      quests: [{ "id": "quest-example", "title": "", "locationId": "", "giver": "", "hook": "", "truth": "", "startDay": 1, "deadline": 0, "status": "available", "reward": "", "consequence": "" }],
-      loot: [],
-      events: [],
-      heroes: [],
-      secrets: []
+      "_INSTRUCTION_": "Заполни все поля. Верни JSON-массив объектов. Никакого текста до или после.",
+      "locations": [],
+      "factions": [],
+      "characters": [],
+      "extras": [],
+      "bestiary": [],
+      "quests": [],
+      "loot": [],
+      "events": [],
+      "heroes": [],
+      "secrets": []
     }
     const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
