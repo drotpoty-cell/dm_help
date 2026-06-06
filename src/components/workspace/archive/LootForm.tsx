@@ -1,5 +1,6 @@
 import type { Node } from 'reactflow'
 import { Loot, NPC } from '@/types/workspace'
+import { AiWand } from '../ai/AiWand'
 
 export function LootForm({
   loot,
@@ -84,6 +85,24 @@ export function LootForm({
               ))}
           </optgroup>
         </select>
+      </div>
+
+      <div className="mt-3">
+        <div className="flex justify-between items-center mb-1">
+          <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Описание / Лор предмета</label>
+          <AiWand 
+            mode="general"
+            currentValue={loot.description || ''}
+            contextData={loot}
+            onApply={(text) => onUpdate({ description: text })}
+          />
+        </div>
+        <textarea
+          value={loot.description || ''}
+          onChange={(e) => onUpdate({ description: e.target.value })}
+          placeholder="Древний клинок, покрытый рунами..."
+          className="w-full bg-zinc-950/50 border border-zinc-800 p-2 text-xs text-zinc-300 rounded outline-none h-20 resize-none focus:border-indigo-500"
+        />
       </div>
     </div>
   )

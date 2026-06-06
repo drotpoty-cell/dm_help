@@ -23,6 +23,8 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
   const [isEditing, setIsEditing] = useState(false)
   const [editDays, setEditDays] = useState(data?.days || 0)
   const [editHours, setEditHours] = useState(data?.hours || 0)
+  const [eventType, setEventType] = useState<'peaceful' | 'hostile' | 'random'>('random');
+  const weather = useWorkspaceStore((state) => state.weather);
   
   const [isGenerating, setIsGenerating] = useState(false)
   const [encounterData, setEncounterData] = useState<{ roll: number, text: string, sourceName: string, targetName: string } | null>(null)
@@ -74,8 +76,22 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
     setEncounterData(null)
 
     try {
+      let toneInstruction = "";
+      if (eventType === 'peaceful') {
+        toneInstruction = "\nИНСТРУКЦИЯ: Это событие строго МИРНОЕ. Отряд не должен получить урон. Это может быть полезная находка, бродячий торговец или красивое природное явление.";
+      } else if (eventType === 'hostile') {
+        toneInstruction = "\nИНСТРУКЦИЯ: Это событие строго ВРАЖДЕБНОЕ и ОПАСНОЕ. Засада монстров, скрытая ловушка или агрессивная магия.";
+      } else if (eventType === 'random') {
+        toneInstruction = "\nИНСТРУКЦИЯ: Выбери характер события случайно (оно может быть как опасным, так и мирным).";
+      }
+
+      if (weather?.condition) {
+        toneInstruction += `\nПОГОДА: Сейчас ${weather.condition}, климат ${weather.climate}. Обязательно вплети погоду в описание.`;
+      }
+
       const prompt = `Игроки путешествуют из точки "${sourceName}" (${sourceDesc}) в точку "${targetName}" (${targetDesc}).
 Результат броска d20 на случайное дорожное событие: ${roll} из 20.
+${toneInstruction}
 
 Ты — Dungeon Master. Твоя задача — сгенерировать живое описание путешествия строго по следующим правилам:
 
@@ -201,6 +217,18 @@ export default function TravelEdge({ id, source, target, sourceX, sourceY, targe
               >
                 {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : '🎲'}
               </button>
+
+              <select
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value as any)}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-zinc-950 border border-zinc-700 text-xs rounded outline-none text-zinc-300 ml-1 px-1 py-0.5 cursor-pointer hover:border-indigo-500"
+                title="Тональность события"
+              >
+                <option value="random">🎲 Случайно</option>
+                <option value="peaceful">🕊️ Мирно</option>
+                <option value="hostile">⚔️ Враждебно</option>
+              </select>
 
               <div className="relative flex items-center justify-center cursor-pointer">
                 <div onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className={`flex items-center justify-center transition-all bg-zinc-900 border hover:border-indigo-500 hover:bg-zinc-800 ${hasTime ? 'px-2.5 py-1 rounded-md border-indigo-500/30 shadow-lg shadow-indigo-900/20' : 'w-4 h-4 rounded-full border-zinc-700'}`}>
