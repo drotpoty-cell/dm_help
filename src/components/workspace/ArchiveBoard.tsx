@@ -165,32 +165,22 @@ export default function ArchiveBoard() {
 
   const handleDownloadTemplate = () => {
     const template = {
-      _INSTRUCTION_FOR_AI_: "Ты — Данжен Мастер. Твоя задача — сгенерировать лор и вернуть его СТРОГО в этом JSON-формате. КАТЕГОРИЧЕСКИ ЗАПРЕЩАЕТСЯ оставлять поля пустыми. Ты обязан сгенерировать данные для КАЖДОГО ключа, указанного в _SCHEMA_.",
+      _INSTRUCTION_FOR_AI_: "Ты — Данжен Мастер. Твоя задача — сгенерировать глубокий лор и вернуть его СТРОГО в этом JSON-формате. КАТЕГОРИЧЕСКИ ЗАПРЕЩАЕТСЯ оставлять поля пустыми. Ты обязан заполнить ВСЕ поля.",
       _RULES_: [
-        "1. НИКАКОЙ ЛЕНИ: У каждого characters ДОЛЖНЫ быть заполнены stats, secret, goal, flaw, schedule и appearance. У каждой location ДОЛЖНЫ быть checks. У bestiary ДОЛЖНЫ быть combatStats и tactics.",
-        "2. ВОПРОСЫ К МАСТЕРУ: Если тебе не хватает лора от пользователя, чтобы заполнить важное поле — придумай логичный вариант сам, НО обязательно напиши свой вопрос или сомнение в массив _GM_QUESTIONS_.",
-        "3. ЗАПОЛНЕНИЕ: Сгенерируй свои данные внутри пустых объектов (locations, characters, factions и т.д.), используя структуру из _SCHEMA_.",
-        "4. СВЯЗИ: ID должны быть строковыми (например, 'char-1'). Поля locationId, factionId, ownerId должны ссылаться на созданные тобой ID."
+        "1. СТРУКТУРА: Все категории (characters, extras, bestiary, factions, locations, quests, loot, events) ДОЛЖНЫ БЫТЬ МАССИВАМИ объектов.",
+        "2. СВЯЗИ: ID должны быть строковыми. Поля ссылок (locationId, factionId, ownerId) должны соответствовать ID других объектов."
       ],
-      _SCHEMA_: {
-        "locations": { "id": "", "name": "", "description": "", "type": "safe", "checks": [{ "id": "", "skill": "", "dc": 10, "passText": "", "failText": "" }] },
-        "factions": { "id": "", "name": "", "type": "", "goal": "", "reputation": "", "symbol": "", "leaderId": "", "headquartersId": "" },
-        "characters": { "id": "", "name": "", "locationId": "", "factionId": "", "raceClass": "", "role": "", "appearance": "", "trueNature": "", "secret": "", "goal": "", "flaw": "", "relation": "neutral", "stats": "", "inventory": "", "schedule": [{ "startHour": 8, "endHour": 20, "locationId": "", "activity": "" }] },
-        "extras": { "id": "", "name": "", "locationId": "", "occupation": "", "quirk": "", "knowledge": "", "state": "", "schedule": [{ "startHour": 8, "endHour": 20, "locationId": "", "activity": "" }] },
-        "bestiary": { "id": "", "name": "", "type": "", "cr": "", "combatStats": { "ac": 10, "hp": 10, "speed": "", "resistances": "" }, "actions": "", "tactics": "", "drops": "" },
-        "quests": { "id": "", "title": "", "locationId": "", "giver": "", "hook": "", "truth": "", "startDay": 1, "deadline": 0, "status": "available", "reward": "", "consequence": "" }
-      },
       _GM_QUESTIONS_: [],
-      locations: {},
-      factions: {},
-      characters: {},
-      extras: {},
-      bestiary: {},
-      quests: {},
-      loot: {},
-      events: {},
-      heroes: {},
-      secrets: {}
+      locations: [{ "id": "loc-example", "name": "", "description": "", "type": "safe", "checks": [] }],
+      factions: [{ "id": "fac-example", "name": "", "type": "", "goal": "", "reputation": "", "symbol": "", "leaderId": "", "headquartersId": "" }],
+      characters: [{ "id": "char-example", "name": "", "locationId": "", "factionId": "", "raceClass": "", "role": "", "appearance": "", "trueNature": "", "secret": "", "goal": "", "flaw": "", "relation": "neutral", "stats": "", "inventory": "", "schedule": [] }],
+      extras: [{ "id": "ext-example", "name": "", "locationId": "", "occupation": "", "quirk": "", "knowledge": "", "state": "", "schedule": [] }],
+      bestiary: [{ "id": "mob-example", "name": "", "type": "", "cr": "", "combatStats": { "ac": 10, "hp": 10, "speed": "", "resistances": "" }, "actions": "", "tactics": "", "drops": "" }],
+      quests: [{ "id": "quest-example", "title": "", "locationId": "", "giver": "", "hook": "", "truth": "", "startDay": 1, "deadline": 0, "status": "available", "reward": "", "consequence": "" }],
+      loot: [],
+      events: [],
+      heroes: [],
+      secrets: []
     }
     const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
