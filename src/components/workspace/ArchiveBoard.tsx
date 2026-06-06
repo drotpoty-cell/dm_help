@@ -10,6 +10,8 @@ import {
   type NPC,
   type Quest
 } from '@/types/workspace'
+import { BestiaryForm } from '@/components/workspace/archive/BestiaryForm'
+import { FactionForm } from '@/components/workspace/archive/FactionForm'
 import { HeroForm } from '@/components/workspace/archive/HeroForm'
 import { NpcForm } from '@/components/workspace/archive/NpcForm'
 import { CharacterForm } from '@/components/workspace/archive/CharacterForm'
@@ -289,6 +291,7 @@ export default function ArchiveBoard() {
 
   const currentItems = Object.values(library[activeTab] || {})
   const npcsList = useMemo(() => Object.values(library.npcs || {}) as NPC[], [library.npcs])
+  const charactersList = useMemo(() => Object.values(library.characters || {}), [library.characters])
   const normalizedQuery = query.trim().toLowerCase()
   const filteredItems = useMemo(() => {
     if (!normalizedQuery) return currentItems as ArchiveEntity[]
@@ -379,6 +382,8 @@ export default function ArchiveBoard() {
                     {activeTab === 'npcs' && <NpcForm npc={entity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', entity.id, data)} />}
                     {activeTab === 'loot' && <LootForm loot={entity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', entity.id, data)} />}
                     {activeTab === 'events' && <EventForm event={entity as Event} onUpdate={(data) => updateEntity('events', entity.id, data)} />}
+                    {activeTab === 'bestiary' && <BestiaryForm threat={entity} onUpdate={(data) => updateEntity('bestiary', entity.id, data)} />}
+                    {activeTab === 'factions' && <FactionForm faction={entity} nodes={nodes} characters={charactersList} onUpdate={(data) => updateEntity('factions', entity.id, data)} />}
                     {activeTab === 'quests' && <QuestForm quest={entity as Quest} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('quests', entity.id, data)} />}
                     {activeTab === 'locations' && <LocationForm location={entity} onUpdate={(data) => updateEntity('locations', entity.id, data)} onPlaceOnMap={() => handlePlaceOnMap(entity)} />}
                     
