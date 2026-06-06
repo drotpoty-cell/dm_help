@@ -8,6 +8,47 @@ export function FactionForm({ faction, nodes, characters, onUpdate }: { faction:
   
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label>Имя фракции</Label>
+        <Input
+          value={faction.name || ''}
+          onChange={(e) => onUpdate({ ...faction, name: e.target.value })}
+          placeholder="Имя..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Краткое описание</Label>
+        <Textarea
+          value={faction.description || ''}
+          onChange={(e) => onUpdate({ ...faction, description: e.target.value })}
+          placeholder="Краткое описание..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Текущая роль в сюжете</Label>
+        <Input
+          value={faction.currentRole || ''}
+          onChange={(e) => onUpdate({ ...faction, currentRole: e.target.value })}
+          placeholder="Роль..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Статус фракции</Label>
+        <select
+          value={faction.status || 'active'}
+          onChange={(e) => onUpdate({ ...faction, status: e.target.value })}
+          className="bg-zinc-900 border border-zinc-700 rounded p-2 text-white"
+        >
+          <option value="active">Активна</option>
+          <option value="destroyed">Уничтожена</option>
+          <option value="declining">В упадке</option>
+          <option value="emerging">Зарождается</option>
+        </select>
+      </div>
+
       <div className="flex gap-2">
         <select
           value={faction.type || ''}

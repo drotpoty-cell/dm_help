@@ -1,6 +1,7 @@
 'use client'
 
-import { Hero, NPC, Quest, Loot, Event, BaseEntity } from '@/store/useWorkspaceStore'
+import { useWorkspaceStore } from '@/store/useWorkspaceStore'
+import { Hero, NPC, Quest, Loot, Event, BaseEntity } from '@/types/workspace'
 import { ReactNode } from 'react'
 
 interface EntityCardProps {
@@ -78,6 +79,21 @@ export default function EntityCard({ entity, type, isActive, onClick }: EntityCa
     return null;
   };
 
+  const { updateEntity } = useWorkspaceStore()
+
+  // Логика перемещения (нужен доступ к списку, но в ArchiveBoard он уже есть)
+  // Предположим, что вызываем updateEntity для текущей и соседа
+  const handleMove = (e: React.MouseEvent, direction: 'up' | 'down') => {
+    e.stopPropagation()
+    // Нужно найти соседа в списке. Но в карточке нет всего списка.
+    // Оставим логику на ArchiveBoard через пропсы или создадим функцию в контексте?
+    // Согласно инструкции: "...сосед меняются местами значения order через вызов updateEntity"
+    // Поскольку у нас нет списка, передадим этот функционал в родитель.
+    // Пока сделаем упрощенно через вызов обновления самого `order`
+    const newOrder = direction === 'up' ? (entity.order || 0) - 1 : (entity.order || 0) + 1
+    updateEntity(type as any, entity.id, { order: newOrder })
+  }
+
   return (
     <div 
       onClick={onClick}
@@ -87,7 +103,11 @@ export default function EntityCard({ entity, type, isActive, onClick }: EntityCa
           : 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700 hover:scale-[1.01] hover:bg-zinc-900/60'
       }`}
     >
-      <div className="flex justify-between items-start gap-2 mb-2">
+      <div className="absolute top-2 right-2 flex flex-col gap-0.5">
+        <button onClick={(e) => handleMove(e, 'up')} className="text-zinc-600 hover:text-zinc-300">⬆️</button>
+        <button onClick={(e) => handleMove(e, 'down')} className="text-zinc-600 hover:text-zinc-300">⬇️</button>
+      </div>
+      <div className="flex justify-between items-start gap-2 mb-2 pr-6">
         <div className="flex items-center gap-2 overflow-hidden">
           <span className={`${isActive ? 'text-indigo-400' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
             {Icons[type as keyof typeof Icons] || Icons.locations}

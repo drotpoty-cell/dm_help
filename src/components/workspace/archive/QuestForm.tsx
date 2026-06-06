@@ -15,6 +15,20 @@ export function QuestForm({
 }) {
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
+        <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Текущий статус квеста</label>
+        <select
+          value={quest.status || 'available'}
+          onChange={(e) => onUpdate({ status: e.target.value as any })}
+          className="w-full bg-zinc-950/50 border border-zinc-800 p-2 text-xs text-zinc-300 rounded outline-none cursor-pointer"
+        >
+          <option value="available">Доступен</option>
+          <option value="active">В процессе</option>
+          <option value="completed">Выполнен</option>
+          <option value="failed">Провален</option>
+        </select>
+      </div>
+
       <div className="flex gap-3">
         <div className="flex-1">
           <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Кто дает</label>

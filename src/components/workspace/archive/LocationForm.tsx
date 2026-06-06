@@ -1,4 +1,6 @@
 import { AiWand } from '../ai/AiWand'
+import { Input } from '../../ui/Input'
+import { Textarea } from '../../ui/Textarea'
 
 export function LocationForm({ 
   location, 
@@ -13,12 +15,57 @@ export function LocationForm({
 
   return (
     <div className="flex flex-col gap-4">
-      
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Название</label>
+        <Input
+          value={location.name || ''}
+          onChange={(e: any) => onUpdate({ name: e.target.value })}
+          placeholder="Название локации..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Краткое описание</label>
+        <Textarea
+          value={location.description || ''}
+          onChange={(e: any) => onUpdate({ description: e.target.value })}
+          placeholder="Краткое описание..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Текущее состояние</label>
+        <Input
+          value={location.currentState || ''}
+          onChange={(e: any) => onUpdate({ currentState: e.target.value })}
+          placeholder="Осаждена, Разрушена, Процветает..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Персонажи в локации</label>
+        <Textarea
+          value={location.charactersInside || ''}
+          onChange={(e: any) => onUpdate({ charactersInside: e.target.value })}
+          placeholder="Кто здесь находится..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Секреты локации</label>
+        <Textarea
+          value={location.secrets || ''}
+          onChange={(e: any) => onUpdate({ secrets: e.target.value })}
+          placeholder="Секреты..."
+        />
+      </div>
+
+
       {/* --- БЛОК ОПИСАНИЯ --- */}
       <div>
         <div className="flex justify-between items-center mb-2">
           <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-            Описание локации
+            Описание локации (Детали)
           </label>
           <AiWand 
             mode="location"
@@ -27,13 +74,8 @@ export function LocationForm({
             onApply={(text) => onUpdate({ description: text })}
           />
         </div>
-        <textarea
-          value={location.description || ''}
-          onChange={(e) => onUpdate({ description: e.target.value })}
-          placeholder="Влажный воздух, запах серы..."
-          className="w-full bg-zinc-950/50 border border-zinc-800 p-3 text-sm text-zinc-300 rounded-xl outline-none min-h-[100px] resize-y focus:border-indigo-500 leading-relaxed custom-scrollbar"
-        />
       </div>
+
 
       {/* --- БЛОК ПРОВЕРОК И ЛОВУШЕК --- */}
       {checks.length > 0 && (

@@ -81,8 +81,7 @@ export default function ArchiveBoard() {
     { id: 'locations', label: 'Локации' },
     { id: 'quests', label: 'Сюжеты' },
     { id: 'loot', label: 'Артефакты' },
-    { id: 'events', label: 'События' },
-    { id: 'secrets', label: 'Секреты' }
+    { id: 'events', label: 'События' }
   ]
 
   const handleExport = () => {
@@ -193,27 +192,30 @@ export default function ArchiveBoard() {
 
   const handleAdd = () => {
     const id = `ent-${Date.now()}`
-    const base = { id, name: 'Новая запись', description: '' }
+    const order = Date.now()
+    const base = { id, name: 'Новая запись', description: '', order }
     const newEntity =
       activeTab === 'heroes'
-        ? ({ id, name: 'Новый герой', playerName: '', raceClass: '', level: 1, hp: 10, maxHp: 10, ac: 10, initiativeModifier: 0, passivePerception: 10, description: '' } satisfies Hero)
+        ? ({ id, name: 'Новый герой', playerName: '', raceClass: '', level: 1, hp: 10, maxHp: 10, ac: 10, initiativeModifier: 0, passivePerception: 10, description: '', order } as Hero)
         : activeTab === 'characters'
           ? ({ ...base, name: 'Новое лицо', raceClass: '', role: '', relation: 'neutral', description: '', traits: '', ideals: '', bonds: '', flaws: '', appearance: '', secret: '', relations: '', currentRole: '' } as any)
           : activeTab === 'extras'
             ? ({ ...base, name: 'Новый житель', occupation: '', quirk: '', knowledge: '', state: '' } as any)
             : activeTab === 'factions'
-              ? ({ ...base, name: 'Новая фракция', type: '', symbol: '', goal: '', leaderId: null, headquartersId: null, reputation: '' } as any)
+              ? ({ ...base, name: 'Новая фракция', type: '', symbol: '', goal: '', leaderId: null, headquartersId: null, reputation: '', currentRole: '', status: 'active' } as any)
               : activeTab === 'bestiary'
                 ? ({ ...base, name: 'Новый монстр', type: '', cr: '', combatStats: { ac: 10, hp: 10, speed: '30 футов', resistances: '' }, actions: '', tactics: '', drops: '' } as any)
                 : activeTab === 'quests'
-                  ? ({ id, title: 'Новый сюжет', description: '', hook: '', giver: '', reward: '', consequence: '', deadline: 0, status: 'available', locationId: null } satisfies Quest)
+                  ? ({ id, title: 'Новый сюжет', description: '', hook: '', giver: '', reward: '', consequence: '', deadline: 0, status: 'available', locationId: null, order } as Quest)
                   : activeTab === 'npcs'
                     ? ({ ...base, name: 'Новый персонаж', occupation: '', locationId: null, needsUpdate: false, isMajor: false, goal: '', secret: '', personalLoot: '', stats: '', notes: '', showSchedule: false, schedule: [] } satisfies NPC)
                     : activeTab === 'loot'
-                      ? ({ ...base, name: 'Новый артефакт', rarity: 'common', price: 0, weight: 0, stats: '', ownerId: null } satisfies Loot)
+                      ? ({ ...base, name: 'Новый артефакт', rarity: 'common', price: 0, weight: 0, stats: '', ownerId: null, detailedDescription: '', status: 'unclaimed' } as Loot)
                       : activeTab === 'events'
-                        ? ({ ...base, name: 'Новое событие', startDay: 1, duration: 1, status: 'backlog' } satisfies Event)
-                        : base
+                        ? ({ ...base, name: 'Новое событие', startDay: 1, duration: 1, status: 'backlog' } as Event)
+                        : activeTab === 'locations'
+                          ? ({ ...base, name: 'Новая локация', secrets: '', charactersInside: '', currentState: '', status: 'discovered' } as any)
+                          : base
 
     addEntity(activeTab, newEntity)
   }
@@ -235,11 +237,14 @@ export default function ArchiveBoard() {
   const charactersList = useMemo(() => Object.values(library.characters || {}), [library.characters])
   const normalizedQuery = query.trim().toLowerCase()
   const filteredItems = useMemo(() => {
-    if (!normalizedQuery) return currentItems as ArchiveEntity[]
-    return (currentItems as ArchiveEntity[]).filter((e) => {
-      const hay = String('title' in e ? e.title : ('name' in e ? e.name : '')).toLowerCase()
-      return hay.includes(normalizedQuery)
-    })
+    let items = currentItems as ArchiveEntity[]
+    if (normalizedQuery) {
+      items = items.filter((e) => {
+        const hay = String('title' in e ? e.title : ('name' in e ? e.name : '')).toLowerCase()
+        return hay.includes(normalizedQuery)
+      })
+    }
+    return items.sort((a, b) => ((a as any).order || 0) - ((b as any).order || 0))
   }, [currentItems, normalizedQuery])
 
   const handleTabChange = (tab: LibraryCategory) => {

@@ -54,11 +54,11 @@ export function EventForm({ event, onUpdate }: { event: Event; onUpdate: (data: 
         <label className="text-[8px] font-bold text-zinc-500 uppercase block mb-1">Статус в сюжете</label>
         <select
           value={event.status || 'backlog'}
-          onChange={(e) => onUpdate({ status: e.target.value as Event['status'] })}
+          onChange={(e) => onUpdate({ status: e.target.value as any })}
           className="bg-transparent text-zinc-300 text-[10px] font-bold uppercase w-full outline-none cursor-pointer"
         >
           <option value="backlog">В планах</option>
-          <option value="active">Происходит сейчас</option>
+          <option value="active">Активно</option>
           <option value="completed">Завершено</option>
         </select>
       </div>

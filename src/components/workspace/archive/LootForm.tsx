@@ -1,6 +1,8 @@
 import type { Node } from 'reactflow'
 import { Loot, NPC } from '@/types/workspace'
 import { AiWand } from '../ai/AiWand'
+import { Input } from '../../ui/Input'
+import { Textarea } from '../../ui/Textarea'
 
 export function LootForm({
   loot,
@@ -8,13 +10,31 @@ export function LootForm({
   npcs,
   onUpdate
 }: {
-  loot: Loot
+  loot: any
   nodes: Node[]
   npcs: NPC[]
-  onUpdate: (data: Partial<Loot>) => void
+  onUpdate: (data: any) => void
 }) {
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Название</label>
+        <Input
+          value={loot.name || ''}
+          onChange={(e: any) => onUpdate({ name: e.target.value })}
+          placeholder="Название..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Краткое описание</label>
+        <Textarea
+          value={loot.description || ''}
+          onChange={(e: any) => onUpdate({ description: e.target.value })}
+          placeholder="Краткое описание..."
+        />
+      </div>
+
       <select
         value={loot.rarity || 'common'}
         onChange={(e) => onUpdate({ rarity: e.target.value as Loot['rarity'] })}
@@ -25,6 +45,37 @@ export function LootForm({
         <option value="epic">Эпический</option>
         <option value="legendary">Легендарный</option>
       </select>
+
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Статус</label>
+        <select
+          value={loot.status || 'unclaimed'}
+          onChange={(e) => onUpdate({ status: e.target.value as any })}
+          className="w-full bg-zinc-950 border border-zinc-800 p-2 rounded text-[10px] font-black uppercase tracking-widest outline-none text-zinc-400 cursor-pointer"
+        >
+          <option value="unclaimed">В локации</option>
+          <option value="owned">У игрока</option>
+          <option value="lost">Утерян</option>
+        </select>
+      </div>
+
+      <div className="mt-3">
+        <div className="flex justify-between items-center mb-1">
+          <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Детальное описание связей</label>
+          <AiWand 
+            mode="general"
+            currentValue={loot.detailedDescription || ''}
+            contextData={loot}
+            onApply={(text) => onUpdate({ detailedDescription: text })}
+          />
+        </div>
+        <textarea
+          value={loot.detailedDescription || ''}
+          onChange={(e: any) => onUpdate({ detailedDescription: e.target.value })}
+          placeholder="Связи предмета..."
+          className="w-full bg-zinc-950/50 border border-zinc-800 p-2 text-xs text-zinc-300 rounded outline-none h-20 resize-none focus:border-indigo-500"
+        />
+      </div>
 
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-zinc-950/50 p-2 rounded border border-zinc-800">
