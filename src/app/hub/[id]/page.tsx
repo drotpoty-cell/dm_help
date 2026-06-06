@@ -98,13 +98,17 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
     try {
       const state = useWorkspaceStore.getState()
       const dbLibrary = {
-        heroes: Object.values(state.heroes),
-        npcs: Object.values(state.npcs),
-        quests: Object.values(state.quests),
-        locations: Object.values(state.locations),
-        secrets: Object.values(state.secrets),
-        loot: Object.values(state.loot),
-        events: Object.values(state.events)
+        heroes: Object.values(state.heroes || {}),
+        npcs: Object.values(state.npcs || {}),
+        quests: Object.values(state.quests || {}),
+        locations: Object.values(state.locations || {}),
+        secrets: Object.values(state.secrets || {}),
+        loot: Object.values(state.loot || {}),
+        events: Object.values(state.events || {}),
+        characters: Object.values(state.characters || {}),
+        extras: Object.values(state.extras || {}),
+        bestiary: Object.values(state.bestiary || {}),
+        factions: Object.values(state.factions || {})
       }
 
       const { error } = await supabase
