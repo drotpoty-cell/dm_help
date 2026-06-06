@@ -165,99 +165,33 @@ export default function ArchiveBoard() {
 
   const handleDownloadTemplate = () => {
     const template = {
-  _INSTRUCTION_FOR_AI_: "Ты — гениальный Dungeon Master. Твоя задача — сгенерировать глубокий, взаимосвязанный лор для D&D кампании и вернуть его СТРОГО в этом JSON-формате. Не пиши текста до или после JSON. Ты ДОЛЖЕН заполнить АБСОЛЮТНО ВСЕ поля в каждом объекте, не оставляя ничего пустым.",
-  _RULES_: [
-    "1. ЗАПОЛНЕНИЕ ВСЕХ ПОЛЕЙ: Никаких пустых строк. Ты обязан продумать каждое поле (включая stats, secret, flaw, schedule, checks). Лень недопустима.",
-    "2. ВОПРОСЫ К МАСТЕРУ: Если тебе критически не хватает контекста от пользователя для логичного заполнения важного поля (например, мотивации злодея или связи фракций), заполни поле наиболее логичным вариантом, а сам вопрос или сомнение обязательно запиши в массив `_GM_QUESTIONS_`.",
-    "3. СТРУКТУРА: Используй массивы characters (ключевые лица), extras (массовка), bestiary (враги), factions (фракции), locations (локации), quests (квесты), loot (артефакты) и events (события).",
-    "4. ПЕРСОНАЖИ vs МАССОВКА: Тех, кто важен для сюжета, клади в 'characters' (заполни trueNature, secret, goal, stats, schedule). Простых жителей клади в 'extras' (заполни quirk, knowledge).",
-    "5. СВЯЗИ: ID должны быть понятными (loc-ruins, char-lord). Поля locationId, factionId, ownerId, giverId должны ссылаться на существующие ID из твоей генерации."
-  ],
-  _GM_QUESTIONS_: [
-    "Мастер, я сделал Лорда Морна главой культа, но какая именно реликвия нужна ему для завершения ритуала? Пока я вписал 'фолиант драконьей крови', но если у тебя есть другая идея сюжета — скажи, и я перепишу."
-  ],
-  locations: {
-    "loc-tavern": {
-      "id": "loc-tavern",
-      "name": "Таверна 'Слепой Ворон'",
-      "description": "Пахнет кислым элем и сыростью. В углу кто-то тихо шепчется.",
-      "type": "safe",
-      "checks": [{ "id": "chk-1", "skill": "Внимательность", "dc": 14, "passText": "Вы замечаете символ культа под барной стойкой.", "failText": "Вам в глаза попадает едкий дым." }]
+      _INSTRUCTION_FOR_AI_: "Ты — Данжен Мастер. Твоя задача — сгенерировать лор и вернуть его СТРОГО в этом JSON-формате. КАТЕГОРИЧЕСКИ ЗАПРЕЩАЕТСЯ оставлять поля пустыми. Ты обязан сгенерировать данные для КАЖДОГО ключа, указанного в _SCHEMA_.",
+      _RULES_: [
+        "1. НИКАКОЙ ЛЕНИ: У каждого characters ДОЛЖНЫ быть заполнены stats, secret, goal, flaw, schedule и appearance. У каждой location ДОЛЖНЫ быть checks. У bestiary ДОЛЖНЫ быть combatStats и tactics.",
+        "2. ВОПРОСЫ К МАСТЕРУ: Если тебе не хватает лора от пользователя, чтобы заполнить важное поле — придумай логичный вариант сам, НО обязательно напиши свой вопрос или сомнение в массив _GM_QUESTIONS_.",
+        "3. ЗАПОЛНЕНИЕ: Сгенерируй свои данные внутри пустых объектов (locations, characters, factions и т.д.), используя структуру из _SCHEMA_.",
+        "4. СВЯЗИ: ID должны быть строковыми (например, 'char-1'). Поля locationId, factionId, ownerId должны ссылаться на созданные тобой ID."
+      ],
+      _SCHEMA_: {
+        "locations": { "id": "", "name": "", "description": "", "type": "safe", "checks": [{ "id": "", "skill": "", "dc": 10, "passText": "", "failText": "" }] },
+        "factions": { "id": "", "name": "", "type": "", "goal": "", "reputation": "", "symbol": "", "leaderId": "", "headquartersId": "" },
+        "characters": { "id": "", "name": "", "locationId": "", "factionId": "", "raceClass": "", "role": "", "appearance": "", "trueNature": "", "secret": "", "goal": "", "flaw": "", "relation": "neutral", "stats": "", "inventory": "", "schedule": [{ "startHour": 8, "endHour": 20, "locationId": "", "activity": "" }] },
+        "extras": { "id": "", "name": "", "locationId": "", "occupation": "", "quirk": "", "knowledge": "", "state": "", "schedule": [{ "startHour": 8, "endHour": 20, "locationId": "", "activity": "" }] },
+        "bestiary": { "id": "", "name": "", "type": "", "cr": "", "combatStats": { "ac": 10, "hp": 10, "speed": "", "resistances": "" }, "actions": "", "tactics": "", "drops": "" },
+        "quests": { "id": "", "title": "", "locationId": "", "giver": "", "hook": "", "truth": "", "startDay": 1, "deadline": 0, "status": "available", "reward": "", "consequence": "" }
+      },
+      _GM_QUESTIONS_: [],
+      locations: {},
+      factions: {},
+      characters: {},
+      extras: {},
+      bestiary: {},
+      quests: {},
+      loot: {},
+      events: {},
+      heroes: {},
+      secrets: {}
     }
-  },
-  factions: {
-    "fac-cult": {
-      "id": "fac-cult",
-      "name": "Братство Пепла",
-      "type": "Культ",
-      "goal": "Воскресить древнего красного дракона.",
-      "reputation": "Их боятся и шепчутся о них только по ночам.",
-      "symbol": "Обожженная монета"
-    }
-  },
-  characters: {
-    "char-lord": {
-      "id": "char-lord",
-      "name": "Лорд Морн",
-      "locationId": "loc-tavern",
-      "factionId": "fac-cult",
-      "raceClass": "Человек, Чернокнижник",
-      "role": "Антагонист",
-      "appearance": "Бледный аристократ с тростью из черного дерева.",
-      "trueNature": "Жрец Братства Пепла, высасывающий жизненную силу из горожан.",
-      "secret": "Боится огня, хотя служит огненному культу.",
-      "goal": "Найти фолиант драконьей крови.",
-      "flaw": "Слишком самоуверен и высокомерен.",
-      "relation": "hostile",
-      "stats": "AC: 14, HP: 45",
-      "inventory": "Кольцо с печаткой культа",
-      "schedule": [{ "startHour": 20, "endHour": 4, "locationId": "loc-tavern", "activity": "Вербует новых сектантов" }]
-    }
-  },
-  extras: {
-    "ext-bartender": {
-      "id": "ext-bartender",
-      "name": "Гаррак",
-      "locationId": "loc-tavern",
-      "occupation": "Трактирщик",
-      "quirk": "Постоянно протирает один и тот же стакан.",
-      "knowledge": "Видел, как Лорд Морн спускался в подвал.",
-      "state": "Напуган",
-      "schedule": [{ "startHour": 8, "endHour": 23, "locationId": "loc-tavern", "activity": "Стоит за барной стойкой" }]
-    }
-  },
-  bestiary: {
-    "mob-ghoul": {
-      "id": "mob-ghoul",
-      "name": "Пепельный Упырь",
-      "type": "Нежить",
-      "cr": "1",
-      "combatStats": { "ac": 12, "hp": 22, "speed": "30 футов", "resistances": "Иммунитет к яду" },
-      "actions": "Укус: +2 попасть, 1d6+2 колющий.",
-      "tactics": "Нападает стаей на самую слабую цель. Избегает света.",
-      "drops": "Пепельная пыль (алхимический ингредиент)"
-    }
-  },
-  quests: {
-    "quest-book": {
-      "id": "quest-book",
-      "title": "Пропавший фолиант",
-      "locationId": "loc-tavern",
-      "giverId": "ext-bartender",
-      "hook": "Трактирщик умоляет найти украденную книгу его деда.",
-      "truth": "Книга — это древний манускрипт культа, и Гаррак хочет продать ее лорду.",
-      "startDay": 1,
-      "deadline": 3,
-      "status": "available",
-      "reward": "100 золотых",
-      "consequence": "Ритуал культа будет завершен."
-    }
-  },
-  loot: {},
-  events: {},
-  heroes: {},
-  secrets: {}
-}
     const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
