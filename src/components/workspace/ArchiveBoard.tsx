@@ -198,7 +198,7 @@ export default function ArchiveBoard() {
       activeTab === 'heroes'
         ? ({ id, name: 'Новый герой', playerName: '', raceClass: '', level: 1, hp: 10, maxHp: 10, ac: 10, initiativeModifier: 0, passivePerception: 10, description: '' } satisfies Hero)
         : activeTab === 'characters'
-          ? ({ ...base, name: 'Новое лицо', raceClass: '', role: '', appearance: '', trueNature: '', secret: '', goal: '', flaw: '', factionId: null, relation: 'neutral', stats: '', inventory: '', schedule: [] } as any)
+          ? ({ ...base, name: 'Новое лицо', raceClass: '', role: '', relation: 'neutral', description: '', traits: '', ideals: '', bonds: '', flaws: '', appearance: '', secret: '', relations: '', currentRole: '' } as any)
           : activeTab === 'extras'
             ? ({ ...base, name: 'Новый житель', occupation: '', quirk: '', knowledge: '', state: '' } as any)
             : activeTab === 'factions'

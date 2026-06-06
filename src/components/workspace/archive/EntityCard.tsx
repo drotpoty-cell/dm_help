@@ -100,7 +100,9 @@ export default function EntityCard({ entity, type, isActive, onClick }: EntityCa
       </div>
 
       <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2 mb-3">
-        {entity.description || 'Нет описания...'}
+        {type === 'characters' 
+          ? (entity.description || 'Нет описания...') 
+          : (entity.description || 'Нет описания...')}
       </p>
 
       {/* Ассортимент торговца (показываем личные вещи как товары) */}
