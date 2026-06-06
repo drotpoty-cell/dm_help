@@ -13,6 +13,7 @@ import {
 import { HeroForm } from '@/components/workspace/archive/HeroForm'
 import { NpcForm } from '@/components/workspace/archive/NpcForm'
 import { CharacterForm } from '@/components/workspace/archive/CharacterForm'
+import { ExtraForm } from '@/components/workspace/archive/ExtraForm'
 import { QuestForm } from '@/components/workspace/archive/QuestForm'
 import { LootForm } from '@/components/workspace/archive/LootForm'
 import { EventForm } from '@/components/workspace/archive/EventForm'
@@ -373,7 +374,7 @@ export default function ArchiveBoard() {
                 {selectedEntityId === entity.id && (
                   <div className="mt-3 p-4 bg-zinc-900 rounded-xl border border-zinc-800 animate-in fade-in slide-in-from-top-2 duration-200">
                     {activeTab === 'heroes' && <HeroForm hero={entity as Hero} onUpdate={(data) => updateEntity('heroes', entity.id, data)} />}
-                    {activeTab === 'characters' && <CharacterForm character={entity} nodes={nodes} onUpdate={(data) => updateEntity('characters', entity.id, data)} />}
+                    {activeTab === 'extras' && <ExtraForm extra={entity} nodes={nodes} onUpdate={(data) => updateEntity('extras', entity.id, data)} />}
                     {activeTab === 'characters' && <CharacterForm character={entity} nodes={nodes} onUpdate={(data) => updateEntity('characters', entity.id, data)} />}
                     {activeTab === 'npcs' && <NpcForm npc={entity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', entity.id, data)} />}
                     {activeTab === 'loot' && <LootForm loot={entity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', entity.id, data)} />}
