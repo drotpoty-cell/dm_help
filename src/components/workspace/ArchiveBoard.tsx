@@ -1,7 +1,15 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
+import { z } from 'zod';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
+
+const AiEntitySchema = z.object({
+  id: z.string().min(1).catch(() => `gen-${crypto.randomUUID()}`),
+  name: z.string().catch('Безымянная сущность'),
+}).passthrough();
+
+const CategorySchema = z.array(AiEntitySchema).catch([]);
 import {
   type LibraryCategory,
   type Event,
@@ -102,72 +110,53 @@ export default function ArchiveBoard() {
   }
 
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const file = event.target.files?.[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      let rawText = e.target?.result as string;
-      let parsedData = null;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const rawText = e.target?.result as string;
+      const cleanText = rawText.replace(/^\uFEFF/, '').replace(/^```(json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      const parsedData = JSON.parse(cleanText);
 
-      try {
-        const cleanText = rawText
-          .replace(/^\uFEFF/, '') 
-          .replace(/^```(json)?\s*/i, '')
-          .replace(/\s*```$/i, '')
-          .trim();
+      const safeParseToRecord = (rawData: any) => {
+        const arrayData = Array.isArray(rawData) ? rawData : (typeof rawData === 'object' && rawData !== null ? Object.values(rawData) : []);
+        const validArray = CategorySchema.parse(arrayData);
+        return validArray.reduce((acc: Record<string, any>, item) => {
+          if (item && item.id) acc[item.id] = item;
+          return acc;
+        }, {});
+      };
 
-        parsedData = JSON.parse(cleanText);
-      } catch (parseError: any) {
-        console.error('Ошибка парсинга JSON:', parseError);
-        alert(`Синтаксическая ошибка в файле:\n${parseError.message}`);
-        return; 
-      }
+      const safeState = {
+        heroes: safeParseToRecord(parsedData.heroes),
+        locations: safeParseToRecord(parsedData.locations),
+        npcs: safeParseToRecord(parsedData.npcs),
+        quests: safeParseToRecord(parsedData.quests),
+        secrets: safeParseToRecord(parsedData.secrets),
+        loot: safeParseToRecord(parsedData.loot),
+        events: safeParseToRecord(parsedData.events),
+        characters: safeParseToRecord(parsedData.characters),
+        extras: safeParseToRecord(parsedData.extras),
+        bestiary: safeParseToRecord(parsedData.bestiary),
+        factions: safeParseToRecord(parsedData.factions),
+      };
 
-      try {
-        const forceRecord = (data: any) => {
-          if (!data) return {};
-          if (Array.isArray(data)) {
-            return data.reduce((acc: any, item: any) => {
-              if (item) acc[item.id || crypto.randomUUID()] = item;
-              return acc;
-            }, {});
-          }
-          return typeof data === 'object' ? data : {};
-        };
+      useWorkspaceStore.setState((state: any) => ({
+        ...state,
+        ...safeState
+      }));
 
-        const forcedState = {
-          heroes: forceRecord(parsedData.heroes),
-          locations: forceRecord(parsedData.locations),
-          npcs: forceRecord(parsedData.npcs),
-          quests: forceRecord(parsedData.quests),
-          secrets: forceRecord(parsedData.secrets),
-          loot: forceRecord(parsedData.loot),
-          events: forceRecord(parsedData.events),
-          // Добавляем то, что игнорировалось:
-          characters: forceRecord(parsedData.characters),
-          extras: forceRecord(parsedData.extras),
-          bestiary: forceRecord(parsedData.bestiary),
-          factions: forceRecord(parsedData.factions),
-        };
-
-        useWorkspaceStore.setState((state: any) => ({
-          ...state,
-          ...forcedState
-        }));
-
-        alert('Архив успешно загружен! Мешка в игре! 🎲');
-        
-      } catch (stateError: any) {
-        console.error('Ошибка обновления стейта:', stateError);
-        alert(`Ошибка обновления Архива:\n${stateError.message}`);
-      }
-      
-      event.target.value = '';
-    };
-    
-    reader.readAsText(file);
+      toast.success('Архив успешно загружен и отвалидирован!');
+    } catch (err) {
+      toast.error('Ошибка структуры файла.');
+      console.error('Import Error:', err);
+    }
+    event.target.value = '';
   };
+  reader.readAsText(file);
+};
 
   const handleDownloadTemplate = () => {
     const template = {
