@@ -198,9 +198,9 @@ export default function ArchiveBoard() {
       activeTab === 'heroes'
         ? ({ id, name: 'Новый герой', playerName: '', raceClass: '', level: 1, hp: 10, maxHp: 10, ac: 10, initiativeModifier: 0, passivePerception: 10, description: '', order } as Hero)
         : activeTab === 'characters'
-          ? ({ ...base, name: 'Новое лицо', raceClass: '', role: '', relation: 'neutral', description: '', traits: '', ideals: '', bonds: '', flaws: '', appearance: '', secret: '', relations: '', currentRole: '' } as any)
+          ? ({ ...base, name: 'Новое лицо', raceClass: '', role: '', relation: 'neutral', description: '', traits: '', ideals: '', bonds: '', flaws: '', appearance: '', secret: '', relations: '', currentRole: '', defaultLocationId: '' } as any)
           : activeTab === 'extras'
-            ? ({ ...base, name: 'Новый житель', occupation: '', quirk: '', knowledge: '', state: '' } as any)
+            ? ({ ...base, name: 'Новый житель', occupation: '', quirk: '', knowledge: '', state: '', defaultLocationId: '' } as any)
             : activeTab === 'factions'
               ? ({ ...base, name: 'Новая фракция', type: '', symbol: '', goal: '', leaderId: null, headquartersId: null, reputation: '', currentRole: '', status: 'active' } as any)
               : activeTab === 'bestiary'
@@ -208,7 +208,7 @@ export default function ArchiveBoard() {
                 : activeTab === 'quests'
                   ? ({ id, title: 'Новый сюжет', description: '', hook: '', giver: '', reward: '', consequence: '', deadline: 0, status: 'available', locationId: null, order } as Quest)
                   : activeTab === 'npcs'
-                    ? ({ ...base, name: 'Новый персонаж', occupation: '', locationId: null, needsUpdate: false, isMajor: false, goal: '', secret: '', personalLoot: '', stats: '', notes: '', showSchedule: false, schedule: [] } satisfies NPC)
+                    ? ({ ...base, name: 'Новый персонаж', occupation: '', locationId: null, needsUpdate: false, isMajor: false, goal: '', secret: '', personalLoot: '', stats: '', notes: '', showSchedule: false, schedule: [], defaultLocationId: '' } satisfies NPC)
                     : activeTab === 'loot'
                       ? ({ ...base, name: 'Новый артефакт', rarity: 'common', price: 0, weight: 0, stats: '', ownerId: null, detailedDescription: '', status: 'unclaimed' } as Loot)
                       : activeTab === 'events'

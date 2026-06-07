@@ -51,19 +51,54 @@ export const CharacterForm = ({
       </div>
 
       <div>
+        <Label>Постоянная локация (База)</Label>
+        <select
+          value={character.defaultLocationId || ''}
+          onChange={(e) => onUpdate({ ...character, defaultLocationId: e.target.value })}
+          className="w-full bg-zinc-900 border border-zinc-800 p-1 rounded text-sm mb-2"
+        >
+          <option value="">Не выбрана</option>
+          {Object.values(locations || {}).map((loc: any) => (
+            <option key={loc.id} value={loc.id}>{loc.name}</option>
+          ))}
+        </select>
         <Label>Распорядок дня</Label>
         {schedule.map((s: any, idx: number) => (
           <div key={idx} className="flex gap-2 mb-2 items-center">
-            <Input type="number" className="w-16" value={s.startHour} onChange={(e) => {
-              const newS = [...schedule];
-              newS[idx].startHour = parseInt(e.target.value);
-              updateSchedule(newS);
-            }} placeholder="С" />
-            <Input type="number" className="w-16" value={s.endHour} onChange={(e) => {
-              const newS = [...schedule];
-              newS[idx].endHour = parseInt(e.target.value);
-              updateSchedule(newS);
-            }} placeholder="По" />
+            <Input 
+              type="number" 
+              className="w-16" 
+              value={s.startHour} 
+              min={0} 
+              max={23} 
+              onChange={(e) => {
+                const newS = [...schedule];
+                let val = parseInt(e.target.value);
+                if (isNaN(val)) val = 0;
+                if (val < 0) val = 0;
+                if (val > 23) val = 23;
+                newS[idx].startHour = val;
+                updateSchedule(newS);
+              }} 
+              placeholder="С" 
+            />
+            <Input 
+              type="number" 
+              className="w-16" 
+              value={s.endHour} 
+              min={0} 
+              max={23} 
+              onChange={(e) => {
+                const newS = [...schedule];
+                let val = parseInt(e.target.value);
+                if (isNaN(val)) val = 0;
+                if (val < 0) val = 0;
+                if (val > 23) val = 23;
+                newS[idx].endHour = val;
+                updateSchedule(newS);
+              }} 
+              placeholder="По" 
+            />
             <select className="flex-1 bg-zinc-900 border border-zinc-800 p-1 rounded" value={s.locationId || ''} onChange={(e) => {
               const newS = [...schedule];
               newS[idx].locationId = e.target.value;

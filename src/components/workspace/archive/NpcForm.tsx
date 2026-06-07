@@ -128,6 +128,24 @@ export function NpcForm({
       {npc.showSchedule && (
         <div className="bg-zinc-950/80 border border-zinc-800 p-3 rounded-lg flex flex-col gap-3 shadow-inner">
           <div className="text-[8px] font-bold text-indigo-500 uppercase tracking-widest">Распорядок дня</div>
+          
+          <div className="mb-2">
+            <Label>Постоянная локация (База)</Label>
+            <select
+              value={npc.defaultLocationId || ''}
+              onChange={(e) => onUpdate({ defaultLocationId: e.target.value })}
+              className="w-full bg-zinc-900 border border-zinc-800 p-1.5 rounded text-[10px]"
+            >
+              <option value="">Не выбрана</option>
+              {nodes
+                .filter((n) => n.type !== 'region')
+                .map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {String((n.data as { label?: string })?.label || '')}
+                  </option>
+                ))}
+            </select>
+          </div>
 
           {(npc.schedule || []).map((entry, index) => (
             <div key={index} className="grid grid-cols-2 gap-2 pb-3 border-b border-zinc-900 last:border-0 last:pb-0">
@@ -135,24 +153,32 @@ export function NpcForm({
                 <Input
                   type="number"
                   min={0}
-                  max={24}
+                  max={23}
                   placeholder="С"
                   value={entry.startHour ?? ''}
                   onChange={(e) => {
                     const newSched = [...(npc.schedule || [])]
-                    newSched[index] = { ...newSched[index], startHour: Number.parseInt(e.target.value, 10) || 0 }
+                    let val = Number.parseInt(e.target.value, 10);
+                    if (isNaN(val)) val = 0;
+                    if (val < 0) val = 0;
+                    if (val > 23) val = 23;
+                    newSched[index] = { ...newSched[index], startHour: val }
                     onUpdate({ schedule: newSched })
                   }}
                 />
                 <Input
                   type="number"
                   min={0}
-                  max={24}
+                  max={23}
                   placeholder="По"
                   value={entry.endHour ?? ''}
                   onChange={(e) => {
                     const newSched = [...(npc.schedule || [])]
-                    newSched[index] = { ...newSched[index], endHour: Number.parseInt(e.target.value, 10) || 0 }
+                    let val = Number.parseInt(e.target.value, 10);
+                    if (isNaN(val)) val = 0;
+                    if (val < 0) val = 0;
+                    if (val > 23) val = 23;
+                    newSched[index] = { ...newSched[index], endHour: val }
                     onUpdate({ schedule: newSched })
                   }}
                 />

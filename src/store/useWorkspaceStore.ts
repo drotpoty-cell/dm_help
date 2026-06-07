@@ -54,28 +54,31 @@ const processSchedules = (entitiesRecord: Record<string, any>, newHour: number) 
   const updated = { ...entitiesRecord };
   
   Object.values(updated).forEach((entity: any) => {
-    if (entity.schedule && entity.schedule.length > 0) {
-      const task = entity.schedule.find((s: any) => {
-        if (s.startHour <= s.endHour) return newHour >= s.startHour && newHour < s.endHour;
-        else return newHour >= s.startHour || newHour < s.endHour;
+    let activeSchedule = null;
+    if (entity.schedule) {
+      activeSchedule = entity.schedule.find((entry: any) => {
+        if (entry.startHour <= entry.endHour) {
+          return newHour >= entry.startHour && newHour < entry.endHour;
+        } else { // Ночная смена
+          return newHour >= entry.startHour || newHour < entry.endHour;
+        }
       });
-      
-      if (task) {
-        if (entity.locationId !== task.locationId || entity.currentActivity !== task.activity) {
-          updated[entity.id] = { 
-            ...entity, 
-            defaultLocationId: entity.defaultLocationId !== undefined ? entity.defaultLocationId : entity.locationId,
-            locationId: task.locationId, 
-            currentActivity: task.activity 
-          };
-          hasChanges = true;
-        }
-      } else {
-        const homeLocation = entity.defaultLocationId !== undefined ? entity.defaultLocationId : entity.locationId;
-        if (entity.currentActivity || entity.locationId !== homeLocation) {
-          updated[entity.id] = { ...entity, locationId: homeLocation, currentActivity: undefined };
-          hasChanges = true;
-        }
+    }
+
+    if (activeSchedule) {
+      if (entity.locationId !== activeSchedule.locationId || entity.currentActivity !== activeSchedule.activity) {
+        updated[entity.id] = { 
+          ...entity, 
+          locationId: activeSchedule.locationId, 
+          currentActivity: activeSchedule.activity 
+        };
+        hasChanges = true;
+      }
+    } else {
+      const homeLocation = entity.defaultLocationId || '';
+      if (entity.currentActivity !== '' || entity.locationId !== homeLocation) {
+        updated[entity.id] = { ...entity, locationId: homeLocation, currentActivity: '' };
+        hasChanges = true;
       }
     }
   });
