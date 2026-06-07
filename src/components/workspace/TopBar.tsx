@@ -4,8 +4,6 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 
 interface TopBarProps {
   campaignId: string
-  day: number
-  hour: number
   viewMode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story' | 'weather'
   onViewChange: (mode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story' | 'weather') => void
   onSave: () => void
@@ -25,7 +23,7 @@ const getWeatherIcon = (condition: string) => {
   }
 }
 
-export default function TopBar({ campaignId, day: propDay, hour: propHour, viewMode, onViewChange, onSave, onSettingsOpen, isSaving }: TopBarProps) {
+export default function TopBar({ campaignId, viewMode, onViewChange, onSave, onSettingsOpen, isSaving }: TopBarProps) {
   // Берём время напрямую из глобального стора (источник правды)
   const currentDay = useWorkspaceStore(state => state.currentDay)
   const currentHour = useWorkspaceStore(state => state.currentHour)

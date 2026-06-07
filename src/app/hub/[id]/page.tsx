@@ -258,9 +258,9 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
   return (
     <div className="h-screen w-screen bg-zinc-950 flex flex-col overflow-hidden text-zinc-200 font-sans relative">
       <TopBar 
-        campaignId={id} day={currentDay} hour={currentHour} 
+        campaignId={id} 
         viewMode={viewMode} onViewChange={setViewMode} 
-        onTimeChange={advanceTime} onSave={saveMap} onSettingsOpen={() => setIsSettingsOpen(true)} isSaving={isSaving} 
+        onSave={saveMap} onSettingsOpen={() => setIsSettingsOpen(true)} isSaving={isSaving} 
       />
       {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} />}
 
