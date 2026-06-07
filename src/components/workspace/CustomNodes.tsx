@@ -73,27 +73,30 @@ const getColorForNpc = (id: string, isMajor?: boolean) => {
   return colors[Math.abs(hash) % colors.length];
 }
 
-const NodeNpcList = ({ nodeId }: { nodeId: string }) => {
-  // Вытягиваем всех NPC, которые сейчас привязаны к этой локации
-  const npcs = useWorkspaceStore(state => Object.values(state.npcs).filter(n => n.locationId === nodeId));
-  
-  if (npcs.length === 0) return null;
+const EntityList = ({ nodeId }: { nodeId: string }) => {
+  const characters = useWorkspaceStore(state => state.characters);
+  const npcs = useWorkspaceStore(state => state.npcs);
+  const extras = useWorkspaceStore(state => state.extras);
+
+  const entitiesHere = [
+    ...Object.values(characters || {}).filter(c => c.locationId === nodeId),
+    ...Object.values(npcs || {}).filter(n => n.locationId === nodeId),
+    ...Object.values(extras || {}).filter(e => e.locationId === nodeId)
+  ];
+
+  if (entitiesHere.length === 0) return null;
 
   return (
-    <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-50 pointer-events-none">
-      {npcs.map(npc => {
-        const initials = getInitials(npc.name);
-        const colorClass = getColorForNpc(npc.id, npc.isMajor);
-        return (
-          <div 
-            key={npc.id} 
-            className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black shadow-lg border ${colorClass}`}
-            title={npc.name + (npc.occupation ? ` (${npc.occupation})` : '')}
-          >
-            {initials}
-          </div>
-        )
-      })}
+    <div className="border-t border-zinc-800 mt-2 pt-2 flex gap-1 flex-wrap nodrag">
+      {entitiesHere.map(e => (
+        <div 
+          key={e.id}
+          className="text-[9px] px-1.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 truncate max-w-[80px]"
+          title={e.name}
+        >
+          {e.name}
+        </div>
+      ))}
     </div>
   )
 }
@@ -122,7 +125,7 @@ export const SafeNode = ({ id, data }: any) => {
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div> Безопасно
       </div>
       <div className="text-zinc-100 text-sm font-bold leading-snug pr-2 pb-1">{data.label}</div>
-      <NodeNpcList nodeId={id} />
+      <EntityList nodeId={id} />
     </div>
   )
 }
@@ -138,7 +141,7 @@ export const TenseNode = ({ id, data }: any) => {
         <div className="w-1.5 h-1.5 rounded-sm bg-amber-400"></div> Напряжение
       </div>
       <div className="text-zinc-100 text-sm font-bold leading-snug pr-2 pb-1">{data.label}</div>
-      <NodeNpcList nodeId={id} />
+      <EntityList nodeId={id} />
     </div>
   )
 }
@@ -154,7 +157,7 @@ export const HostileNode = ({ id, data }: any) => {
         <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[8px] border-l-transparent border-r-transparent border-b-red-400"></div> Враждебно
       </div>
       <div className="text-zinc-100 text-sm font-bold leading-snug pr-2 pb-1">{data.label}</div>
-      <NodeNpcList nodeId={id} />
+      <EntityList nodeId={id} />
     </div>
   )
 }
@@ -170,7 +173,7 @@ export const MysteryNode = ({ id, data }: any) => {
         <div className="w-1.5 h-1.5 border border-zinc-400 rounded-full"></div> Слух
       </div>
       <div className="text-zinc-300 text-sm italic font-medium leading-snug pr-2 pb-1">{data.label}</div>
-      <NodeNpcList nodeId={id} />
+      <EntityList nodeId={id} />
     </div>
   )
 }
