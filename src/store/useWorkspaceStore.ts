@@ -193,8 +193,14 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         let newHour = state.currentHour + hoursToAdd;
         let newDay = state.currentDay;
         
-        while (newHour >= 24) { newHour -= 24; newDay += 1; }
-        while (newHour < 0) { newHour += 24; newDay -= 1; }
+        if (newHour >= 24) {
+          newDay += Math.floor(newHour / 24);
+          newHour = newHour % 24;
+        } else if (newHour < 0) {
+          newDay -= Math.ceil(Math.abs(newHour) / 24);
+          newHour = (newHour % 24 + 24) % 24;
+        }
+        
         if (newDay < 1) { newDay = 1; newHour = 0; }
         
         const npcsResult = processSchedules(state.npcs || {}, newHour);

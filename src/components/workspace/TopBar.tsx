@@ -8,7 +8,6 @@ interface TopBarProps {
   hour: number
   viewMode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story' | 'weather'
   onViewChange: (mode: 'map' | 'kanban' | 'archive' | 'calendar' | 'story' | 'weather') => void
-  onTimeChange: (hours: number) => void
   onSave: () => void
   onSettingsOpen: () => void
   isSaving: boolean
@@ -26,44 +25,15 @@ const getWeatherIcon = (condition: string) => {
   }
 }
 
-export default function TopBar({ campaignId, day: propDay, hour: propHour, viewMode, onViewChange, onTimeChange, onSave, onSettingsOpen, isSaving }: TopBarProps) {
+export default function TopBar({ campaignId, day: propDay, hour: propHour, viewMode, onViewChange, onSave, onSettingsOpen, isSaving }: TopBarProps) {
   // Берём время напрямую из глобального стора (источник правды)
   const currentDay = useWorkspaceStore(state => state.currentDay)
   const currentHour = useWorkspaceStore(state => state.currentHour)
   const weather = useWorkspaceStore(state => state.weather)
+  const advanceTime = useWorkspaceStore(state => state.advanceTime)
   
   const formattedHour = currentHour.toString().padStart(2, '0') + ':00'
   const isDaytime = currentHour >= 6 && currentHour < 18
-
-  // БОЕВАЯ МАТЕМАТИКА ВРЕМЕНИ (Вперёд и Назад с перелистыванием дней)
-  const handleTimeChange = (hoursToChange: number) => {
-    useWorkspaceStore.setState((state) => {
-      let newHour = state.currentHour + hoursToChange
-      let newDay = state.currentDay
-
-      if (newHour >= 24) {
-        const daysToAdd = Math.floor(newHour / 24)
-        newDay += daysToAdd
-        newHour = newHour % 24
-      } else if (newHour < 0) {
-        // Вычисляем сколько дней нужно отнять назад
-        const daysToSubtract = Math.ceil(Math.abs(newHour) / 24)
-        newDay -= daysToSubtract
-        newHour = (newHour % 24 + 24) % 24
-      }
-
-      // Ограничение: нельзя уйти раньше 1 дня
-      if (newDay < 1) {
-        newDay = 1
-        newHour = 0
-      }
-
-      return {
-        currentHour: newHour,
-        currentDay: newDay
-      }
-    })
-  }
 
   const navItems = [
     { id: 'map', label: 'Карта' },
@@ -99,13 +69,13 @@ export default function TopBar({ campaignId, day: propDay, hour: propHour, viewM
         {/* Минус время — теперь яркие, рабочие и красивые */}
         <div className="flex gap-1 pr-4 border-r border-zinc-800/50">
           <button 
-            onClick={() => handleTimeChange(-8)} 
+            onClick={() => advanceTime(-8)} 
             className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-red-500/15 text-zinc-400 hover:text-red-400 border border-zinc-800 text-[10px] font-black transition-all"
           >
             -8ч
           </button>
           <button 
-            onClick={() => handleTimeChange(-1)} 
+            onClick={() => advanceTime(-1)} 
             className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-orange-500/15 text-zinc-400 hover:text-orange-400 border border-zinc-800 text-[10px] font-black transition-all"
           >
             -1ч
@@ -141,13 +111,13 @@ export default function TopBar({ campaignId, day: propDay, hour: propHour, viewM
         {/* Плюс время */}
         <div className="flex gap-1.5 pl-4 border-l border-zinc-800/50">
           <button 
-            onClick={() => handleTimeChange(1)} 
+            onClick={() => advanceTime(1)} 
             className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-indigo-500/15 text-zinc-400 hover:text-indigo-300 border border-zinc-800 text-[10px] font-black transition-all"
           >
             +1ч
           </button>
           <button 
-            onClick={() => handleTimeChange(8)} 
+            onClick={() => advanceTime(8)} 
             className="px-3 h-8 rounded-xl bg-zinc-900/80 hover:bg-indigo-500/15 text-zinc-400 hover:text-indigo-300 border border-zinc-800 text-[10px] font-black transition-all"
           >
             +8ч

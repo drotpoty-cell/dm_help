@@ -3,15 +3,22 @@ import { AiWand } from '../ai/AiWand'
 import { Input } from '../../ui/Input'
 import { Textarea } from '../../ui/Textarea'
 import { Label } from '../../ui/Label'
+import { useWorkspaceStore } from '../../../store/useWorkspaceStore'
 
 export const CharacterForm = ({
   character,
   onUpdate
 }: {
   character: any
-  nodes: Node[]
   onUpdate: (data: any) => void
 }) => {
+  const schedule = character.schedule || []
+  const locations = useWorkspaceStore(state => state.locations);
+
+  const updateSchedule = (newSchedule: any[]) => {
+    onUpdate({ ...character, schedule: newSchedule })
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <Input
@@ -41,6 +48,41 @@ export const CharacterForm = ({
           <option value="friendly">Дружелюбно</option>
           <option value="hostile">Враждебно</option>
         </select>
+      </div>
+
+      <div>
+        <Label>Распорядок дня</Label>
+        {schedule.map((s: any, idx: number) => (
+          <div key={idx} className="flex gap-2 mb-2 items-center">
+            <Input type="number" className="w-16" value={s.startHour} onChange={(e) => {
+              const newS = [...schedule];
+              newS[idx].startHour = parseInt(e.target.value);
+              updateSchedule(newS);
+            }} placeholder="С" />
+            <Input type="number" className="w-16" value={s.endHour} onChange={(e) => {
+              const newS = [...schedule];
+              newS[idx].endHour = parseInt(e.target.value);
+              updateSchedule(newS);
+            }} placeholder="По" />
+            <select className="flex-1 bg-zinc-900 border border-zinc-800 p-1 rounded" value={s.locationId || ''} onChange={(e) => {
+              const newS = [...schedule];
+              newS[idx].locationId = e.target.value;
+              updateSchedule(newS);
+            }}>
+              <option value="">Локация</option>
+              {Object.values(locations || {}).map((loc: any) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+            <Input className="w-24" value={s.activity || ''} onChange={(e) => {
+              const newS = [...schedule];
+              newS[idx].activity = e.target.value;
+              updateSchedule(newS);
+            }} placeholder="Что делает" />
+            <button className="text-red-500" onClick={() => updateSchedule(schedule.filter((_: any, i: number) => i !== idx))}>X</button>
+          </div>
+        ))}
+        <button className="w-full bg-zinc-800 p-1 text-xs rounded" onClick={() => updateSchedule([...schedule, { startHour: 0, endHour: 1, locationId: '', activity: '' }])}>+ Распорядок</button>
       </div>
 
       <div>
