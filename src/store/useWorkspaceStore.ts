@@ -206,42 +206,57 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           newHour = (newHour % 24 + 24) % 24;
         }
         if (newDay < 1) { newDay = 1; newHour = 0; }
-        
-        const npcsResult = processSchedules(state.npcs || {}, newHour);
-        const charactersResult = processSchedules(state.characters || {}, newHour);
-        const extrasResult = processSchedules(state.extras || {}, newHour);
-        
-        let newWeather = { ...state.weather };
-        
-        if (newDay !== state.currentDay && newWeather.forecast[newDay] && newWeather.mode !== 'disabled') {
-          newWeather.condition = newWeather.forecast[newDay].condition;
-          newWeather.temp = newWeather.forecast[newDay].temp;
-        } 
-        else if (newWeather.mode === 'dynamic') {
-          newWeather.hoursSinceChange += safeHours;
-          if (newWeather.hoursSinceChange >= newWeather.interval) {
-            newWeather.hoursSinceChange = 0;
-            const climates: Record<ClimateType, string[]> = {
-              temperate: ['Ясно', 'Ясно', 'Облачно', 'Облачно', 'Дождь', 'Гроза', 'Туман'],
-              winter: ['Ясно', 'Облачно', 'Снег', 'Снег', 'Вьюга', 'Туман'],
-              desert: ['Ясно', 'Ясно', 'Ясно', 'Песчаная буря', 'Облачно'],
-              tropical: ['Ясно', 'Облачно', 'Дождь', 'Ливень', 'Гроза', 'Туман']
-            }
-            const options = climates[newWeather.climate as ClimateType] || climates.temperate;
-            newWeather.condition = options[Math.floor(Math.random() * options.length)];
-            const tempBase = { temperate: 15, winter: -10, desert: 35, tropical: 28 }[newWeather.climate as ClimateType] || 15;
-            newWeather.temp = tempBase + (Math.floor(Math.random() * 15) - 7);
-          }
-        }
-        
-        return { 
-          currentDay: newDay, 
-          currentHour: newHour,
-          weather: newWeather,
-          npcs: npcsResult.hasChanges ? npcsResult.updated : state.npcs,
-          characters: charactersResult.hasChanges ? charactersResult.updated : state.characters,
-          extras: extrasResult.hasChanges ? extrasResult.updated : state.extras
+
+        // СНАЧАЛА готовим новый объект стейта с обновленным временем
+        const nextState: any = { 
+          currentHour: newHour, 
+          currentDay: newDay 
         };
+
+        // ЗАТЕМ в блоке try-catch безопасно пересчитываем расписания, чтобы ошибка не убила сохранение времени
+        try {
+          const processEntities = (entities: any) => {
+            if (!entities) return entities;
+            const updated = { ...entities };
+            Object.keys(updated).forEach(id => {
+              const entity = updated[id];
+              // Жесткая проверка на существование schedule
+              if (!entity || !Array.isArray(entity.schedule) || entity.schedule.length === 0) {
+                if (entity && entity.defaultLocationId !== undefined) {
+                  entity.locationId = entity.defaultLocationId || '';
+                  entity.currentActivity = '';
+                }
+                return;
+              }
+
+              const activeSchedule = entity.schedule.find((entry: any) => {
+                if (!entry) return false;
+                const s = Number(entry.startHour);
+                const e = Number(entry.endHour);
+                if (s <= e) return newHour >= s && newHour < e;
+                return newHour >= s || newHour < e;
+              });
+
+              if (activeSchedule) {
+                entity.locationId = activeSchedule.locationId || '';
+                entity.currentActivity = activeSchedule.activity || '';
+              } else {
+                entity.locationId = entity.defaultLocationId || '';
+                entity.currentActivity = '';
+              }
+            });
+            return updated;
+          };
+
+          nextState.characters = processEntities(state.characters);
+          nextState.npcs = processEntities(state.npcs);
+          nextState.extras = processEntities(state.extras);
+        } catch (error) {
+          console.error("Ошибка при пересчете расписаний:", error);
+          // Даже если расписания сломались, время все равно обновится!
+        }
+
+        return nextState;
       }),
       
       setViewedEntityId: (id: string | null) => set({ viewedEntityId: id }),
