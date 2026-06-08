@@ -101,17 +101,13 @@ export default function CalendarBoard() {
         </div>
       </div>
 
-      {/* Timeline */}
+      {/* Calendar Grid */}
       <div className="col-span-1 bg-zinc-900/30 border border-zinc-800 rounded-xl p-6 overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-indigo-400 drop-shadow text-2xl font-bold">День {currentDay}</h2>
-          <button 
-            onClick={() => setShowEventForm(!showEventForm)}
-            className="text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 px-3 py-1 rounded-md hover:border-indigo-500 transition-colors"
-          >
-            + Планировать событие
-          </button>
+          <h2 className="text-zinc-100 text-xl font-bold">Календарь</h2>
+          <span className="text-sm text-zinc-500">День {currentDay}</span>
         </div>
+        
         {showEventForm && (
           <div className="bg-zinc-900/80 p-4 rounded-xl border border-zinc-700 flex flex-col gap-2 mb-6">
             <input 
@@ -120,31 +116,36 @@ export default function CalendarBoard() {
               placeholder="Название события..."
               className="bg-zinc-950 border border-zinc-800 text-zinc-300 px-3 py-2 rounded focus:border-indigo-500 outline-none text-sm"
             />
-            <input 
-              value={eventDesc}
-              onChange={e => setEventDesc(e.target.value)}
-              placeholder="Описание..."
-              className="bg-zinc-950 border border-zinc-800 text-zinc-300 px-3 py-2 rounded focus:border-indigo-500 outline-none text-sm"
-            />
-            <input 
-              type="number"
-              value={eventDay}
-              onChange={e => setEventDay(parseInt(e.target.value))}
-              className="bg-zinc-950 border border-zinc-800 text-zinc-300 px-3 py-2 rounded focus:border-indigo-500 outline-none text-sm"
-            />
-            <button onClick={handleAddEvent} className="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold mt-1">Добавить событие</button>
+            <button onClick={handleAddEvent} className="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold mt-1">Добавить</button>
           </div>
         )}
-        <div className="border-l-2 border-zinc-800 ml-4 pl-6 space-y-8">
-          {events.sort((a, b) => (a.startDay || 0) - (b.startDay || 0)).map(event => (
-            <div key={event.id} className="relative">
-              <div className="absolute -left-[33px] top-1 w-4 h-4 bg-zinc-800 rounded-full border-2 border-zinc-700" />
-              <div className="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
-                <p className="font-bold text-zinc-200 text-sm">{event.name}</p>
-                <p className="text-xs text-zinc-500">{event.description}</p>
+
+        <div className="grid grid-cols-5 gap-2">
+          {Array.from({ length: 30 }, (_, i) => {
+            const day = i + 1;
+            const isCurrentDay = day === currentDay;
+            const dayEvents = events.filter(e => e.startDay === day);
+            
+            return (
+              <div 
+                key={day}
+                onClick={() => { setEventDay(day); setShowEventForm(true); }}
+                className={`
+                  aspect-square p-1 rounded-lg border flex flex-col gap-1 transition-all cursor-pointer
+                  ${isCurrentDay ? 'ring-2 ring-indigo-500 bg-indigo-500/10 border-indigo-500' : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-600'}
+                `}
+              >
+                <span className={`text-[10px] ${isCurrentDay ? 'text-indigo-300 font-bold' : 'text-zinc-600'}`}>{day}</span>
+                <div className="flex flex-col gap-0.5 overflow-hidden">
+                  {dayEvents.map(e => (
+                    <div key={e.id} className="text-[10px] bg-zinc-800 text-zinc-300 px-1 rounded truncate">
+                      {e.name}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

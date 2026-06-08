@@ -192,18 +192,19 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         })
       },
       
-      advanceTime: (hoursToAdd: number) => set((state: any) => {
-        let newHour = state.currentHour + hoursToAdd;
-        let newDay = state.currentDay;
-        
+      advanceTime: (hours: number) => set((state: any) => {
+        const safeHours = Number(hours);
+        let newHour = Number(state.currentHour) + safeHours;
+        let newDay = Number(state.currentDay);
+
         if (newHour >= 24) {
           newDay += Math.floor(newHour / 24);
           newHour = newHour % 24;
         } else if (newHour < 0) {
-          newDay -= Math.ceil(Math.abs(newHour) / 24);
+          const daysToSubtract = Math.ceil(Math.abs(newHour) / 24);
+          newDay -= daysToSubtract;
           newHour = (newHour % 24 + 24) % 24;
         }
-        
         if (newDay < 1) { newDay = 1; newHour = 0; }
         
         const npcsResult = processSchedules(state.npcs || {}, newHour);
@@ -217,7 +218,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           newWeather.temp = newWeather.forecast[newDay].temp;
         } 
         else if (newWeather.mode === 'dynamic') {
-          newWeather.hoursSinceChange += hoursToAdd;
+          newWeather.hoursSinceChange += safeHours;
           if (newWeather.hoursSinceChange >= newWeather.interval) {
             newWeather.hoursSinceChange = 0;
             const climates: Record<ClimateType, string[]> = {
