@@ -98,15 +98,14 @@ export default function ArchiveBoard() {
   const { addEntity, updateEntity, deleteEntity } = useWorkspaceStore()
 
   const tabs = [
-    { id: 'heroes', label: 'Герои' },
-    { id: 'characters', label: 'Действующие лица' },
-    { id: 'extras', label: 'Массовка' },
-    { id: 'factions', label: 'Фракции' },
-    { id: 'bestiary', label: 'Бестиарий' },
-    { id: 'locations', label: 'Локации' },
-    { id: 'quests', label: 'Сюжеты' },
-    { id: 'loot', label: 'Артефакты' },
-    { id: 'events', label: 'События' }
+    { id: 'heroes', label: 'ГЕРОИ' },
+    { id: 'npcs', label: 'ДЕЙСТВУЮЩИЕ ЛИЦА' },
+    { id: 'extras', label: 'МАССОВКА' },
+    { id: 'factions', label: 'ФРАКЦИИ' },
+    { id: 'locations', label: 'ЛОКАЦИИ' },
+    { id: 'quests', label: 'СЮЖЕТЫ' },
+    { id: 'loot', label: 'АРТЕФАКТЫ' },
+    { id: 'events', label: 'СОБЫТИЯ' }
   ]
 
   const handleExport = () => {

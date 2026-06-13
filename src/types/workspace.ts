@@ -127,7 +127,7 @@ export interface StoryPart {
   chapters: StoryChapter[];
 }
 
-export type LibraryCategory = 'heroes' | 'npcs' | 'quests' | 'locations' | 'secrets' | 'loot' | 'events' | 'characters' | 'extras' | 'bestiary' | 'factions'
+export type LibraryCategory = 'heroes' | 'npcs' | 'quests' | 'locations' | 'loot' | 'events' | 'extras' | 'factions' | 'secrets' | 'characters' | 'bestiary'
 
 export interface WorkspaceState {
   nodes: Node[]
