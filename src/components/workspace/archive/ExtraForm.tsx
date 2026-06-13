@@ -48,7 +48,11 @@ export const ExtraForm = ({
 
       <select
         value={extra.locationId || 'none'}
-        onChange={(e) => onUpdate({ ...extra, locationId: e.target.value === 'none' ? null : e.target.value })}
+        onChange={(e) => onUpdate({ 
+          ...extra, 
+          locationId: e.target.value === 'none' ? null : e.target.value,
+          defaultLocationId: e.target.value === 'none' ? null : e.target.value 
+        })}
         className="bg-zinc-900 border border-zinc-800 text-[10px] p-2 rounded outline-none text-zinc-300 w-full"
       >
         <option value="none">Вне карты</option>

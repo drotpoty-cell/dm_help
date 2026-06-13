@@ -54,7 +54,11 @@ export const CharacterForm = ({
         <Label>Постоянная локация (База)</Label>
         <select
           value={character.defaultLocationId || ''}
-          onChange={(e) => onUpdate({ ...character, defaultLocationId: e.target.value })}
+          onChange={(e) => onUpdate({ 
+            ...character, 
+            defaultLocationId: e.target.value,
+            locationId: e.target.value 
+          })}
           className="w-full bg-zinc-900 border border-zinc-800 p-1 rounded text-sm mb-2"
         >
           <option value="">Не выбрана</option>

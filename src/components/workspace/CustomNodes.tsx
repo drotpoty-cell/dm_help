@@ -79,9 +79,9 @@ const EntityList = ({ nodeId }: { nodeId: string }) => {
   const extras = useWorkspaceStore(state => state.extras);
 
   const entitiesHere = [
-    ...Object.values(characters || {}).filter(c => c.locationId === nodeId),
-    ...Object.values(npcs || {}).filter(n => n.locationId === nodeId),
-    ...Object.values(extras || {}).filter(e => e.locationId === nodeId)
+    ...Object.values(characters || {}).filter(c => (c.locationId || c.defaultLocationId) === nodeId),
+    ...Object.values(npcs || {}).filter(n => (n.locationId || n.defaultLocationId) === nodeId),
+    ...Object.values(extras || {}).filter(e => (e.locationId || e.defaultLocationId) === nodeId)
   ];
 
   if (entitiesHere.length === 0) return null;

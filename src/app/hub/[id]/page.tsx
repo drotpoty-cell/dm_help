@@ -43,7 +43,7 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
 
   const addNodeFromArchive = (location: any) => {
     const newNode: Node = {
-      id: `node-${Date.now()}`,
+      id: location.id, // ИСПРАВЛЕНО: ID узла теперь строго соответствует ID локации
       type: 'safe',
       position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
       data: {

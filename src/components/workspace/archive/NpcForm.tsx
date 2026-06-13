@@ -133,7 +133,10 @@ export function NpcForm({
             <Label>Постоянная локация (База)</Label>
             <select
               value={npc.defaultLocationId || ''}
-              onChange={(e) => onUpdate({ defaultLocationId: e.target.value })}
+              onChange={(e) => onUpdate({ 
+                defaultLocationId: e.target.value,
+                locationId: e.target.value 
+              })}
               className="w-full bg-zinc-900 border border-zinc-800 p-1.5 rounded text-[10px]"
             >
               <option value="">Не выбрана</option>
