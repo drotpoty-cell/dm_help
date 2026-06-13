@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateAiText } from '@/utils/aiClient';
+import { enhanceText, generateAiText } from '@/utils/aiClient';
 import { Textarea } from '../../ui/Textarea';
 
 interface AiWandProps {
@@ -37,44 +37,49 @@ export const AiWand: React.FC<AiWandProps> = ({ currentValue, contextData, onApp
   const handleGenerate = async (useCurrentValue: boolean) => {
     setIsLoading(true);
     try {
-      let rules = `ВАЖНО: Верни ТОЛЬКО готовый текст. Будь краток (1-3 предложения). Никаких вариантов на выбор, никаких пояснений, никаких приветствий. Только художественный результат.`;
+      if (useCurrentValue) {
+        const enhanced = await enhanceText(currentValue);
+        onApply(enhanced);
+        toast.success('Успешно улучшено');
+        setIsOpen(false);
+      } else {
+        let rules = `ВАЖНО: Верни ТОЛЬКО готовый текст. Будь краток (1-3 предложения). Никаких вариантов на выбор, никаких пояснений, никаких приветствий. Только художественный результат.`;
 
-      if (mode === 'location') {
-        rules = `ВАЖНО: Сделай подробное, кинематографичное описание локации. Используй 3-5 развернутых предложений. Обязательно опиши визуальные детали, звуки, освещение и запахи, чтобы игроки полностью погрузились в сцену. Верни ТОЛЬКО готовый текст без пояснений, кавычек и вариантов.`;
-      }
-
-      // --- НОВАЯ ЛОГИКА ДЛЯ СОБЫТИЙ ---
-      let toneInstruction = "";
-      if (contextData?.eventType) {
-        if (contextData.eventType === 'peaceful') {
-          toneInstruction = "\nИНСТРУКЦИЯ К СОБЫТИЮ: Это событие строго МИРНОЕ. Отряд не должен получить урон. Это может быть полезная находка, бродячий торговец, безопасный лор или красивое природное явление.";
-        } else if (contextData.eventType === 'hostile') {
-          toneInstruction = "\nИНСТРУКЦИЯ К СОБЫТИЮ: Это событие строго ВРАЖДЕБНОЕ и ОПАСНОЕ. Это может быть засада монстров, скрытая ловушка, агрессивная магия локации или опасный катаклизм.";
-        } else if (contextData.eventType === 'random') {
-          toneInstruction = "\nИНСТРУКЦИЯ К СОБЫТИЮ: Выбери характер события случайно на свое усмотрение (оно может быть как опасным, так и мирным).";
+        if (mode === 'location') {
+          rules = `ВАЖНО: Сделай подробное, кинематографичное описание локации. Используй 3-5 развернутых предложений. Обязательно опиши визуальные детали, звуки, освещение и запахи, чтобы игроки полностью погрузились в сцену. Верни ТОЛЬКО готовый текст без пояснений, кавычек и вариантов.`;
         }
+
+        // --- НОВАЯ ЛОГИКА ДЛЯ СОБЫТИЙ ---
+        let toneInstruction = "";
+        if (contextData?.eventType) {
+          if (contextData.eventType === 'peaceful') {
+            toneInstruction = "\nИНСТРУКЦИЯ К СОБЫТИЮ: Это событие строго МИРНОЕ. Отряд не должен получить урон. Это может быть полезная находка, бродячий торговец, безопасный лор или красивое природное явление.";
+          } else if (contextData.eventType === 'hostile') {
+            toneInstruction = "\nИНСТРУКЦИЯ К СОБЫТИЮ: Это событие строго ВРАЖДЕБНОЕ и ОПАСНОЕ. Это может быть засада монстров, скрытая ловушка, агрессивная магия локации или опасный катаклизм.";
+          } else if (contextData.eventType === 'random') {
+            toneInstruction = "\nИНСТРУКЦИЯ К СОБЫТИЮ: Выбери характер события случайно на свое усмотрение (оно может быть как опасным, так и мирным).";
+          }
+          
+          // Добавляем погоду для атмосферы, если она передана
+          if (contextData.weatherCondition) {
+                toneInstruction += `\nПОГОДА: Сейчас ${contextData.weatherCondition}, климат ${contextData.climate}. Обязательно вплети эту погоду в описание события (например, метель скрывает следы или жара утомляет).`
+          }
+        }
+
+        const finalPrompt = `Сгенерируй текст для D&D по запросу: "${prompt}". \n\n${rules}${toneInstruction}`;
         
-        // Добавляем погоду для атмосферы, если она передана
-        if (contextData.weatherCondition) {
-             toneInstruction += `\nПОГОДА: Сейчас ${contextData.weatherCondition}, климат ${contextData.climate}. Обязательно вплети эту погоду в описание события (например, метель скрывает следы или жара утомляет).`
-        }
+        const response = await generateAiText(finalPrompt, JSON.stringify(contextData));
+        
+        const cleanedResponse = response.replace(/^["']|["']$/g, '').trim();
+        
+        onApply(cleanedResponse);
+        toast.success('Успешно сгенерировано');
+        setIsOpen(false);
+        setPrompt('');
       }
-
-      const finalPrompt = useCurrentValue
-        ? `Улучши текст для D&D кампании, сделай его более атмосферным. Текущий текст: "${currentValue}". Дополнительные пожелания: ${prompt || 'нет'}. \n\n${rules}${toneInstruction}`
-        : `Сгенерируй текст для D&D по запросу: "${prompt}". \n\n${rules}${toneInstruction}`;
-      
-      const response = await generateAiText(finalPrompt, JSON.stringify(contextData));
-      
-      const cleanedResponse = response.replace(/^["']|["']$/g, '').trim();
-      
-      onApply(cleanedResponse);
-      toast.success('Успешно сгенерировано');
-      setIsOpen(false);
-      setPrompt('');
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || 'Ошибка при генерации текста');
+      toast.error('Ошибка при генерации или улучшении текста');
     } finally {
       setIsLoading(false);
     }

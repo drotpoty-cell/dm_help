@@ -1,5 +1,26 @@
 import { useSettingsStore } from '@/store/useSettingsStore';
 
+export async function enhanceText(text: string): Promise<string> {
+  try {
+    const res = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: `Улучши следующее описание, сделав его более атмосферным и детализированным, сохранив суть: ${text}`,
+        systemPrompt: "Ты — профессиональный писатель фэнтези, помогающий мастеру игры.",
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Ошибка при улучшении текста');
+    
+    return data.text;
+  } catch (err: any) {
+    console.error('AI Enhance Error:', err);
+    throw err;
+  }
+}
+
 export async function generateAiText(prompt: string, context?: string): Promise<string> {
   const { systemPrompt } = useSettingsStore.getState();
 
