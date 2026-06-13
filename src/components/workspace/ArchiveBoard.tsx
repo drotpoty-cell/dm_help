@@ -425,21 +425,20 @@ export default function ArchiveBoard() {
             </SortableContext>
           </DndContext>
 
-            {(currentItems.length === 0 || filteredItems.length === 0) && (
-              <div className="col-span-full py-20 text-center border-2 border-dashed border-zinc-800 rounded-xl">
-                <div className="mx-auto w-full max-w-sm flex flex-col items-center gap-4 text-zinc-600">
-                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" className="opacity-70">
-                    <path d="M4 7a2 2 0 0 1 2-2h9l5 5v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-                    <path d="M15 5v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-                    <path d="M8 14h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M8 17h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                  <div className="text-xs font-black uppercase tracking-widest">{currentItems.length === 0 ? 'Здесь пока пусто' : 'Ничего не найдено'}</div>
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-700">{currentItems.length === 0 ? 'Создайте первую запись в этой категории' : 'Попробуйте изменить запрос поиска'}</div>
-                </div>
+          {(currentItems.length === 0 || filteredItems.length === 0) && (
+            <div className="col-span-full py-20 text-center border-2 border-dashed border-zinc-800 rounded-xl">
+              <div className="mx-auto w-full max-w-sm flex flex-col items-center gap-4 text-zinc-600">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" className="opacity-70">
+                  <path d="M4 7a2 2 0 0 1 2-2h9l5 5v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                  <path d="M15 5v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                  <path d="M8 14h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M8 17h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <div className="text-xs font-black uppercase tracking-widest">{currentItems.length === 0 ? 'Здесь пока пусто' : 'Ничего не найдено'}</div>
+                <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-700">{currentItems.length === 0 ? 'Создайте первую запись в этой категории' : 'Попробуйте изменить запрос поиска'}</div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
