@@ -83,6 +83,7 @@ export interface NPC {
   currentActivity?: string;
   showSchedule?: boolean;
   defaultLocationId?: string | null; 
+  traits?: string[];
 }
 
 export interface Loot {

@@ -247,7 +247,7 @@ export default function ArchiveBoard() {
                 : activeTab === 'quests'
                   ? ({ id, title: 'Новый сюжет', description: '', hook: '', giver: '', reward: '', consequence: '', deadline: 0, status: 'available', locationId: null, order } as Quest)
                   : activeTab === 'npcs'
-                    ? ({ ...base, name: 'Новый персонаж', occupation: '', locationId: null, needsUpdate: false, goal: '', secret: '', personalLoot: '', stats: '', notes: '', showSchedule: false, schedule: [], defaultLocationId: '' } satisfies NPC)
+                    ? ({ ...base, name: 'Новый персонаж', occupation: '', locationId: null, needsUpdate: false, goal: '', secret: '', personalLoot: '', stats: '', notes: '', showSchedule: false, schedule: [], traits: [], defaultLocationId: '' } satisfies NPC)
                     : activeTab === 'loot'
                       ? ({ ...base, name: 'Новый артефакт', rarity: 'common', price: 0, weight: 0, stats: '', ownerId: null, detailedDescription: '', status: 'unclaimed' } as Loot)
                       : activeTab === 'events'
