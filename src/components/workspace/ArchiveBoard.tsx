@@ -169,17 +169,32 @@ export default function ArchiveBoard() {
 
   const handleDownloadTemplate = () => {
     const template = {
-      "_INSTRUCTION_": "Заполни все поля. Верни JSON-массив объектов. Никакого текста до или после.",
-      "locations": [],
-      "factions": [],
-      "characters": [],
-      "extras": [],
-      "bestiary": [],
-      "quests": [],
-      "loot": [],
-      "events": [],
-      "heroes": [],
-      "secrets": []
+      "_INSTRUCTION_": "ВНИМАНИЕ! Верни СТРОГО один JSON-объект. Каждая категория (locations, factions, npcs, characters, extras, quests, loot, events, heroes) должна быть ОБЪЕКТОМ (словарём), где ключи — это уникальные ID (например, 'loc_1'), а значения — сами данные. Удали эту инструкцию из ответа. Для всех персонажей (npcs, heroes) обязательно добавляй пустой массив schedule: [] и поля defaultLocationId, locationId, currentActivity.",
+      "locations": {
+        "loc_1": { "id": "loc_1", "name": "Название локации", "description": "Описание", "type": "hub", "order": 1 }
+      },
+      "factions": {
+        "fac_1": { "id": "fac_1", "name": "Название фракции", "description": "Описание", "alignment": "Neutral", "status": "active", "order": 1 }
+      },
+      "npcs": {
+        "npc_1": { "id": "npc_1", "name": "Имя NPC или Монстра", "currentRole": "Роль/Враг", "description": "Описание", "traits": ["черта1", "черта2"], "order": 1, "defaultLocationId": "loc_1", "locationId": "loc_1", "currentActivity": "Ожидает", "schedule": [] }
+      },
+      "characters": {},
+      "extras": {
+        "ext_1": { "id": "ext_1", "name": "Секрет, лор или атмосфера", "description": "Описание", "order": 1, "defaultLocationId": "", "locationId": "", "currentActivity": "", "schedule": [] }
+      },
+      "quests": {
+        "quest_1": { "id": "quest_1", "title": "Название квеста", "type": "main", "description": "Описание", "reward": "Награда", "status": "available", "order": 1 }
+      },
+      "loot": {
+        "item_1": { "id": "item_1", "name": "Название предмета", "type": "Снаряжение", "description": "Описание", "status": "available", "order": 1 }
+      },
+      "events": {
+        "event_1": { "id": "event_1", "name": "Название события", "description": "Описание", "day": 1, "status": "pending", "order": 1 }
+      },
+      "heroes": {
+        "hero_1": { "id": "hero_1", "name": "Имя героя", "currentRole": "Игрок", "description": "Место для игрока", "order": 1, "defaultLocationId": "", "locationId": "", "currentActivity": "", "schedule": [] }
+      }
     }
     const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
