@@ -1,4 +1,5 @@
 import type { Node } from 'reactflow'
+import { useState } from 'react'
 import { NPC } from '@/types/workspace'
 import { ArchiveTooltip } from './ArchiveTooltip'
 import { AiWand } from '../ai/AiWand'
@@ -17,10 +18,28 @@ export function NpcForm({
   onUpdate: (data: Partial<NPC>) => void
 }) {
   const { locations, updateEntity } = useWorkspaceStore()
+  const [traitInput, setTraitInput] = useState('')
+
+  const handleAddTrait = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && traitInput.trim()) {
+      onUpdate({ traits: [...(npc.traits || []), traitInput.trim()] })
+      setTraitInput('')
+    }
+  }
+
+  const handleRemoveTrait = (index: number) => {
+    onUpdate({ traits: (npc.traits || []).filter((_, i) => i !== index) })
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !traitInput && (npc.traits?.length ?? 0) > 0) {
+      onUpdate({ traits: (npc.traits || []).slice(0, -1) })
+    }
+  }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Имя</Label>
           <Input
@@ -38,7 +57,7 @@ export function NpcForm({
             className="text-indigo-300"
           />
         </div>
-        <div>
+        <div className="col-span-full">
           <Label>Базовая локация</Label>
           <select
             value={npc.defaultLocationId || ''}
@@ -51,43 +70,75 @@ export function NpcForm({
             ))}
           </select>
         </div>
-        <div>
-          <Label>Черты (через запятую)</Label>
-          <Input
-            value={npc.traits?.join(', ') || ''}
-            onChange={(e) => onUpdate({ traits: e.target.value.split(',').map(s => s.trim()) })}
-            placeholder="Храбрый, Скупой..."
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="flex items-center justify-between bg-zinc-900/40 border border-zinc-800 rounded-lg p-3 cursor-pointer hover:bg-zinc-900/60 transition-colors">
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-200 flex items-center gap-2">
-              <span className="text-amber-400">💰</span> Этот персонаж — торговец
+      </div>
+
+      <div className="col-span-full">
+        <Label>Черты</Label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {(npc.traits || []).map((trait, index) => (
+            <span key={index} className="bg-zinc-800 text-zinc-300 px-2 py-1 rounded text-xs flex items-center gap-2">
+              {trait}
+              <button onClick={() => handleRemoveTrait(index)} className="text-zinc-500 hover:text-red-400">✕</button>
             </span>
-            <input
-              type="checkbox"
-              checked={!!npc.isMerchant}
-              onChange={(e) => onUpdate({ isMerchant: e.target.checked })}
-              className="h-4 w-4 accent-indigo-500"
-            />
-          </label>
+          ))}
         </div>
-        <div className="md:col-span-2">
-          <div className="flex justify-between items-center mb-1">
-            <Label className="mb-0">Описание</Label>
-            <AiWand 
-              currentValue={npc.description || ''}
-              contextData={npc}
-              onApply={(text) => onUpdate({ description: text })}
-            />
-          </div>
-          <Textarea
-            value={npc.description || ''}
-            onChange={(e) => onUpdate({ description: e.target.value })}
-            placeholder="Внешность, манеры, первое впечатление..."
-            rows={3}
+        <Input
+          value={traitInput}
+          onChange={(e) => setTraitInput(e.target.value)}
+          onKeyDown={(e) => { handleAddTrait(e); handleKeyDown(e) }}
+          placeholder="Нажмите Enter, чтобы добавить черту..."
+        />
+      </div>
+
+      <div className="col-span-full">
+        <label className="flex items-center justify-between bg-zinc-900/40 border border-zinc-800 rounded-lg p-3 cursor-pointer hover:bg-zinc-900/60 transition-colors">
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-200 flex items-center gap-2">
+            <span className="text-amber-400">💰</span> Этот персонаж — торговец
+          </span>
+          <input
+            type="checkbox"
+            checked={!!npc.isMerchant}
+            onChange={(e) => onUpdate({ isMerchant: e.target.checked })}
+            className="h-4 w-4 accent-indigo-500"
+          />
+        </label>
+      </div>
+
+      <div className="col-span-full">
+        <div className="flex justify-between items-center mb-1">
+          <Label>Описание</Label>
+          <AiWand 
+            currentValue={npc.description || ''}
+            contextData={npc}
+            onApply={(text) => onUpdate({ description: text })}
           />
         </div>
+        <Textarea
+          value={npc.description || ''}
+          onChange={(e) => onUpdate({ description: e.target.value })}
+          placeholder="Внешность, манеры, первое впечатление..."
+          className="min-h-[120px]"
+        />
+      </div>
+
+      <div className="col-span-full">
+        <Label>Цели</Label>
+        <Textarea
+          value={npc.goal || ''}
+          onChange={(e) => onUpdate({ goal: e.target.value })}
+          placeholder="Чего хочет добиться персонаж?"
+          className="min-h-[120px]"
+        />
+      </div>
+
+      <div className="col-span-full">
+        <Label>Секреты</Label>
+        <Textarea
+          value={npc.secret || ''}
+          onChange={(e) => onUpdate({ secret: e.target.value })}
+          placeholder="Что скрывает этот персонаж?"
+          className="min-h-[120px]"
+        />
       </div>
 
       <div className="flex gap-2 mt-2">
