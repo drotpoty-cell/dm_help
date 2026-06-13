@@ -5,40 +5,7 @@ import { AiWand } from '../ai/AiWand'
 import { Input } from '../../ui/Input'
 import { Textarea } from '../../ui/Textarea'
 import { Label } from '../../ui/Label'
-
-const SectionButton = ({
-  title,
-  subtitle,
-  open,
-  onClick,
-  tone = 'default'
-}: {
-  title: string
-  subtitle?: string
-  open: boolean
-  onClick: () => void
-  tone?: 'default' | 'danger' | 'warning'
-}) => {
-  const tones: Record<'default' | 'danger' | 'warning', string> = {
-    default: 'hover:bg-zinc-800/60',
-    warning: 'hover:bg-amber-950/30',
-    danger: 'hover:bg-red-950/30'
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full flex justify-between items-center bg-zinc-900/50 border border-zinc-800 p-3 rounded-lg transition-colors ${tones[tone]}`}
-    >
-      <div className="text-left">
-        <div className="text-[10px] font-black uppercase tracking-widest text-zinc-200">{title}</div>
-        {subtitle && <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-600 mt-0.5">{subtitle}</div>}
-      </div>
-      <div className={`text-zinc-500 text-xs font-black transition-transform ${open ? 'rotate-180' : ''}`}>⌄</div>
-    </button>
-  )
-}
+import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 
 export function NpcForm({
   npc,
@@ -49,45 +16,81 @@ export function NpcForm({
   nodes: Node[]
   onUpdate: (data: Partial<NPC>) => void
 }) {
+  const { locations, updateEntity } = useWorkspaceStore()
+
   return (
     <div className="flex flex-col gap-3">
-      <Input
-        value={npc.occupation || ''}
-        onChange={(e) => onUpdate({ occupation: e.target.value })}
-        placeholder="Роль (Торговец, Стражник...)"
-        className="text-indigo-300"
-      />
-
-      <label className="flex items-center justify-between bg-zinc-900/40 border border-zinc-800 rounded-lg p-3 cursor-pointer hover:bg-zinc-900/60 transition-colors">
-        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-200 flex items-center gap-2">
-          <span className="text-amber-400">💰</span> Этот персонаж — торговец
-        </span>
-        <input
-          type="checkbox"
-          checked={!!npc.isMerchant}
-          onChange={(e) => onUpdate({ isMerchant: e.target.checked })}
-          className="h-4 w-4 accent-indigo-500"
-        />
-      </label>
-
-      <div className="mb-4">
-        <div className="flex justify-between items-center mb-1">
-          <Label className="mb-0">Описание</Label>
-          <AiWand 
-            currentValue={npc.description || ''}
-            contextData={npc}
-            onApply={(text) => onUpdate({ description: text })}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Имя</Label>
+          <Input
+            value={npc.name || ''}
+            onChange={(e) => onUpdate({ name: e.target.value })}
+            placeholder="Имя персонажа"
           />
         </div>
-        <Textarea
-          value={npc.description || ''}
-          onChange={(e) => onUpdate({ description: e.target.value })}
-          placeholder="Внешность, манеры, первое впечатление..."
-          rows={3}
-        />
+        <div>
+          <Label>Роль</Label>
+          <Input
+            value={npc.occupation || ''}
+            onChange={(e) => onUpdate({ occupation: e.target.value })}
+            placeholder="Торговец, Стражник..."
+            className="text-indigo-300"
+          />
+        </div>
+        <div>
+          <Label>Базовая локация</Label>
+          <select
+            value={npc.defaultLocationId || ''}
+            onChange={(e) => updateEntity('npcs', npc.id, { defaultLocationId: e.target.value, locationId: e.target.value })}
+            className="w-full bg-zinc-900 border border-zinc-800 p-2 rounded text-[10px] text-zinc-300 focus:border-indigo-500 outline-none"
+          >
+            <option value="">Нет локации</option>
+            {Object.values(locations).map((loc) => (
+              <option key={loc.id} value={loc.id}>{loc.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label>Черты (через запятую)</Label>
+          <Input
+            value={npc.traits?.join(', ') || ''}
+            onChange={(e) => onUpdate({ traits: e.target.value.split(',').map(s => s.trim()) })}
+            placeholder="Храбрый, Скупой..."
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="flex items-center justify-between bg-zinc-900/40 border border-zinc-800 rounded-lg p-3 cursor-pointer hover:bg-zinc-900/60 transition-colors">
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-200 flex items-center gap-2">
+              <span className="text-amber-400">💰</span> Этот персонаж — торговец
+            </span>
+            <input
+              type="checkbox"
+              checked={!!npc.isMerchant}
+              onChange={(e) => onUpdate({ isMerchant: e.target.checked })}
+              className="h-4 w-4 accent-indigo-500"
+            />
+          </label>
+        </div>
+        <div className="md:col-span-2">
+          <div className="flex justify-between items-center mb-1">
+            <Label className="mb-0">Описание</Label>
+            <AiWand 
+              currentValue={npc.description || ''}
+              contextData={npc}
+              onApply={(text) => onUpdate({ description: text })}
+            />
+          </div>
+          <Textarea
+            value={npc.description || ''}
+            onChange={(e) => onUpdate({ description: e.target.value })}
+            placeholder="Внешность, манеры, первое впечатление..."
+            rows={3}
+          />
+        </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-2">
         <ArchiveTooltip text="Настройте время, чтобы персонаж автоматически перемещался по карте в зависимости от времени суток.">
           <button
             onClick={() => onUpdate({ showSchedule: !npc.showSchedule })}
@@ -106,27 +109,6 @@ export function NpcForm({
         <div className="bg-zinc-950/80 border border-zinc-800 p-3 rounded-lg flex flex-col gap-3 shadow-inner">
           <div className="text-[8px] font-bold text-indigo-500 uppercase tracking-widest">Распорядок дня</div>
           
-          <div className="mb-2">
-            <Label>Постоянная локация (База)</Label>
-            <select
-              value={npc.defaultLocationId || ''}
-              onChange={(e) => onUpdate({ 
-                defaultLocationId: e.target.value,
-                locationId: e.target.value 
-              })}
-              className="w-full bg-zinc-900 border border-zinc-800 p-1.5 rounded text-[10px]"
-            >
-              <option value="">Не выбрана</option>
-              {nodes
-                .filter((n) => n.type !== 'region')
-                .map((n) => (
-                  <option key={n.id} value={n.id}>
-                    {String((n.data as { label?: string })?.label || '')}
-                  </option>
-                ))}
-            </select>
-          </div>
-
           {(npc.schedule || []).map((entry, index) => (
             <div key={index} className="grid grid-cols-2 gap-2 pb-3 border-b border-zinc-900 last:border-0 last:pb-0">
               <div className="flex gap-1">
@@ -218,8 +200,6 @@ export function NpcForm({
           </button>
         </div>
       )}
-
-
     </div>
   )
 }
