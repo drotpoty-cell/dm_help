@@ -2,6 +2,8 @@
 
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { Hero, NPC, Quest, Loot, Event, BaseEntity } from '@/types/workspace'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { ReactNode } from 'react'
 
 interface EntityCardProps {
@@ -26,6 +28,14 @@ const Icons: Record<string, ReactNode> = {
 }
 
 export default function EntityCard({ entity, type, isActive, onClick }: EntityCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entity.id });
+  const style = { 
+    transform: CSS.Transform.toString(transform), 
+    transition, 
+    zIndex: isDragging ? 50 : 'auto', 
+    opacity: isDragging ? 0.5 : 1 
+  };
+  
   // Логика определения торговца
   const isMerchant = type === 'npcs' && entity.occupation?.toLowerCase().includes('торговец');
   
@@ -81,21 +91,10 @@ export default function EntityCard({ entity, type, isActive, onClick }: EntityCa
 
   const { updateEntity } = useWorkspaceStore()
 
-  // Логика перемещения (нужен доступ к списку, но в ArchiveBoard он уже есть)
-  // Предположим, что вызываем updateEntity для текущей и соседа
-  const handleMove = (e: React.MouseEvent, direction: 'up' | 'down') => {
-    e.stopPropagation()
-    // Нужно найти соседа в списке. Но в карточке нет всего списка.
-    // Оставим логику на ArchiveBoard через пропсы или создадим функцию в контексте?
-    // Согласно инструкции: "...сосед меняются местами значения order через вызов updateEntity"
-    // Поскольку у нас нет списка, передадим этот функционал в родитель.
-    // Пока сделаем упрощенно через вызов обновления самого `order`
-    const newOrder = direction === 'up' ? (entity.order || 0) - 1 : (entity.order || 0) + 1
-    updateEntity(type as any, entity.id, { order: newOrder })
-  }
-
   return (
     <div 
+      ref={setNodeRef}
+      style={style}
       onClick={onClick}
       className={`relative p-4 rounded-xl border transition-all cursor-pointer group ${
         isActive 
@@ -103,9 +102,14 @@ export default function EntityCard({ entity, type, isActive, onClick }: EntityCa
           : 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700 hover:scale-[1.01] hover:bg-zinc-900/60'
       }`}
     >
-      <div className="absolute top-2 right-2 flex flex-col gap-0.5">
-        <button onClick={(e) => handleMove(e, 'up')} className="text-zinc-600 hover:text-zinc-300">⬆️</button>
-        <button onClick={(e) => handleMove(e, 'down')} className="text-zinc-600 hover:text-zinc-300">⬇️</button>
+      <div 
+        {...attributes} 
+        {...listeners} 
+        className="absolute top-2 right-2 cursor-grab text-zinc-600 hover:text-zinc-300"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
+        </svg>
       </div>
       <div className="flex justify-between items-start gap-2 mb-2 pr-6">
         <div className="flex items-center gap-2 overflow-hidden">

@@ -3,6 +3,21 @@
 import { useMemo, useRef, useState } from 'react'
 import { z } from 'zod';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+
 
 const AiEntitySchema = z.object({
   id: z.string().min(1).catch(() => `gen-${crypto.randomUUID()}`),
@@ -52,6 +67,15 @@ export default function ArchiveBoard() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   const [isLootModalOpen, setIsLootModalOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
 
   const library = useWorkspaceStore((state) => ({
     heroes: state.heroes,
@@ -269,6 +293,21 @@ export default function ArchiveBoard() {
     setQuery('')
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = filteredItems.findIndex((i) => i.id === active.id);
+      const newIndex = filteredItems.findIndex((i) => i.id === over.id);
+
+      const newItems = arrayMove(filteredItems, oldIndex, newIndex);
+
+      newItems.forEach((item, index) => {
+        updateEntity(activeTab, item.id, { order: index });
+      });
+    }
+  }
+
   return (
     <div className="absolute inset-0 bg-[#09090b] flex z-10">
       <style dangerouslySetInnerHTML={{__html: `
@@ -305,78 +344,86 @@ export default function ArchiveBoard() {
 
           {isLootModalOpen && <LootGeneratorModal onClose={() => setIsLootModalOpen(false)} />}
 
-          <div className="grid grid-cols-1 gap-3">
-            {filteredItems.map((entity: ArchiveEntity) => (
-              <div key={entity.id}>
-                <div className="flex items-center gap-2">
-                  <EntityCard
-                    entity={entity as any}
-                    type={activeTab}
-                    isActive={selectedEntityId === entity.id}
-                    onClick={() => setSelectedEntityId(selectedEntityId === entity.id ? null : entity.id)}
-                  />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (deletingId === entity.id) {
-                        deleteEntity(activeTab, entity.id)
-                        setDeletingId(null)
-                        if (selectedEntityId === entity.id) setSelectedEntityId(null)
-                      } else {
-                        setDeletingId(entity.id)
-                      }
-                    }}
-                    onMouseLeave={() => setDeletingId(null)}
-                    className={`shrink-0 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors ${
-                      deletingId === entity.id ? 'text-red-300 bg-red-950/40 border-red-900/50 hover:bg-red-500 hover:text-white' : 'text-zinc-600 bg-zinc-950/40 border-zinc-800 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/20'
-                    }`}
-                  >
-                    {deletingId === entity.id ? 'Точно?' : '✕'}
-                  </button>
-                </div>
-
-                {selectedEntityId === entity.id && (
-                  <div className="mt-3 p-4 bg-zinc-900 rounded-xl border border-zinc-800 animate-in fade-in slide-in-from-top-2 duration-200">
-                    {activeTab === 'heroes' && <HeroForm hero={entity as Hero} onUpdate={(data) => updateEntity('heroes', entity.id, data)} />}
-                    {activeTab === 'extras' && <ExtraForm extra={entity} nodes={nodes} onUpdate={(data) => updateEntity('extras', entity.id, data)} />}
-                    {activeTab === 'characters' && <CharacterForm character={entity} onUpdate={(data) => updateEntity('characters', entity.id, data)} />}
-                    {activeTab === 'npcs' && <NpcForm npc={entity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', entity.id, data)} />}
-                    {activeTab === 'loot' && <LootForm loot={entity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', entity.id, data)} />}
-                    {activeTab === 'events' && <EventForm event={entity as Event} onUpdate={(data) => updateEntity('events', entity.id, data)} />}
-                    {activeTab === 'bestiary' && <BestiaryForm threat={entity} onUpdate={(data) => updateEntity('bestiary', entity.id, data)} />}
-                    {activeTab === 'factions' && <FactionForm faction={entity} nodes={nodes} characters={charactersList} onUpdate={(data) => updateEntity('factions', entity.id, data)} />}
-                    {activeTab === 'quests' && <QuestForm quest={entity as Quest} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('quests', entity.id, data)} />}
-                    {activeTab === 'locations' && <LocationForm location={entity} onUpdate={(data) => updateEntity('locations', entity.id, data)} onPlaceOnMap={() => handlePlaceOnMap(entity)} />}
-                    
-                    {/* Форма для секретов */}
-                    {activeTab === 'secrets' && (
-                      <div className="flex flex-col gap-3">
-                        <div className="flex justify-between items-center">
-                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                            Скрытая информация
-                          </label>
-                          <AiWand 
-                            mode="general"
-                            currentValue={entity.description || ''}
-                            contextData={entity}
-                            onApply={(text) => updateEntity('secrets', entity.id, { description: text })}
-                          />
-                        </div>
-                        <textarea
-                          value={entity.description || ''}
-                          onChange={(e) => updateEntity('secrets', entity.id, { description: e.target.value })}
-                          placeholder="Детальное описание секрета..."
-                          className="bg-zinc-950/50 border border-zinc-800 p-3 text-sm text-zinc-300 w-full resize-none outline-none leading-relaxed h-24 rounded-xl focus:border-indigo-500"
-                        />
-                        <div className="pt-3 border-t border-zinc-800/50">
-                          <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest text-center">Доступно через @Упоминания в других местах</div>
-                        </div>
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={filteredItems.map(i => i.id)} 
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredItems.map((entity: ArchiveEntity) => (
+                  <div key={entity.id} className="flex flex-col">
+                    <EntityCard
+                      entity={entity as any}
+                      type={activeTab}
+                      isActive={selectedEntityId === entity.id}
+                      onClick={() => setSelectedEntityId(selectedEntityId === entity.id ? null : entity.id)}
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (deletingId === entity.id) {
+                          deleteEntity(activeTab, entity.id)
+                          setDeletingId(null)
+                          if (selectedEntityId === entity.id) setSelectedEntityId(null)
+                        } else {
+                          setDeletingId(entity.id)
+                        }
+                      }}
+                      onMouseLeave={() => setDeletingId(null)}
+                      className={`mt-2 w-full px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors ${
+                        deletingId === entity.id ? 'text-red-300 bg-red-950/40 border-red-900/50 hover:bg-red-500 hover:text-white' : 'text-zinc-600 bg-zinc-950/40 border-zinc-800 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/20'
+                      }`}
+                    >
+                      {deletingId === entity.id ? 'Точно?' : 'Удалить'}
+                    </button>
+                    {selectedEntityId === entity.id && (
+                      <div className="mt-2 p-4 bg-zinc-900 rounded-xl border border-zinc-800 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {activeTab === 'heroes' && <HeroForm hero={entity as Hero} onUpdate={(data) => updateEntity('heroes', entity.id, data)} />}
+                        {activeTab === 'extras' && <ExtraForm extra={entity} nodes={nodes} onUpdate={(data) => updateEntity('extras', entity.id, data)} />}
+                        {activeTab === 'characters' && <CharacterForm character={entity} onUpdate={(data) => updateEntity('characters', entity.id, data)} />}
+                        {activeTab === 'npcs' && <NpcForm npc={entity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', entity.id, data)} />}
+                        {activeTab === 'loot' && <LootForm loot={entity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', entity.id, data)} />}
+                        {activeTab === 'events' && <EventForm event={entity as Event} onUpdate={(data) => updateEntity('events', entity.id, data)} />}
+                        {activeTab === 'bestiary' && <BestiaryForm threat={entity} onUpdate={(data) => updateEntity('bestiary', entity.id, data)} />}
+                        {activeTab === 'factions' && <FactionForm faction={entity} nodes={nodes} characters={charactersList} onUpdate={(data) => updateEntity('factions', entity.id, data)} />}
+                        {activeTab === 'quests' && <QuestForm quest={entity as Quest} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('quests', entity.id, data)} />}
+                        {activeTab === 'locations' && <LocationForm location={entity} onUpdate={(data) => updateEntity('locations', entity.id, data)} onPlaceOnMap={() => handlePlaceOnMap(entity)} />}
+                        
+                        {activeTab === 'secrets' && (
+                          <div className="flex flex-col gap-3">
+                            <div className="flex justify-between items-center">
+                              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                                Скрытая информация
+                              </label>
+                              <AiWand 
+                                mode="general"
+                                currentValue={entity.description || ''}
+                                contextData={entity}
+                                onApply={(text) => updateEntity('secrets', entity.id, { description: text })}
+                              />
+                            </div>
+                            <textarea
+                              value={entity.description || ''}
+                              onChange={(e) => updateEntity('secrets', entity.id, { description: e.target.value })}
+                              placeholder="Детальное описание секрета..."
+                              className="bg-zinc-950/50 border border-zinc-800 p-3 text-sm text-zinc-300 w-full resize-none outline-none leading-relaxed h-24 rounded-xl focus:border-indigo-500"
+                            />
+                            <div className="pt-3 border-t border-zinc-800/50">
+                              <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest text-center">Доступно через @Упоминания в других местах</div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
+            </SortableContext>
+          </DndContext>
 
             {(currentItems.length === 0 || filteredItems.length === 0) && (
               <div className="col-span-full py-20 text-center border-2 border-dashed border-zinc-800 rounded-xl">
