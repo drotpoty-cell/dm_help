@@ -63,7 +63,6 @@ export interface NPC {
   occupation?: string
   locationId: string | null
   needsUpdate: boolean
-  isMajor?: boolean
   isMerchant?: boolean
   hp?: number
   maxHp?: number

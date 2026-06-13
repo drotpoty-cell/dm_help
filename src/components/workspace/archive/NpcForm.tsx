@@ -51,29 +51,6 @@ export function NpcForm({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-between items-center bg-zinc-950/50 border border-zinc-800 p-1 rounded-lg">
-        <button
-          onClick={() => onUpdate({ isMajor: false })}
-          className={`flex-1 py-1 text-[9px] font-bold uppercase rounded ${
-            !npc.isMajor ? 'bg-zinc-800 text-zinc-300' : 'text-zinc-600 hover:text-zinc-400'
-          }`}
-        >
-          Массовка
-        </button>
-        <ArchiveTooltip text="Сделайте персонажа ключевым, чтобы открыть глубокие настройки лора: статы, секреты, цели и особый лут.">
-          <button
-            onClick={() => onUpdate({ isMajor: true })}
-            className={`flex-1 py-1 px-2 text-[9px] font-bold uppercase rounded flex justify-center items-center gap-1 ${
-              npc.isMajor
-                ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                : 'text-zinc-600 hover:text-zinc-400'
-            }`}
-          >
-            Ключевой
-          </button>
-        </ArchiveTooltip>
-      </div>
-
       <Input
         value={npc.occupation || ''}
         onChange={(e) => onUpdate({ occupation: e.target.value })}

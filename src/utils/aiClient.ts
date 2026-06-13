@@ -1,22 +1,14 @@
 import { useSettingsStore } from '@/store/useSettingsStore';
 
 export async function generateAiText(prompt: string, context?: string): Promise<string> {
-  const { apiKey, aiProvider, aiModel, systemPrompt } = useSettingsStore.getState();
-  
-  const cleanKey = apiKey.trim();
-  const cleanModel = aiModel.trim().replace(/^models\//, '');
-
-  if (!cleanKey) throw new Error('API ключ не указан в настройках ⚙️');
+  const { systemPrompt } = useSettingsStore.getState();
 
   try {
     const res = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        provider: aiProvider,
-        model: cleanModel,
         prompt,
-        apiKey: cleanKey,
         systemPrompt,
         context
       })

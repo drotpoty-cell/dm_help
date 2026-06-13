@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useSettingsStore, AIProvider } from '@/store/useSettingsStore';
-import { Input } from '@/components/ui/Input';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { Textarea } from '@/components/ui/Textarea';
 import { Label } from '@/components/ui/Label';
 import { X } from 'lucide-react';
@@ -8,17 +7,9 @@ import { X } from 'lucide-react';
 export default function SettingsModal({ onClose }: { onClose: () => void }) {
   const store = useSettingsStore();
 
-  // Инициализируем локальный стейт текущими значениями из стора
-  const [provider, setProvider] = useState<AIProvider>(store.aiProvider || 'openrouter');
-  const [model, setModel] = useState(store.aiModel || 'google/gemini-1.5-flash');
-  const [key, setKey] = useState(store.apiKey || '');
   const [prompt, setPrompt] = useState(store.systemPrompt || '');
 
   const handleSave = () => {
-    // Сохраняем всё в стор только по клику
-    store.setAiProvider(provider);
-    store.setAiModel(model.trim());
-    store.setApiKey(key.trim());
     store.setSystemPrompt(prompt);
     onClose();
   };
@@ -29,39 +20,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
         <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
-        <h2 className="text-xl font-bold text-white mb-2">Настройки ИИ ⚙️</h2>
-
-        <div>
-          <Label>Провайдер ИИ</Label>
-          <select
-            value={provider}
-            onChange={(e) => setProvider(e.target.value as AIProvider)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none appearance-none"
-          >
-            <option value="openrouter">OpenRouter (Рекомендуется)</option>
-            <option value="gemini">Google Gemini (Direct)</option>
-            <option value="openai">OpenAI (ChatGPT)</option>
-          </select>
-        </div>
-
-        <div>
-          <Label>Модель</Label>
-          <Input 
-            value={model} 
-            onChange={(e) => setModel(e.target.value)} 
-            placeholder="Например: google/gemini-1.5-flash" 
-          />
-        </div>
-
-        <div>
-          <Label>API Ключ</Label>
-          <Input 
-            type="password" 
-            value={key} 
-            onChange={(e) => setKey(e.target.value)} 
-            placeholder="sk-..." 
-          />
-        </div>
+        <h2 className="text-xl font-bold text-white mb-2">Настройки ⚙️</h2>
 
         <div>
           <Label>Системная роль</Label>
