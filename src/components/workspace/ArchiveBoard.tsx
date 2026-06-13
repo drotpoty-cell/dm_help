@@ -66,11 +66,6 @@ export default function ArchiveBoard() {
   const [query, setQuery] = useState('')
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   
-  const selectedEntity = useMemo(() => {
-    if (!selectedEntityId) return null
-    return (currentItems as ArchiveEntity[]).find(e => e.id === selectedEntityId) || null
-  }, [selectedEntityId, currentItems])
-
   const [isLootModalOpen, setIsLootModalOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
