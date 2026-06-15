@@ -11,7 +11,12 @@ export async function POST(req: Request) {
     const model = body.model || process.env.DEFAULT_AI_MODEL || 'gemini-2.5-flash';
     
     const normalizedProvider = String(provider).toLowerCase().trim();
-    const cleanModel = String(model).trim().replace(/^models\//, '');
+    let cleanModel = String(model).trim().replace(/^models\//, '');
+    
+    // Принудительный апгрейд старых моделей из кэша LocalStorage
+    if (normalizedProvider === 'gemini' && (cleanModel.includes('1.5') || cleanModel === 'gemini-pro')) {
+      cleanModel = 'gemini-2.5-flash';
+    }
     
     const serverKey = process.env.OPENROUTER_API_KEY; 
     const clientKey = String(body.apiKey || '').replace(/[\r\n\s"']/g, '');
