@@ -174,6 +174,9 @@ export interface WorkspaceState {
   viewedEntityId: string | null
   setViewedEntityId: (id: string | null) => void
 
+  activeView: string
+  setActiveView: (view: string) => void
+
   scratchpad: string
   isScratchpadOpen: boolean
   setScratchpad: (text: string) => void

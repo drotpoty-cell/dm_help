@@ -1,10 +1,16 @@
 'use client';
 
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import CockpitHeader from '@/components/workspace/cockpit/CockpitHeader';
 import CockpitSidebar from '@/components/workspace/cockpit/CockpitSidebar';
 import { TimelineBar } from '@/components/workspace/cockpit/TimelineBar';
+import ArchiveBoard from '@/components/workspace/ArchiveBoard';
+import CalendarBoard from '@/components/workspace/CalendarBoard';
+import WeatherBoard from '@/components/workspace/WeatherBoard';
 
 export default function WorkspacePage() {
+  const { activeView } = useWorkspaceStore();
+
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col bg-neutral-950 text-neutral-200">
       {/* Верхняя панель (Header) */}
@@ -19,7 +25,10 @@ export default function WorkspacePage() {
 
         {/* Центральная зона (Карта) */}
         <section className="flex-1 relative bg-neutral-900">
-          ЦЕНТР: Глобальная карта
+          {activeView === 'map' && <div className="p-4 text-neutral-500">Глобальная карта (в разработке)</div>}
+          {activeView === 'archive' && <ArchiveBoard />}
+          {activeView === 'calendar' && <CalendarBoard />}
+          {activeView === 'weather' && <WeatherBoard />}
         </section>
 
         {/* Правая шторка (Инспектор) */}

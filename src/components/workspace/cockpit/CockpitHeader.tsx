@@ -4,7 +4,14 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { Map, Archive, Calendar, Sun, CloudRain, Cloud, CloudLightning, Snowflake, Wind, Droplets } from 'lucide-react';
 
 const CockpitHeader = () => {
-  const { currentDay, currentHour, weather } = useWorkspaceStore();
+  const { currentDay, currentHour, weather, activeView, setActiveView } = useWorkspaceStore();
+
+  const navItems = [
+    { id: 'map', label: 'Дашборд', icon: Map },
+    { id: 'archive', label: 'Архив', icon: Archive },
+    { id: 'calendar', label: 'Календарь', icon: Calendar },
+    { id: 'weather', label: 'Погода', icon: Cloud }
+  ];
 
   const weatherIcons: Record<string, React.ReactNode> = {
     'Ясно': <Sun className="w-4 h-4 text-amber-400" />,
@@ -25,15 +32,19 @@ const CockpitHeader = () => {
       <div className="flex items-center gap-6">
         <h1 className="font-bold text-sm tracking-tight">GM Assistant</h1>
         <nav className="flex items-center gap-4 text-[11px] text-neutral-500 font-medium">
-          <a href="#" className="flex items-center gap-1.5 hover:text-neutral-200 transition-colors">
-            <Map className="w-3.5 h-3.5" /> Дашборд
-          </a>
-          <a href="#" className="flex items-center gap-1.5 hover:text-neutral-200 transition-colors">
-            <Archive className="w-3.5 h-3.5" /> Архив
-          </a>
-          <a href="#" className="flex items-center gap-1.5 hover:text-neutral-200 transition-colors">
-            <Calendar className="w-3.5 h-3.5" /> Календарь
-          </a>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveView(item.id)}
+                className={`flex items-center gap-1.5 transition-colors ${isActive ? 'text-blue-500' : 'hover:text-neutral-200'}`}
+              >
+                <Icon className="w-3.5 h-3.5" /> {item.label}
+              </button>
+            );
+          })}
         </nav>
       </div>
       <div className="flex items-center gap-3 text-[11px] font-mono bg-neutral-900 px-3 py-1.5 rounded border border-neutral-800">

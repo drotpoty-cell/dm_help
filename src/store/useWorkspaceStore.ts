@@ -163,6 +163,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       characters: {}, extras: {}, bestiary: {}, factions: {},
       
       viewedEntityId: null,
+      activeView: 'map',
       scratchpad: '',
       isScratchpadOpen: false,
       
@@ -260,6 +261,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       }),
       
       setViewedEntityId: (id: string | null) => set({ viewedEntityId: id }),
+      setActiveView: (view: string) => set({ activeView: view }),
       setScratchpad: (text: string) => set({ scratchpad: text }),
       toggleScratchpad: () => set((state: any) => ({ isScratchpadOpen: !state.isScratchpadOpen })),
       
@@ -406,7 +408,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         currentDay: state.currentDay,
         currentHour: state.currentHour,
         weather: state.weather,
-        partyLocationId: state.partyLocationId
+        partyLocationId: state.partyLocationId,
+        activeView: state.activeView
       })
     }
   )
