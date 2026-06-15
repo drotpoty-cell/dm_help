@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { prompt, systemPrompt, context } = body;
 
     const provider = body.provider || process.env.DEFAULT_AI_PROVIDER || 'gemini';
-    const model = body.model || process.env.DEFAULT_AI_MODEL || 'gemini-1.5-pro';
+    const model = body.model || process.env.DEFAULT_AI_MODEL || 'gemini-1.5-pro-latest';
     
     const normalizedProvider = String(provider).toLowerCase().trim();
     const cleanModel = String(model).trim().replace(/^models\//, '');
