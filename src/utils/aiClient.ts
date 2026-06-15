@@ -1,11 +1,16 @@
 import { useSettingsStore } from '@/store/useSettingsStore';
 
 export async function enhanceText(text: string): Promise<string> {
+  const { provider, model, apiKey } = useSettingsStore.getState();
+
   try {
     const res = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        provider,
+        model,
+        apiKey,
         prompt: `Улучши следующее описание, сделав его более атмосферным и детализированным, сохранив суть: ${text}`,
         systemPrompt: "Ты — профессиональный писатель фэнтези, помогающий мастеру игры.",
       })
@@ -22,13 +27,16 @@ export async function enhanceText(text: string): Promise<string> {
 }
 
 export async function generateAiText(prompt: string, context?: string): Promise<string> {
-  const { systemPrompt } = useSettingsStore.getState();
+  const { provider, model, apiKey, systemPrompt } = useSettingsStore.getState();
 
   try {
     const res = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        provider,
+        model,
+        apiKey,
         prompt,
         systemPrompt,
         context
@@ -41,6 +49,6 @@ export async function generateAiText(prompt: string, context?: string): Promise<
     return data.text;
   } catch (err: any) {
     console.error('Client AI Error:', err);
-    throw new Error(err.message || 'Ошибка сети при обращении к локальному API');
+    throw new Error(err.message || 'Ошибка сети при обращении к API');
   }
 }

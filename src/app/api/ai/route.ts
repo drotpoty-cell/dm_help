@@ -1,69 +1,53 @@
-export const dynamic = 'force-dynamic'; 
-
-import { NextResponse } from 'next/server';
-
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { provider, model, prompt, systemPrompt, context } = body;
-
-    const normalizedProvider = String(provider || '').toLowerCase().trim();
-    const cleanModel = String(model || '').trim().replace(/^models\//, '');
-    
-    const serverKey = process.env.OPENROUTER_API_KEY;
-    const clientKey = String(body.apiKey || '').replace(/[\r\n\s"']/g, '');
-    const safeApiKey = serverKey || clientKey;
-    
-    if (!safeApiKey) {
-      return NextResponse.json({ error: 'API ключ не найден на сервере' }, { status: 401 });
-    }
-
-    const baseSystemPrompt = systemPrompt || 'Ты — креативный помощник Мастера Подземелий D&D 5e.';
-    // Убрали лимит слов, оставили только запрет на мусор в ответе
-    const strictRules = `
-УСТАНОВКА ДЛЯ ИИ:
-1. Полностью сопоставь и используй все известные данные из предоставленного контекста (JSON).
-2. Выполни задачу из [USER REQUEST], строго соблюдая запрошенный там стиль и объем.
-3. Выведи ТОЛЬКО чистый итоговый текст. Никаких кавычек на всю строку, никаких вводных слов ("Вот ваше описание:", "Вариант:"), никаких пояснений и списков.
-`;
-
-    const combinedText = `[SYSTEM INSTRUCTION]\n${baseSystemPrompt}\n${strictRules}\n\n[CONTEXT]\n${context || 'Нет данных'}\n\n[USER REQUEST]\n${prompt || 'Сделай красивое описание на основе контекста'}`;
-
-    let url = '';
-    let headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    let fetchBody: any = {};
-
-    if (normalizedProvider === 'gemini') {
-      const baseUrl = process.env.GEMINI_PROXY_URL || 'https://generativelanguage.googleapis.com';
-      url = `${baseUrl}/v1beta/models/${cleanModel}:generateContent?key=${safeApiKey}`;
-      fetchBody = { contents: [{ parts: [{ text: combinedText }] }] };
-    } 
-    else if (normalizedProvider === 'openrouter') {
-      url = 'https://openrouter.ai/api/v1/chat/completions';
-      headers['Authorization'] = `Bearer ${safeApiKey}`;
-      headers['HTTP-Referer'] = process.env.NEXT_PUBLIC_SITE_URL || 'https://dm-help.vercel.app';
-      headers['X-Title'] = 'GM Assistant';
-      fetchBody = { model: cleanModel, messages: [{ role: 'user', content: combinedText }], max_tokens: 1500 };
-    } 
-    else {
-      return NextResponse.json({ error: `Неизвестный провайдер: ${normalizedProvider}` }, { status: 400 });
-    }
-
-    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(fetchBody), cache: 'no-store' });
-    const data = await res.json();
-
-    if (!res.ok) {
-      return NextResponse.json({ error: data.error?.message || data.error || 'Ошибка API' }, { status: res.status });
-    }
-
-    let text = normalizedProvider === 'gemini' 
-      ? data.candidates?.[0]?.content?.parts?.[0]?.text 
-      : data.choices?.[0]?.message?.content;
-
-    if (text) text = text.trim().replace(/^["']|["']$/g, '');
-
-    return NextResponse.json({ text: text || 'Пустой ответ от ИИ' });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
-  }
-}
+[{
+	"resource": "/d:/Рабочий стол/WCD/V2/gm-assistant/src/app/api/ai/route.ts",
+	"owner": "typescript",
+	"code": "2349",
+	"severity": 8,
+	"message": "Это выражение не является вызываемым.\n  Тип \"{ error: any; }\" не содержит сигнатуры вызова.",
+	"source": "ts",
+	"startLineNumber": 51,
+	"startColumn": 32,
+	"endLineNumber": 51,
+	"endColumn": 42,
+	"modelVersionId": 3,
+	"origin": "extHost1"
+},{
+	"resource": "/d:/Рабочий стол/WCD/V2/gm-assistant/src/app/api/ai/route.ts",
+	"owner": "typescript",
+	"code": "1127",
+	"severity": 8,
+	"message": "Недопустимый символ.",
+	"source": "ts",
+	"startLineNumber": 51,
+	"startColumn": 41,
+	"endLineNumber": 51,
+	"endColumn": 41,
+	"modelVersionId": 3,
+	"origin": "extHost1"
+},{
+	"resource": "/d:/Рабочий стол/WCD/V2/gm-assistant/src/app/api/ai/route.ts",
+	"owner": "typescript",
+	"code": "1136",
+	"severity": 8,
+	"message": "Ожидалось назначение свойства.",
+	"source": "ts",
+	"startLineNumber": 51,
+	"startColumn": 42,
+	"endLineNumber": 74,
+	"endColumn": 2,
+	"modelVersionId": 3,
+	"origin": "extHost1"
+},{
+	"resource": "/d:/Рабочий стол/WCD/V2/gm-assistant/src/app/api/ai/route.ts",
+	"owner": "typescript",
+	"code": "1160",
+	"severity": 8,
+	"message": "Незавершенный литерал шаблона.",
+	"source": "ts",
+	"startLineNumber": 74,
+	"startColumn": 2,
+	"endLineNumber": 74,
+	"endColumn": 2,
+	"modelVersionId": 3,
+	"origin": "extHost1"
+}]
