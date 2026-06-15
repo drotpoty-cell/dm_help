@@ -17,7 +17,7 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       systemPrompt: 'Ты помощник Мастера Подземелий D&D 5e',
       provider: 'gemini',
-      model: 'gemini-1.5-pro-latest',
+      model: 'gemini-2.5-flash',
       apiKey: '',
       setSystemPrompt: (systemPrompt) => set({ systemPrompt }),
       setProvider: (provider) => set({ provider }),
