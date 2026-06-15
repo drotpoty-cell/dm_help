@@ -1,11 +1,11 @@
 import type { Node } from 'reactflow'
 import { useState } from 'react'
 import { NPC } from '@/types/workspace'
-import { ArchiveTooltip } from './ArchiveTooltip'
-import { AiWand } from '../ai/AiWand'
-import { Input } from '../../ui/Input'
-import { Textarea } from '../../ui/Textarea'
-import { Label } from '../../ui/Label'
+import { ArchiveTooltip } from '@/components/workspace/archive/ArchiveTooltip'
+import { AiWand } from '@/components/workspace/ai/AiWand'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Label } from '@/components/ui/Label'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 
 export function NpcForm({

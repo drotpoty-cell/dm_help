@@ -1,8 +1,8 @@
 import { Hero } from '@/types/workspace'
-import { AiWand } from '../ai/AiWand'
-import { Input } from '../../ui/Input'
-import { Textarea } from '../../ui/Textarea'
-import { Label } from '../../ui/Label'
+import { AiWand } from '@/components/workspace/ai/AiWand'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Label } from '@/components/ui/Label'
 
 export function HeroForm({ hero, onUpdate }: { hero: Hero; onUpdate: (data: Partial<Hero>) => void }) {
   return (

@@ -1,8 +1,8 @@
 import type { Node } from 'reactflow'
 import { Loot, NPC } from '@/types/workspace'
-import { AiWand } from '../ai/AiWand'
-import { Input } from '../../ui/Input'
-import { Textarea } from '../../ui/Textarea'
+import { AiWand } from '@/components/workspace/ai/AiWand'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
 
 export function LootForm({
   loot,

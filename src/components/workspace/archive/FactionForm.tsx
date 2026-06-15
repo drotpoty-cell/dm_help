@@ -1,7 +1,7 @@
-import { AiWand } from '../ai/AiWand'
-import { Input } from '../../ui/Input'
-import { Textarea } from '../../ui/Textarea'
-import { Label } from '../../ui/Label'
+import { AiWand } from '@/components/workspace/ai/AiWand'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Label } from '@/components/ui/Label'
 
 export function FactionForm({ faction, nodes, characters, onUpdate }: { faction: any; nodes: any[]; characters: any[]; onUpdate: (data: any) => void }) {
   const factionTypes = ['Гильдия', 'Культ', 'Орден', 'Банда', 'Синдикат', 'Государство']

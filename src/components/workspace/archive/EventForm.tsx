@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Event } from '@/types/workspace'
-import { AiWand } from '../ai/AiWand'
+import { AiWand } from '@/components/workspace/ai/AiWand'
 
 export function EventForm({ event, onUpdate }: { event: Event; onUpdate: (data: Partial<Event>) => void }) {
   const [eventType, setEventType] = useState<'peaceful' | 'hostile' | 'random'>('random')

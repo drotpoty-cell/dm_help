@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { enhanceText, generateAiText } from '@/utils/aiClient';
-import { Textarea } from '../../ui/Textarea';
+import { Textarea } from '@/components/ui/Textarea';
 
 interface AiWandProps {
   currentValue: string;

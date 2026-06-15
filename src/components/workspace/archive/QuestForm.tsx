@@ -1,6 +1,6 @@
 import type { Node } from 'reactflow'
 import { NPC, Quest } from '@/types/workspace'
-import { AiWand } from '../ai/AiWand'
+import { AiWand } from '@/components/workspace/ai/AiWand'
 
 export function QuestForm({
   quest,
