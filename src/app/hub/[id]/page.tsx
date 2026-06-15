@@ -2,6 +2,7 @@
 
 import CockpitHeader from '@/components/workspace/cockpit/CockpitHeader';
 import CockpitSidebar from '@/components/workspace/cockpit/CockpitSidebar';
+import { TimelineBar } from '@/components/workspace/cockpit/TimelineBar';
 
 export default function WorkspacePage() {
   return (
@@ -29,8 +30,8 @@ export default function WorkspacePage() {
       </main>
 
       {/* Нижняя панель (Таймлайн) */}
-      <footer className="h-24 border-t border-neutral-800 shrink-0">
-        НИЖНЯЯ ПАНЕЛЬ: Таймлайн
+      <footer className="h-14 border-t border-neutral-800 shrink-0">
+        <TimelineBar />
       </footer>
     </div>
   );
