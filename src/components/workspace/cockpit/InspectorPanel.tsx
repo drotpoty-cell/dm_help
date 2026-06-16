@@ -11,6 +11,7 @@ export const InspectorPanel = () => {
     locations, 
     quests, 
     loot,
+    nodes,
     openLocalMap,
     setActiveView
   } = useWorkspaceStore();
@@ -24,7 +25,7 @@ export const InspectorPanel = () => {
   };
 
   const entity = viewedEntityId ? (allEntities[viewedEntityId] as any) : null;
-  const isLocation = entity && locations[entity.id];
+  const isLocationNode = viewedEntityId ? (nodes.some(n => n.id === viewedEntityId) || locations[viewedEntityId]) : false;
 
   if (!viewedEntityId) return null;
 
@@ -45,16 +46,16 @@ export const InspectorPanel = () => {
       
       {entity && (
         <div className="p-5 space-y-4 text-neutral-300">
-          {isLocation && (
+          {isLocationNode && (
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 openLocalMap(viewedEntityId);
                 setActiveView('map');
               }} 
-              className="w-full mb-4 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 border border-indigo-500/30 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-colors shadow-inner flex items-center justify-center gap-2"
+              className="w-full mt-4 mb-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 border border-indigo-500/30 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-colors shadow-inner flex items-center justify-center gap-2"
             >
-              🗺️ Войти в локацию
+              🗺️ Войти на тактическую карту
             </button>
           )}
 

@@ -1,5 +1,7 @@
 'use client'
 
+import { useWorkspaceStore } from '@/store/useWorkspaceStore'
+
 interface ContextMenuProps {
   menu: { id: string, x: number, y: number, overContainers: any[] } | null
   nodes: any[]
@@ -7,9 +9,10 @@ interface ContextMenuProps {
   onAttach: (childId: string, parentId: string | null) => void
   onDelete: (id: string) => void
   onMoveParty: (id: string) => void
+  onClose: () => void
 }
 
-export default function ContextMenu({ menu, nodes, onChangeType, onAttach, onDelete, onMoveParty }: ContextMenuProps) {
+export default function ContextMenu({ menu, nodes, onChangeType, onAttach, onDelete, onMoveParty, onClose }: ContextMenuProps) {
   if (!menu) return null
 
   const preventLeak = (e: React.MouseEvent) => {
@@ -29,11 +32,25 @@ export default function ContextMenu({ menu, nodes, onChangeType, onAttach, onDel
       onClick={preventLeak}
       onDoubleClick={preventLeak}
     >
+      <button 
+        onClick={() => {
+          useWorkspaceStore.getState().openLocalMap(menu.id);
+          useWorkspaceStore.getState().setActiveView('map');
+          onClose();
+        }} 
+        className="w-full text-left px-4 py-2 hover:bg-indigo-900/30 text-indigo-400 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 transition-colors mb-2"
+      >
+        🗺️ Войти на тактическую карту
+      </button>
+
       {/* КНОПКА ПЕРЕМЕЩЕНИЯ ОТРЯДА */}
       {canHoldParty && (
         <>
           <button 
-            onClick={() => onMoveParty(menu.id)} 
+            onClick={() => {
+              onMoveParty(menu.id);
+              onClose();
+            }} 
             className="w-full text-left px-4 py-2 hover:bg-indigo-900/30 text-indigo-400 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 transition-colors"
           >
             <span className="text-sm">🛡</span> Отряд сюда
