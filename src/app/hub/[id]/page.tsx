@@ -7,6 +7,7 @@ import { TimelineBar } from '@/components/workspace/cockpit/TimelineBar';
 import ArchiveBoard from '@/components/workspace/ArchiveBoard';
 import CalendarBoard from '@/components/workspace/CalendarBoard';
 import WeatherBoard from '@/components/workspace/WeatherBoard';
+import MapBoard from '@/components/workspace/MapBoard';
 
 export default function WorkspacePage() {
   const { activeView } = useWorkspaceStore();
@@ -25,7 +26,7 @@ export default function WorkspacePage() {
 
         {/* Центральная зона (Карта) */}
         <section className="flex-1 relative bg-neutral-900">
-          {activeView === 'map' && <div className="p-4 text-neutral-500">Глобальная карта (в разработке)</div>}
+          {activeView === 'map' && <MapBoard />}
           {activeView === 'archive' && <ArchiveBoard />}
           {activeView === 'calendar' && <CalendarBoard />}
           {activeView === 'weather' && <WeatherBoard />}
