@@ -138,10 +138,9 @@ export interface BattleToken {
   size?: number; // размер (1 = 1x1 клетка, 2 = 2x2 и т.д.)
 }
 
-export interface BattleMapState {
-  isActive: boolean;
+export interface LocalMapData {
   backgroundImage: string | null;
-  gridSize: number; // размер клетки в пикселях (например, 50)
+  gridSize: number;
   tokens: Record<string, BattleToken>;
 }
 
@@ -172,11 +171,13 @@ export interface WorkspaceState {
   bestiary: Record<string, any>
   factions: Record<string, any>
 
-  battleMap: BattleMapState
-  toggleBattleMode: () => void
-  updateBattleToken: (tokenId: string, data: Partial<BattleToken>) => void
-  addBattleToken: (token: BattleToken) => void
-  removeBattleToken: (tokenId: string) => void
+  localMaps: Record<string, LocalMapData>; // Ключ — locationId
+  activeLocalMapId: string | null;
+  openLocalMap: (locationId: string) => void;
+  closeLocalMap: () => void;
+  updateLocalToken: (locationId: string, tokenId: string, data: Partial<BattleToken>) => void;
+  addLocalToken: (locationId: string, token: BattleToken) => void;
+  removeLocalToken: (locationId: string, tokenId: string) => void;
 
   setNodes: (nodes: Node[]) => void
   setEdges: (edges: Edge[]) => void

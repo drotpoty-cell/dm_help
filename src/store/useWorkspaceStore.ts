@@ -95,33 +95,51 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       currentDay: 1,
       currentHour: 8,
       
-      battleMap: { isActive: false, backgroundImage: null, gridSize: 60, tokens: {} },
-      toggleBattleMode: () => set((state: any) => ({ battleMap: { ...state.battleMap, isActive: !state.battleMap.isActive } })),
-      updateBattleToken: (tokenId: string, data: any) => set((state: any) => ({
-        battleMap: {
-          ...state.battleMap,
-          tokens: {
-            ...state.battleMap.tokens,
-            [tokenId]: { ...state.battleMap.tokens[tokenId], ...data }
+      localMaps: {},
+      activeLocalMapId: null,
+
+      openLocalMap: (locationId: string) => set((state: any) => {
+        const localMaps = { ...state.localMaps };
+        if (!localMaps[locationId]) {
+          localMaps[locationId] = { backgroundImage: null, gridSize: 60, tokens: {} };
+        }
+        return { localMaps, activeLocalMapId: locationId };
+      }),
+      closeLocalMap: () => set({ activeLocalMapId: null }),
+      updateLocalToken: (locationId: string, tokenId: string, data: any) => set((state: any) => ({
+        localMaps: {
+          ...state.localMaps,
+          [locationId]: {
+            ...state.localMaps[locationId],
+            tokens: {
+              ...state.localMaps[locationId]?.tokens,
+              [tokenId]: { ...state.localMaps[locationId]?.tokens[tokenId], ...data }
+            }
           }
         }
       })),
-      addBattleToken: (token: any) => set((state: any) => ({
-        battleMap: {
-          ...state.battleMap,
-          tokens: {
-            ...state.battleMap.tokens,
-            [token.id]: token
+      addLocalToken: (locationId: string, token: any) => set((state: any) => ({
+        localMaps: {
+          ...state.localMaps,
+          [locationId]: {
+            ...state.localMaps[locationId],
+            tokens: {
+              ...state.localMaps[locationId]?.tokens,
+              [token.id]: token
+            }
           }
         }
       })),
-      removeBattleToken: (tokenId: string) => set((state: any) => {
-        const nextTokens = { ...state.battleMap.tokens };
+      removeLocalToken: (locationId: string, tokenId: string) => set((state: any) => {
+        const nextTokens = { ...state.localMaps[locationId]?.tokens };
         delete nextTokens[tokenId];
         return {
-          battleMap: {
-            ...state.battleMap,
-            tokens: nextTokens
+          localMaps: {
+            ...state.localMaps,
+            [locationId]: {
+              ...state.localMaps[locationId],
+              tokens: nextTokens
+            }
           }
         };
       }),
@@ -441,7 +459,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         weather: state.weather,
         partyLocationId: state.partyLocationId,
         activeView: state.activeView,
-        battleMap: state.battleMap
+        localMaps: state.localMaps
       })
     }
   )

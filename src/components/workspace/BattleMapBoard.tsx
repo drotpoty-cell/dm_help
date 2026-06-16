@@ -4,17 +4,30 @@ import React from 'react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 
 const BattleMapBoard = () => {
-  const { battleMap, updateBattleToken, addBattleToken, removeBattleToken, toggleBattleMode, heroes, npcs } = useWorkspaceStore();
+  const { 
+    localMaps, 
+    activeLocalMapId,
+    updateLocalToken, 
+    addLocalToken, 
+    removeLocalToken, 
+    closeLocalMap, 
+    heroes, 
+    npcs 
+  } = useWorkspaceStore();
+
+  const activeMap = activeLocalMapId ? localMaps[activeLocalMapId] : null;
+
+  if (!activeMap || !activeLocalMapId) return null;
 
   const handleDrop = (e: React.DragEvent, tokenId: string) => {
     e.preventDefault();
-    const x = Math.floor(e.nativeEvent.offsetX / battleMap.gridSize);
-    const y = Math.floor(e.nativeEvent.offsetY / battleMap.gridSize);
-    updateBattleToken(tokenId, { x, y });
+    const x = Math.floor(e.nativeEvent.offsetX / activeMap.gridSize);
+    const y = Math.floor(e.nativeEvent.offsetY / activeMap.gridSize);
+    updateLocalToken(activeLocalMapId, tokenId, { x, y });
   };
 
   const spawnToken = (entity: any, type: 'hero' | 'npc') => {
-    addBattleToken({
+    addLocalToken(activeLocalMapId, {
       id: `token-${Date.now()}`,
       entityId: entity.id,
       type,
@@ -53,7 +66,7 @@ const BattleMapBoard = () => {
       <div className="flex-1 h-full relative">
         <div className="absolute top-4 left-4 z-10 flex gap-2 bg-neutral-900 p-2 rounded shadow">
           <button
-            onClick={() => toggleBattleMode()}
+            onClick={() => closeLocalMap()}
             className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
           >
             Выйти из боя
@@ -64,11 +77,11 @@ const BattleMapBoard = () => {
           className="w-full h-full relative"
           style={{
             backgroundImage: `linear-gradient(to right, #262626 1px, transparent 1px), linear-gradient(to bottom, #262626 1px, transparent 1px)`,
-            backgroundSize: `${battleMap.gridSize}px ${battleMap.gridSize}px`
+            backgroundSize: `${activeMap.gridSize}px ${activeMap.gridSize}px`
           }}
           onDragOver={(e) => e.preventDefault()}
         >
-          {Object.values(battleMap.tokens).map((token) => {
+          {Object.values(activeMap.tokens).map((token: any) => {
             const name = getEntityName(token);
             const isHero = token.type === 'hero';
             return (
@@ -78,15 +91,15 @@ const BattleMapBoard = () => {
                 title="Двойной клик для удаления"
                 onDragStart={(e) => e.dataTransfer.setData('tokenId', token.id)}
                 onDrop={(e) => handleDrop(e, token.id)}
-                onDoubleClick={() => removeBattleToken(token.id)}
+                onDoubleClick={() => removeLocalToken(activeLocalMapId, token.id)}
                 className={`absolute rounded-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
                   isHero ? 'bg-indigo-900/80 border-indigo-500 text-white' : 'bg-red-900/80 border-red-500 text-white'
                 }`}
                 style={{
-                  left: token.x * battleMap.gridSize,
-                  top: token.y * battleMap.gridSize,
-                  width: (token.size || 1) * battleMap.gridSize,
-                  height: (token.size || 1) * battleMap.gridSize
+                  left: token.x * activeMap.gridSize,
+                  top: token.y * activeMap.gridSize,
+                  width: (token.size || 1) * activeMap.gridSize,
+                  height: (token.size || 1) * activeMap.gridSize
                 }}
               >
                 {name.substring(0, 2).toUpperCase()}

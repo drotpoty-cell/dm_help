@@ -10,7 +10,9 @@ export const InspectorPanel = () => {
     npcs, 
     locations, 
     quests, 
-    loot 
+    loot,
+    openLocalMap,
+    setActiveView
   } = useWorkspaceStore();
 
   const allEntities = {
@@ -22,6 +24,7 @@ export const InspectorPanel = () => {
   };
 
   const entity = viewedEntityId ? (allEntities[viewedEntityId] as any) : null;
+  const isLocation = entity && locations[entity.id];
 
   if (!viewedEntityId) return null;
 
@@ -44,6 +47,20 @@ export const InspectorPanel = () => {
         <div className="p-5 space-y-4 text-neutral-300">
           {(entity.description || entity.content) && (
             <p className="text-sm leading-relaxed">{entity.description || entity.content}</p>
+          )}
+
+          {isLocation && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openLocalMap(entity.id);
+                setActiveView('map');
+                setViewedEntityId(null);
+              }}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium transition-colors"
+            >
+              🗺️ Войти в локацию
+            </button>
           )}
 
           {(entity.hp !== undefined || entity.ac !== undefined) && (

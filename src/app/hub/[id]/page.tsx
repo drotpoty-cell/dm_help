@@ -13,7 +13,7 @@ import MapBoard from '@/components/workspace/MapBoard';
 import StoryBoard from '@/components/workspace/StoryBoard';
 
 export default function WorkspacePage() {
-  const { activeView, battleMap } = useWorkspaceStore();
+  const { activeView, activeLocalMapId } = useWorkspaceStore();
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col bg-neutral-950 text-neutral-200">
@@ -30,7 +30,7 @@ export default function WorkspacePage() {
         {/* Центральная зона (Карта) */}
         <section className="flex-1 relative bg-neutral-900">
           {activeView === 'map' && (
-            battleMap.isActive ? <BattleMapBoard /> : <MapBoard />
+            activeLocalMapId ? <BattleMapBoard /> : <MapBoard />
           )}
           {activeView === 'story' && <StoryBoard />}
           {activeView === 'archive' && <ArchiveBoard />}
