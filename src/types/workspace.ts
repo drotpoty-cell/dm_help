@@ -129,6 +129,22 @@ export interface StoryPart {
 
 export type LibraryCategory = 'heroes' | 'npcs' | 'quests' | 'locations' | 'loot' | 'events' | 'extras' | 'factions' | 'secrets' | 'characters' | 'bestiary'
 
+export interface BattleToken {
+  id: string; // уникальный ID токена на карте
+  entityId: string; // ссылка на героя или NPC
+  type: 'hero' | 'npc' | 'monster';
+  x: number; // координата колонки (например, 0, 1, 2)
+  y: number; // координата строки
+  size?: number; // размер (1 = 1x1 клетка, 2 = 2x2 и т.д.)
+}
+
+export interface BattleMapState {
+  isActive: boolean;
+  backgroundImage: string | null;
+  gridSize: number; // размер клетки в пикселях (например, 50)
+  tokens: Record<string, BattleToken>;
+}
+
 export interface WorkspaceState {
   nodes: Node[]
   edges: Edge[]
@@ -155,6 +171,12 @@ export interface WorkspaceState {
   extras: Record<string, any>
   bestiary: Record<string, any>
   factions: Record<string, any>
+
+  battleMap: BattleMapState
+  toggleBattleMode: () => void
+  updateBattleToken: (tokenId: string, data: Partial<BattleToken>) => void
+  addBattleToken: (token: BattleToken) => void
+  removeBattleToken: (tokenId: string) => void
 
   setNodes: (nodes: Node[]) => void
   setEdges: (edges: Edge[]) => void

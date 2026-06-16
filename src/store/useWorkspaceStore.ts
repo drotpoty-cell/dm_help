@@ -95,6 +95,37 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       currentDay: 1,
       currentHour: 8,
       
+      battleMap: { isActive: false, backgroundImage: null, gridSize: 60, tokens: {} },
+      toggleBattleMode: () => set((state: any) => ({ battleMap: { ...state.battleMap, isActive: !state.battleMap.isActive } })),
+      updateBattleToken: (tokenId: string, data: any) => set((state: any) => ({
+        battleMap: {
+          ...state.battleMap,
+          tokens: {
+            ...state.battleMap.tokens,
+            [tokenId]: { ...state.battleMap.tokens[tokenId], ...data }
+          }
+        }
+      })),
+      addBattleToken: (token: any) => set((state: any) => ({
+        battleMap: {
+          ...state.battleMap,
+          tokens: {
+            ...state.battleMap.tokens,
+            [token.id]: token
+          }
+        }
+      })),
+      removeBattleToken: (tokenId: string) => set((state: any) => {
+        const nextTokens = { ...state.battleMap.tokens };
+        delete nextTokens[tokenId];
+        return {
+          battleMap: {
+            ...state.battleMap,
+            tokens: nextTokens
+          }
+        };
+      }),
+      
       weather: { mode: 'disabled', condition: 'Ясно', temp: 20, interval: 24, hoursSinceChange: 0, climate: 'temperate', forecast: {} },
       setWeather: (newWeather: any) => set((state: any) => ({ weather: { ...state.weather, ...newWeather } })),
       
@@ -409,7 +440,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         currentHour: state.currentHour,
         weather: state.weather,
         partyLocationId: state.partyLocationId,
-        activeView: state.activeView
+        activeView: state.activeView,
+        battleMap: state.battleMap
       })
     }
   )
