@@ -45,22 +45,21 @@ export const InspectorPanel = () => {
       
       {entity && (
         <div className="p-5 space-y-4 text-neutral-300">
-          {(entity.description || entity.content) && (
-            <p className="text-sm leading-relaxed">{entity.description || entity.content}</p>
-          )}
-
           {isLocation && (
-            <button
+            <button 
               onClick={(e) => {
                 e.stopPropagation();
-                openLocalMap(entity.id);
+                openLocalMap(viewedEntityId);
                 setActiveView('map');
-                setViewedEntityId(null);
-              }}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium transition-colors"
+              }} 
+              className="w-full mb-4 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 border border-indigo-500/30 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-colors shadow-inner flex items-center justify-center gap-2"
             >
               🗺️ Войти в локацию
             </button>
+          )}
+
+          {(entity.description || entity.content) && (
+            <p className="text-sm leading-relaxed">{entity.description || entity.content}</p>
           )}
 
           {(entity.hp !== undefined || entity.ac !== undefined) && (
