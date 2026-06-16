@@ -90,7 +90,7 @@ const MapBoard = () => {
       </ReactFlow>
 
       <button
-        onClick={() => setIsCombatOpen(!isCombatOpen)}
+        onClick={() => useWorkspaceStore.getState().toggleBattleMode()}
         className="absolute bottom-6 left-6 z-30 bg-red-950/90 border-2 border-red-900/50 hover:border-red-500 hover:bg-red-900 text-red-500 hover:text-white px-6 py-3.5 rounded-2xl shadow-[0_0_20px_rgba(220,38,38,0.15)] hover:shadow-[0_0_30px_rgba(220,38,38,0.3)] transition-all flex items-center gap-3 backdrop-blur-md group"
       >
         <span className="text-xl group-hover:scale-125 transition-transform drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]">⚔️</span>

@@ -8,11 +8,12 @@ import { TimelineBar } from '@/components/workspace/cockpit/TimelineBar';
 import ArchiveBoard from '@/components/workspace/ArchiveBoard';
 import CalendarBoard from '@/components/workspace/CalendarBoard';
 import WeatherBoard from '@/components/workspace/WeatherBoard';
+import BattleMapBoard from '@/components/workspace/BattleMapBoard';
 import MapBoard from '@/components/workspace/MapBoard';
 import StoryBoard from '@/components/workspace/StoryBoard';
 
 export default function WorkspacePage() {
-  const { activeView } = useWorkspaceStore();
+  const { activeView, battleMap } = useWorkspaceStore();
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col bg-neutral-950 text-neutral-200">
@@ -28,7 +29,9 @@ export default function WorkspacePage() {
 
         {/* Центральная зона (Карта) */}
         <section className="flex-1 relative bg-neutral-900">
-          {activeView === 'map' && <MapBoard />}
+          {activeView === 'map' && (
+            battleMap.isActive ? <BattleMapBoard /> : <MapBoard />
+          )}
           {activeView === 'story' && <StoryBoard />}
           {activeView === 'archive' && <ArchiveBoard />}
           {activeView === 'calendar' && <CalendarBoard />}
