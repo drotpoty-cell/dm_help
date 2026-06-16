@@ -85,6 +85,7 @@ const MapBoard = () => {
             menu={menu} nodes={nodes} onChangeType={changeNodeType}
             onAttach={attachToRegion} onDelete={deleteNode}
             onMoveParty={(nodeId) => { setPartyLocation(nodeId); setMenu(null); }}
+            onClose={() => setMenu(null)}
           />
         )}
       </ReactFlow>
