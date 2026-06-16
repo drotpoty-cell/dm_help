@@ -11,6 +11,7 @@ import WeatherBoard from '@/components/workspace/WeatherBoard';
 import BattleMapBoard from '@/components/workspace/BattleMapBoard';
 import MapBoard from '@/components/workspace/MapBoard';
 import StoryBoard from '@/components/workspace/StoryBoard';
+import HeroesBoard from '@/components/workspace/HeroesBoard';
 
 export default function WorkspacePage() {
   const { activeView, activeLocalMapId } = useWorkspaceStore();
@@ -36,6 +37,7 @@ export default function WorkspacePage() {
           {activeView === 'archive' && <ArchiveBoard />}
           {activeView === 'calendar' && <CalendarBoard />}
           {activeView === 'weather' && <WeatherBoard />}
+          {activeView === 'heroes' && <HeroesBoard />}
         </section>
 
         {/* Правая шторка (Инспектор) */}

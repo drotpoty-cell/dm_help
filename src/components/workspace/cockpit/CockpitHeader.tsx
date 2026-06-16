@@ -1,7 +1,7 @@
 'use client';
 
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import { Map, Archive, Calendar, Sun, CloudRain, Cloud, CloudLightning, Snowflake, Wind, Droplets, BookOpen } from 'lucide-react';
+import { Map, Archive, Calendar, Sun, CloudRain, Cloud, CloudLightning, Snowflake, Wind, Droplets, BookOpen, Users } from 'lucide-react';
 
 const CockpitHeader = () => {
   const { currentDay, currentHour, weather, activeView, setActiveView } = useWorkspaceStore();
@@ -11,7 +11,8 @@ const CockpitHeader = () => {
     { id: 'story', label: 'Сценарий', icon: BookOpen },
     { id: 'archive', label: 'Архив', icon: Archive },
     { id: 'calendar', label: 'Календарь', icon: Calendar },
-    { id: 'weather', label: 'Погода', icon: Cloud }
+    { id: 'weather', label: 'Погода', icon: Cloud },
+    { id: 'heroes', label: 'Герои', icon: Users }
   ];
 
   const weatherIcons: Record<string, React.ReactNode> = {
