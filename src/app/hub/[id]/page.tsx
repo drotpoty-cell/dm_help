@@ -2,6 +2,7 @@
 
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import CockpitHeader from '@/components/workspace/cockpit/CockpitHeader';
+import { InspectorPanel } from '@/components/workspace/cockpit/InspectorPanel';
 import CockpitSidebar from '@/components/workspace/cockpit/CockpitSidebar';
 import { TimelineBar } from '@/components/workspace/cockpit/TimelineBar';
 import ArchiveBoard from '@/components/workspace/ArchiveBoard';
@@ -33,10 +34,7 @@ export default function WorkspacePage() {
         </section>
 
         {/* Правая шторка (Инспектор) */}
-        {/* Управляется через глобальный стейт, по умолчанию скрыта */}
-        <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-neutral-800 bg-neutral-950 shadow-lg translate-x-full transition-transform">
-          ПРАВАЯ ШТОРКА: Инспектор
-        </aside>
+        <InspectorPanel />
       </main>
 
       {/* Нижняя панель (Таймлайн) */}
