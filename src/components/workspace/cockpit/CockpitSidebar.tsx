@@ -20,7 +20,11 @@ export default function CockpitSidebar() {
             <p className="text-[10px] text-neutral-600 italic tracking-wider">Персонажи не найдены</p>
           ) : (
             heroList.map((hero) => (
-              <div key={hero.id} className="p-2 rounded bg-neutral-900 border border-neutral-800/50 hover:border-neutral-700 transition-colors">
+              <div 
+                key={hero.id} 
+                className="p-2 rounded bg-neutral-900 border border-neutral-800/50 hover:border-neutral-700 transition-colors cursor-pointer"
+                onClick={() => useWorkspaceStore.getState().setViewedEntityId(hero.id)}
+              >
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[11px] font-medium text-neutral-200">{hero.name}</span>
                   <span className="text-[10px] text-neutral-500">AC: {hero.ac || 10}</span>

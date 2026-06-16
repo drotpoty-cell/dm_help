@@ -1,13 +1,14 @@
 'use client';
 
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import { Map, Archive, Calendar, Sun, CloudRain, Cloud, CloudLightning, Snowflake, Wind, Droplets } from 'lucide-react';
+import { Map, Archive, Calendar, Sun, CloudRain, Cloud, CloudLightning, Snowflake, Wind, Droplets, BookOpen } from 'lucide-react';
 
 const CockpitHeader = () => {
   const { currentDay, currentHour, weather, activeView, setActiveView } = useWorkspaceStore();
 
   const navItems = [
     { id: 'map', label: 'Дашборд', icon: Map },
+    { id: 'story', label: 'Сценарий', icon: BookOpen },
     { id: 'archive', label: 'Архив', icon: Archive },
     { id: 'calendar', label: 'Календарь', icon: Calendar },
     { id: 'weather', label: 'Погода', icon: Cloud }

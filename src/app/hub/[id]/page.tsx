@@ -9,6 +9,7 @@ import ArchiveBoard from '@/components/workspace/ArchiveBoard';
 import CalendarBoard from '@/components/workspace/CalendarBoard';
 import WeatherBoard from '@/components/workspace/WeatherBoard';
 import MapBoard from '@/components/workspace/MapBoard';
+import StoryBoard from '@/components/workspace/StoryBoard';
 
 export default function WorkspacePage() {
   const { activeView } = useWorkspaceStore();
@@ -28,6 +29,7 @@ export default function WorkspacePage() {
         {/* Центральная зона (Карта) */}
         <section className="flex-1 relative bg-neutral-900">
           {activeView === 'map' && <MapBoard />}
+          {activeView === 'story' && <StoryBoard />}
           {activeView === 'archive' && <ArchiveBoard />}
           {activeView === 'calendar' && <CalendarBoard />}
           {activeView === 'weather' && <WeatherBoard />}
