@@ -106,6 +106,15 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         return { localMaps, activeLocalMapId: locationId };
       }),
       closeLocalMap: () => set({ activeLocalMapId: null }),
+      updateLocalMap: (locationId, data) => set((state: any) => {
+        const existingMap = state.localMaps[locationId] || { gridSize: 60, tokens: {}, backgroundImage: null };
+        return {
+          localMaps: {
+            ...state.localMaps,
+            [locationId]: { ...existingMap, ...data }
+          }
+        };
+      }),
       updateLocalToken: (locationId: string, tokenId: string, data: any) => set((state: any) => ({
         localMaps: {
           ...state.localMaps,

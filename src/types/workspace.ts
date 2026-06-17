@@ -132,7 +132,7 @@ export type LibraryCategory = 'heroes' | 'npcs' | 'quests' | 'locations' | 'loot
 export interface BattleToken {
   id: string; // уникальный ID токена на карте
   entityId: string; // ссылка на героя или NPC
-  type: 'hero' | 'npc' | 'monster';
+  type: 'hero' | 'npc' | 'monster' | 'poi' | 'check';
   x: number; // координата колонки (например, 0, 1, 2)
   y: number; // координата строки
   size?: number; // размер (1 = 1x1 клетка, 2 = 2x2 и т.д.)
@@ -175,6 +175,7 @@ export interface WorkspaceState {
   activeLocalMapId: string | null;
   openLocalMap: (locationId: string) => void;
   closeLocalMap: () => void;
+  updateLocalMap: (locationId: string, data: Partial<LocalMapData>) => void;
   updateLocalToken: (locationId: string, tokenId: string, data: Partial<BattleToken>) => void;
   addLocalToken: (locationId: string, token: BattleToken) => void;
   removeLocalToken: (locationId: string, tokenId: string) => void;
