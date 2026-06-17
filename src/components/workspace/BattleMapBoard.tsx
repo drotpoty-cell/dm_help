@@ -4,7 +4,6 @@ import React from 'react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 
 const BattleMapBoard = () => {
-  const [bgUrl, setBgUrl] = React.useState('');
   const { 
     localMaps, 
     activeLocalMapId,
@@ -21,9 +20,12 @@ const BattleMapBoard = () => {
   
   const mapData = activeLocalMapId ? localMaps[activeLocalMapId] : null;
 
+  const [bgInput, setBgInput] = React.useState(mapData?.backgroundImage || '');
+  const [tokenMenu, setTokenMenu] = React.useState<{ tokenId: string, entityId: string, x: number, y: number } | null>(null);
+
   const handleSetBackground = () => {
     if (activeLocalMapId) {
-      updateLocalMap(activeLocalMapId, { backgroundImage: bgUrl });
+      updateLocalMap(activeLocalMapId, { backgroundImage: bgInput });
     }
   };
 
@@ -81,7 +83,11 @@ const BattleMapBoard = () => {
   };
 
   return (
-    <div className="w-full h-full flex bg-neutral-950 relative overflow-hidden">
+    <div 
+      className="w-full h-full flex bg-neutral-950 relative overflow-hidden"
+      onClick={() => setTokenMenu(null)}
+      onContextMenu={() => setTokenMenu(null)}
+    >
       <div className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col p-4 overflow-y-auto">
         <h2 className="text-white font-bold mb-4">Персонажи</h2>
         <div className="space-y-4">
@@ -126,8 +132,8 @@ const BattleMapBoard = () => {
           <div className="flex gap-2">
             <input 
               type="text" 
-              value={bgUrl} 
-              onChange={(e) => setBgUrl(e.target.value)} 
+              value={bgInput} 
+              onChange={(e) => setBgInput(e.target.value)} 
               placeholder="URL фона" 
               className="bg-neutral-800 text-white px-2 py-1 rounded text-sm"
             />
@@ -186,9 +192,13 @@ const BattleMapBoard = () => {
               <div
                 key={token.id}
                 draggable
-                title="Двойной клик для удаления"
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/plain', token.id);
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setTokenMenu({ tokenId: token.id, entityId: token.entityId, x: e.clientX, y: e.clientY });
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
@@ -214,6 +224,33 @@ const BattleMapBoard = () => {
           })}
         </div>
       </div>
+      
+      {tokenMenu && (
+        <div 
+          className="fixed z-50 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl py-1 w-48 flex flex-col"
+          style={{ left: tokenMenu.x, top: tokenMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button 
+            onClick={() => {
+              useWorkspaceStore.getState().setViewedEntityId(tokenMenu.entityId);
+              setTokenMenu(null);
+            }} 
+            className="px-4 py-2 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white text-left flex items-center gap-2 transition-colors"
+          >
+            📖 Открыть досье
+          </button>
+          <button 
+            onClick={() => {
+              removeLocalToken(activeLocalMapId, tokenMenu.tokenId);
+              setTokenMenu(null);
+            }} 
+            className="px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white text-left flex items-center gap-2 transition-colors"
+          >
+            ❌ Удалить с карты
+          </button>
+        </div>
+      )}
     </div>
   );
 };
