@@ -141,6 +141,8 @@ export interface BattleToken {
 export interface LocalMapData {
   backgroundImage: string | null;
   gridSize: number;
+  gridOffsetX?: number;
+  gridOffsetY?: number;
   tokens: Record<string, BattleToken>;
 }
 

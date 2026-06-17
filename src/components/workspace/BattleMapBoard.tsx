@@ -27,7 +27,17 @@ const BattleMapBoard = () => {
     }
   };
 
+  const updateCalibration = (field: 'gridSize' | 'gridOffsetX' | 'gridOffsetY', value: number) => {
+    if (activeLocalMapId && mapData) {
+      updateLocalMap(activeLocalMapId, { [field]: value });
+    }
+  };
+
   if (!mapData || !activeLocalMapId) return null;
+
+  const gridSize = mapData.gridSize || 50;
+  const offsetX = mapData.gridOffsetX || 0;
+  const offsetY = mapData.gridOffsetY || 0;
 
   const spawnToken = (entity: any, type: 'hero' | 'npc' | 'poi' | 'check') => {
     const id = `token-${Date.now()}`;
@@ -59,8 +69,8 @@ const BattleMapBoard = () => {
     const rect = e.currentTarget.getBoundingClientRect();
     const xPixels = e.clientX - rect.left;
     const yPixels = e.clientY - rect.top;
-    const gridX = Math.floor(xPixels / mapData.gridSize);
-    const gridY = Math.floor(yPixels / mapData.gridSize);
+    const gridX = Math.floor((xPixels - offsetX) / gridSize);
+    const gridY = Math.floor((yPixels - offsetY) / gridSize);
     updateLocalToken(activeLocalMapId, tokenId, { x: gridX, y: gridY });
   };
 
@@ -112,7 +122,7 @@ const BattleMapBoard = () => {
       </div>
 
       <div className="flex-1 h-full relative">
-        <div className="absolute top-4 left-4 z-10 flex gap-2 bg-neutral-900 p-2 rounded shadow flex-col">
+        <div className="absolute top-4 left-4 z-20 flex gap-2 bg-neutral-900 p-2 rounded shadow flex-col">
           <div className="flex gap-2">
             <input 
               type="text" 
@@ -128,6 +138,11 @@ const BattleMapBoard = () => {
               Установить фон
             </button>
           </div>
+          <div className="flex gap-2 text-xs text-neutral-300">
+            <label>Размер: <input type="number" value={gridSize} onChange={(e) => updateCalibration('gridSize', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
+            <label>X: <input type="number" value={offsetX} onChange={(e) => updateCalibration('gridOffsetX', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
+            <label>Y: <input type="number" value={offsetY} onChange={(e) => updateCalibration('gridOffsetY', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
+          </div>
           <button
             onClick={() => closeLocalMap()}
             className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 w-full text-sm"
@@ -137,20 +152,31 @@ const BattleMapBoard = () => {
         </div>
 
         <div
-          className="w-full h-full relative"
-          style={{
-            backgroundImage: mapData?.backgroundImage ? `url(${mapData.backgroundImage})` : 'none',
-            backgroundSize: 'contain',
-            backgroundRepeat: 'no-repeat',
-            backgroundColor: '#171717'
-          }}
+          className="w-full h-full relative overflow-hidden"
           onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
         >
           <div
-            className="w-full h-full absolute top-0 left-0"
-            style={{
-              backgroundImage: `linear-gradient(to right, #262626 1px, transparent 1px), linear-gradient(to bottom, #262626 1px, transparent 1px)`,
-              backgroundSize: `${mapData.gridSize}px ${mapData.gridSize}px`
+            className="z-0"
+            style={{ 
+              backgroundImage: mapData?.backgroundImage ? `url("${mapData.backgroundImage}")` : 'none', 
+              backgroundSize: 'cover', 
+              backgroundPosition: 'center', 
+              width: '100%', 
+              height: '100%', 
+              position: 'absolute' 
+            }}
+          />
+          <div
+            className="z-10"
+            style={{ 
+              backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)', 
+              backgroundSize: `${gridSize}px ${gridSize}px`, 
+              backgroundPosition: `${offsetX}px ${offsetY}px`, 
+              width: '100%', 
+              height: '100%', 
+              position: 'absolute', 
+              pointerEvents: 'none' 
             }}
           />
           {Object.values(mapData.tokens).map((token: any) => {
@@ -164,10 +190,6 @@ const BattleMapBoard = () => {
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/plain', token.id);
                 }}
-                onDrop={(e) => {
-                  handleDrop(e);
-                  e.stopPropagation();
-                }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   if (token.type === 'poi' || token.type === 'check') {
@@ -176,14 +198,14 @@ const BattleMapBoard = () => {
                     removeLocalToken(activeLocalMapId, token.id);
                   }
                 }}
-                className={`absolute rounded-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
+                className={`absolute rounded-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none z-20 ${
                   isHero ? 'bg-indigo-900/80 border-indigo-500 text-white' : 'bg-red-900/80 border-red-500 text-white'
                 }`}
                 style={{
-                  left: token.x * mapData.gridSize,
-                  top: token.y * mapData.gridSize,
-                  width: (token.size || 1) * mapData.gridSize,
-                  height: (token.size || 1) * mapData.gridSize
+                  left: token.x * gridSize + offsetX,
+                  top: token.y * gridSize + offsetY,
+                  width: (token.size || 1) * gridSize,
+                  height: (token.size || 1) * gridSize
                 }}
               >
                 {name.substring(0, 2).toUpperCase()}
