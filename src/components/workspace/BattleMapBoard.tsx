@@ -20,13 +20,18 @@ const BattleMapBoard = () => {
   
   const mapData = activeLocalMapId ? localMaps[activeLocalMapId] : null;
 
-  const [bgInput, setBgInput] = React.useState(mapData?.backgroundImage || '');
   const [tokenMenu, setTokenMenu] = React.useState<{ tokenId: string, entityId: string, x: number, y: number } | null>(null);
 
-  const handleSetBackground = () => {
-    if (activeLocalMapId) {
-      updateLocalMap(activeLocalMapId, { backgroundImage: bgInput });
-    }
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeLocalMapId) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64String = event.target?.result as string;
+      updateLocalMap(activeLocalMapId, { backgroundImage: base64String });
+    };
+    reader.readAsDataURL(file);
   };
 
   const updateCalibration = (field: 'gridSize' | 'gridOffsetX' | 'gridOffsetY', value: number) => {
@@ -129,20 +134,24 @@ const BattleMapBoard = () => {
 
       <div className="flex-1 h-full relative">
         <div className="absolute top-4 left-4 z-20 flex gap-2 bg-neutral-900 p-2 rounded shadow flex-col">
-          <div className="flex gap-2">
-            <input 
-              type="text" 
-              value={bgInput} 
-              onChange={(e) => setBgInput(e.target.value)} 
-              placeholder="URL фона" 
-              className="bg-neutral-800 text-white px-2 py-1 rounded text-sm"
-            />
-            <button
-              onClick={handleSetBackground}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
-            >
-              Установить фон
-            </button>
+          <div className="flex items-center gap-2">
+            <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-bold transition-colors">
+              📁 Загрузить фон карты
+              <input 
+                type="file" 
+                accept="image/png, image/jpeg, image/webp" 
+                className="hidden" 
+                onChange={handleImageUpload} 
+              />
+            </label>
+            {mapData?.backgroundImage && (
+              <button 
+                onClick={() => updateLocalMap(activeLocalMapId!, { backgroundImage: null })}
+                className="bg-red-900/80 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-bold transition-colors"
+              >
+                ❌ Убрать фон
+              </button>
+            )}
           </div>
           <div className="flex gap-2 text-xs text-neutral-300">
             <label>Размер: <input type="number" value={gridSize} onChange={(e) => updateCalibration('gridSize', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
