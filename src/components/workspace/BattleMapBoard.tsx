@@ -256,26 +256,7 @@ const BattleMapBoard = () => {
             return (
               <div
                 key={token.id}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/plain', token.id);
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setTokenMenu({ tokenId: token.id, entityId: token.entityId, x: e.clientX, y: e.clientY });
-                }}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  if (token.type === 'poi' || token.type === 'check') {
-                    setViewedEntityId(token.entityId);
-                  } else {
-                    removeLocalToken(activeLocalMapId, token.id);
-                  }
-                }}
-                className={`absolute rounded-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none z-20 ${
-                  isHero ? 'bg-indigo-900/80 border-indigo-500 text-white' : 'bg-red-900/80 border-red-500 text-white'
-                }`}
+                className="absolute flex flex-col items-center z-20"
                 style={{
                   left: token.x * gridSize + offsetX,
                   top: token.y * gridSize + offsetY,
@@ -283,7 +264,51 @@ const BattleMapBoard = () => {
                   height: (token.size || 1) * gridSize
                 }}
               >
-                {name.substring(0, 2).toUpperCase()}
+                {(() => {
+                  const entity = token.type === 'hero' ? heroes[token.entityId] : (token.type === 'npc' ? npcs[token.entityId] : undefined);
+                  
+                  return (
+                    <>
+                      {entity?.hp !== undefined && entity?.maxHp && (
+                        <div className="absolute -top-3 w-full h-1.5 bg-red-950 border border-zinc-900 rounded-sm overflow-hidden">
+                          <div 
+                            className="h-full bg-green-500 transition-all" 
+                            style={{ width: `${Math.max(0, Math.min(100, (entity.hp / entity.maxHp) * 100))}%` }}
+                          />
+                        </div>
+                      )}
+                      
+                      <div
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', token.id);
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setTokenMenu({ tokenId: token.id, entityId: token.entityId, x: e.clientX, y: e.clientY });
+                        }}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          if (token.type === 'poi' || token.type === 'check') {
+                            setViewedEntityId(token.entityId);
+                          } else {
+                            removeLocalToken(activeLocalMapId, token.id);
+                          }
+                        }}
+                        className={`w-full h-full rounded-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
+                          isHero ? 'bg-indigo-900/80 border-indigo-500 text-white' : 'bg-red-900/80 border-red-500 text-white'
+                        }`}
+                      >
+                        {name.substring(0, 2).toUpperCase()}
+                      </div>
+
+                      <div className="absolute -bottom-5 text-[9px] font-bold text-white bg-black/70 px-1 rounded whitespace-nowrap pointer-events-none">
+                        {entity?.name || (token.type === 'poi' ? 'POI' : (token.type === 'check' ? 'Проверка' : name))}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             );
           })}
