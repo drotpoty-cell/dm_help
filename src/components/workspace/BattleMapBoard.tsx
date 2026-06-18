@@ -135,7 +135,7 @@ const BattleMapBoard = () => {
             );
           })}
 
-          <div className="text-xs text-neutral-500 font-bold uppercase mb-2 mt-4">NPC</div>
+          <div className="text-xs text-neutral-500 font-bold uppercase mb-2 mt-4">NPC (По расписанию здесь)</div>
           {Object.values(npcs).filter(n => {
             const hasSchedule = n.schedule && n.schedule.length > 0;
             const isScheduledHere = n.schedule?.some(s => s.startHour <= currentHour && s.endHour > currentHour && s.locationId === activeLocalMapId);
@@ -146,13 +146,24 @@ const BattleMapBoard = () => {
               <div key={n.id} className="flex justify-between items-center text-neutral-300 text-sm">
                 <span>{n.name}</span>
                 <button 
-                  draggable={!isOnMap}
-                  onDragStart={(e) => {
-                    const id = spawnToken(n, 'npc');
-                    if (id) e.dataTransfer.setData('text/plain', id);
-                  }}
+                  onClick={() => addLocalToken(activeLocalMapId, { id: `token-${Date.now()}`, entityId: n.id, type: 'npc', x: 2, y: 2, size: 1 })}
                   disabled={isOnMap}
-                  className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 cursor-grab'}`}
+                  className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                >{isOnMap ? 'На карте' : '+'}</button>
+              </div>
+            );
+          })}
+
+          <div className="text-xs text-neutral-500 font-bold uppercase mb-2 mt-4">Все персонажи мира</div>
+          {Object.values(npcs).map((n: any) => {
+            const isOnMap = Object.values(mapData.tokens).some(t => t.entityId === n.id);
+            return (
+              <div key={`all-${n.id}`} className="flex justify-between items-center text-neutral-300 text-sm">
+                <span>{n.name}</span>
+                <button 
+                  onClick={() => addLocalToken(activeLocalMapId, { id: `token-${Date.now()}`, entityId: n.id, type: 'npc', x: 2, y: 2, size: 1 })}
+                  disabled={isOnMap}
+                  className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-900 text-white hover:bg-red-800'}`}
                 >{isOnMap ? 'На карте' : '+'}</button>
               </div>
             );

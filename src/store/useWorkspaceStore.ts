@@ -127,18 +127,36 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           }
         }
       })),
-      addLocalToken: (locationId: string, token: any) => set((state: any) => ({
-        localMaps: {
-          ...state.localMaps,
-          [locationId]: {
-            ...state.localMaps[locationId],
-            tokens: {
-              ...state.localMaps[locationId]?.tokens,
-              [token.id]: token
+      addLocalToken: (locationId: string, token: any) => set((state: any) => {
+        const updatedLocalMaps = { ...state.localMaps };
+
+        // Очистка дубликатов NPC на всех остальных картах мира
+        if (token.type === 'npc') {
+          Object.keys(updatedLocalMaps).forEach((locId) => {
+            if (updatedLocalMaps[locId]?.tokens) {
+              const filteredTokens = { ...updatedLocalMaps[locId].tokens };
+              Object.keys(filteredTokens).forEach((tId) => {
+                if (filteredTokens[tId].entityId === token.entityId) {
+                  delete filteredTokens[tId];
+                }
+              });
+              updatedLocalMaps[locId] = {
+                ...updatedLocalMaps[locId],
+                tokens: filteredTokens,
+              };
             }
-          }
+          });
         }
-      })),
+
+        // Добавление на текущую карту
+        const currentMap = updatedLocalMaps[locationId] || { gridSize: 60, tokens: {} };
+        updatedLocalMaps[locationId] = {
+          ...currentMap,
+          tokens: { ...currentMap.tokens, [token.id]: token }
+        };
+
+        return { localMaps: updatedLocalMaps };
+      }),
       removeLocalToken: (locationId: string, tokenId: string) => set((state: any) => {
         const nextTokens = { ...state.localMaps[locationId]?.tokens };
         delete nextTokens[tokenId];
