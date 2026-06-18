@@ -244,6 +244,8 @@ const BattleMapBoard = () => {
             const name = getEntityName(token);
             const isHero = token.type === 'hero';
             const isNpc = token.type === 'npc';
+            const isPoi = token.type === 'poi';
+            const isCheck = token.type === 'check';
             
             if (isNpc) {
               const npc = npcs[token.entityId];
@@ -269,7 +271,7 @@ const BattleMapBoard = () => {
                   
                   return (
                     <>
-                      {entity?.hp !== undefined && entity?.maxHp && (
+                      {entity?.hp !== undefined && entity?.maxHp && !isPoi && !isCheck && (
                         <div className="absolute -top-3 w-full h-1.5 bg-red-950 border border-zinc-900 rounded-sm overflow-hidden">
                           <div 
                             className="h-full bg-green-500 transition-all" 
@@ -290,21 +292,29 @@ const BattleMapBoard = () => {
                         }}
                         onDoubleClick={(e) => {
                           e.stopPropagation();
-                          if (token.type === 'poi' || token.type === 'check') {
+                          if (isPoi || isCheck) {
                             setViewedEntityId(token.entityId);
                           } else {
                             removeLocalToken(activeLocalMapId, token.id);
                           }
                         }}
-                        className={`w-full h-full rounded-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
-                          isHero ? 'bg-indigo-900/80 border-indigo-500 text-white' : 'bg-red-900/80 border-red-500 text-white'
+                        className={`w-full h-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
+                          isPoi 
+                            ? 'rounded-md bg-amber-500/80 border-amber-400 text-black' 
+                            : isCheck
+                              ? 'rotate-45 bg-fuchsia-700/80 border-fuchsia-400 text-white'
+                              : isHero 
+                                ? 'rounded-full bg-indigo-900/80 border-indigo-500 text-white' 
+                                : 'rounded-full bg-red-900/80 border-red-500 text-white'
                         }`}
                       >
-                        {name.substring(0, 2).toUpperCase()}
+                        <div className={isCheck ? '-rotate-45' : ''}>
+                          {isPoi ? '🔍' : isCheck ? '🎲' : name.substring(0, 2).toUpperCase()}
+                        </div>
                       </div>
 
                       <div className="absolute -bottom-5 text-[9px] font-bold text-white bg-black/70 px-1 rounded whitespace-nowrap pointer-events-none">
-                        {entity?.name || (token.type === 'poi' ? 'POI' : (token.type === 'check' ? 'Проверка' : name))}
+                        {isPoi ? 'Точка интереса' : isCheck ? 'Проверка' : (entity?.name || name)}
                       </div>
                     </>
                   );
