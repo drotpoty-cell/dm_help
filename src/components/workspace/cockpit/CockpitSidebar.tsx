@@ -2,6 +2,7 @@
 
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { Users, Swords } from 'lucide-react'
+import { InitiativeTracker } from '../InitiativeTracker'
 
 export default function CockpitSidebar() {
   const heroes = useWorkspaceStore((state) => state.heroes)
@@ -51,9 +52,8 @@ export default function CockpitSidebar() {
             <Swords className="w-3.5 h-3.5" />
             <h2 className="text-[11px] uppercase tracking-wider font-semibold">Инициатива</h2>
           </div>
-          <button className="text-neutral-500 hover:text-neutral-300 transition-colors">+</button>
         </div>
-        <div className="text-[10px] text-neutral-600 italic tracking-wider">Бой не начат</div>
+        <InitiativeTracker />
       </div>
     </div>
   )

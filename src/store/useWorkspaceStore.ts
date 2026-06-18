@@ -10,7 +10,8 @@ import {
   NPC, 
   Quest, 
   BaseEntity, 
-  ClimateType 
+  ClimateType,
+  Combatant
 } from '@/types/workspace'
 
 export * from '@/types/workspace'
@@ -95,6 +96,41 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       currentDay: 1,
       currentHour: 8,
       
+      combat: { isActive: false, turnIndex: 0, participants: [] },
+      startCombat: (mapId: string) => set((state: any) => {
+        const tokens = state.localMaps[mapId]?.tokens || {};
+        const participants: Combatant[] = Object.values(tokens)
+          .filter((t: any) => ['hero', 'npc', 'monster'].includes(t.type))
+          .map((t: any) => {
+            const entity = state.heroes[t.entityId] || state.npcs[t.entityId] || state.bestiary[t.entityId] || { hp: 10, maxHp: 10 };
+            return {
+              tokenId: t.id,
+              entityId: t.entityId,
+              type: t.type,
+              initiative: 0,
+              hp: entity.hp || entity.maxHp || 10,
+              maxHp: entity.maxHp || 10,
+            };
+          });
+        return { combat: { isActive: true, turnIndex: 0, participants } };
+      }),
+      endCombat: () => set({ combat: { isActive: false, turnIndex: 0, participants: [] } }),
+      nextTurn: () => set((state: any) => ({
+        combat: {
+          ...state.combat,
+          turnIndex: (state.combat.turnIndex + 1) % (state.combat.participants.length || 1)
+        }
+      })),
+      updateCombatantInitiative: (tokenId: string, initiative: number) => set((state: any) => {
+        const participants = [...state.combat.participants];
+        const index = participants.findIndex(p => p.tokenId === tokenId);
+        if (index !== -1) {
+          participants[index].initiative = initiative;
+          participants.sort((a, b) => b.initiative - a.initiative);
+        }
+        return { combat: { ...state.combat, participants } };
+      }),
+
       localMaps: {},
       activeLocalMapId: null,
 
@@ -486,7 +522,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         weather: state.weather,
         partyLocationId: state.partyLocationId,
         activeView: state.activeView,
-        localMaps: state.localMaps
+        localMaps: state.localMaps,
+        combat: state.combat
       })
     }
   )

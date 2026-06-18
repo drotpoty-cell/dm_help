@@ -148,6 +148,21 @@ export interface LocalMapData {
   tokens: Record<string, BattleToken>;
 }
 
+export interface Combatant {
+  tokenId: string; // связь с токеном на карте
+  entityId: string;
+  type: 'hero' | 'npc' | 'monster';
+  initiative: number;
+  hp: number;
+  maxHp: number;
+}
+
+export interface CombatState {
+  isActive: boolean;
+  turnIndex: number;
+  participants: Combatant[];
+}
+
 export interface WorkspaceState {
   nodes: Node[]
   edges: Edge[]
@@ -174,6 +189,12 @@ export interface WorkspaceState {
   extras: Record<string, any>
   bestiary: Record<string, any>
   factions: Record<string, any>
+
+  combat: CombatState;
+  startCombat: (mapId: string) => void;
+  endCombat: () => void;
+  nextTurn: () => void;
+  updateCombatantInitiative: (tokenId: string, initiative: number) => void;
 
   localMaps: Record<string, LocalMapData>; // Ключ — locationId
   activeLocalMapId: string | null;
