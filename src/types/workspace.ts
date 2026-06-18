@@ -218,6 +218,8 @@ export interface WorkspaceState {
   deleteEntity: (category: LibraryCategory, id: string) => void
 
   updateQuestStatus: (questId: string, newStatus: EntityStatus) => void
+  updateHero: (id: string, data: Partial<Hero>) => void
+  updateNpc: (id: string, data: Partial<NPC>) => void
   attachToRegion: (childId: string, regionId: string | null) => void
   clearNeedsUpdate: (type: 'node' | 'npc', targetId: string) => void
   viewedEntityId: string | null

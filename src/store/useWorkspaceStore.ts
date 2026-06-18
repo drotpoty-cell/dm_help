@@ -8,6 +8,7 @@ import {
   LibraryCategory, 
   LibraryState, 
   NPC, 
+  Hero,
   Quest, 
   BaseEntity, 
   ClimateType,
@@ -493,6 +494,13 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         }
         return { nodes: newNodes }
       }),
+
+      updateHero: (id: string, data: Partial<Hero>) => set((state: any) => ({
+        heroes: { ...state.heroes, [id]: { ...state.heroes[id], ...data } }
+      })),
+      updateNpc: (id: string, data: Partial<NPC>) => set((state: any) => ({
+        npcs: { ...state.npcs, [id]: { ...state.npcs[id], ...data } }
+      })),
       
       clearNeedsUpdate: (type: string, targetId: string) => set((state: any) => {
         if (type === 'node') return { nodes: state.nodes.map((n: Node) => n.id === targetId ? { ...n, data: { ...n.data, needsUpdate: false } } : n) }

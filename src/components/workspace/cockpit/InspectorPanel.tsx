@@ -8,6 +8,8 @@ export const InspectorPanel = () => {
     setViewedEntityId, 
     heroes, 
     npcs, 
+    updateHero,
+    updateNpc,
     locations, 
     quests, 
     loot,
@@ -26,6 +28,45 @@ export const InspectorPanel = () => {
 
   const entity = viewedEntityId ? (allEntities[viewedEntityId] as any) : null;
   const isLocationNode = viewedEntityId ? (nodes.some(n => n.id === viewedEntityId) || locations[viewedEntityId]) : false;
+
+  const entityType = (viewedEntityId && heroes[viewedEntityId]) ? 'hero' : (viewedEntityId && npcs[viewedEntityId]) ? 'npc' : null;
+
+  const handleHpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newHp = parseInt(e.target.value) || 0;
+    if (entityType === 'hero') {
+      updateHero(entity.id, { hp: newHp });
+    } else if (entityType === 'npc') {
+      updateNpc(entity.id, { hp: newHp });
+    }
+  };
+
+  const handleMaxHpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newMaxHp = parseInt(e.target.value) || 0;
+    if (entityType === 'hero') {
+      updateHero(entity.id, { maxHp: newMaxHp });
+    } else if (entityType === 'npc') {
+      updateNpc(entity.id, { maxHp: newMaxHp });
+    }
+  };
+
+  const handleAcChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAc = parseInt(e.target.value) || 0;
+    if (entityType === 'hero') {
+      updateHero(entity.id, { ac: newAc });
+    } else if (entityType === 'npc') {
+      updateNpc(entity.id, { ac: newAc });
+    }
+  };
+
+  const changeHp = (delta: number) => {
+    const currentHp = entity.hp || 0;
+    const newHp = Math.max(0, currentHp + delta);
+    if (entityType === 'hero') {
+      updateHero(entity.id, { hp: newHp });
+    } else if (entityType === 'npc') {
+      updateNpc(entity.id, { hp: newHp });
+    }
+  };
 
   if (!viewedEntityId) return null;
 
@@ -64,19 +105,31 @@ export const InspectorPanel = () => {
           )}
 
           {(entity.hp !== undefined || entity.ac !== undefined) && (
-            <div className="flex gap-4 pt-2">
-              {entity.hp !== undefined && (
-                <div className="flex items-center gap-2 text-rose-500">
-                  <Heart size={18} />
-                  <span>HP: {entity.hp}</span>
+            <div className="space-y-4 pt-4 border-t border-neutral-800">
+              <h3 className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Боевые характеристики</h3>
+              
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[10px] text-neutral-500 block mb-1">HP</label>
+                  <input type="number" value={entity.hp || 0} onChange={handleHpChange} className="w-full bg-neutral-800 text-white p-2 rounded text-sm" />
                 </div>
-              )}
-              {entity.ac !== undefined && (
-                <div className="flex items-center gap-2 text-sky-500">
-                  <Shield size={18} />
-                  <span>AC: {entity.ac}</span>
+                <div>
+                  <label className="text-[10px] text-neutral-500 block mb-1">Max HP</label>
+                  <input type="number" value={entity.maxHp || 0} onChange={handleMaxHpChange} className="w-full bg-neutral-800 text-white p-2 rounded text-sm" />
                 </div>
-              )}
+                <div>
+                  <label className="text-[10px] text-neutral-500 block mb-1">AC</label>
+                  <input type="number" value={entity.ac || 0} onChange={handleAcChange} className="w-full bg-neutral-800 text-white p-2 rounded text-sm" />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                {[-5, -1, 1, 5].map((delta) => (
+                  <button key={delta} onClick={() => changeHp(delta)} className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white py-1.5 rounded text-xs">
+                    {delta > 0 ? `+${delta}` : delta}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
