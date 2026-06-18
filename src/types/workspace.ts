@@ -143,6 +143,8 @@ export interface LocalMapData {
   gridSize: number;
   gridOffsetX?: number;
   gridOffsetY?: number;
+  backgroundScale?: number;
+  backgroundRotation?: number;
   tokens: Record<string, BattleToken>;
 }
 

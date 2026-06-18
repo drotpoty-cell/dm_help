@@ -15,7 +15,8 @@ const BattleMapBoard = () => {
     addEntity,
     setViewedEntityId,
     heroes, 
-    npcs 
+    npcs,
+    currentHour
   } = useWorkspaceStore();
   
   const mapData = activeLocalMapId ? localMaps[activeLocalMapId] : null;
@@ -45,8 +46,13 @@ const BattleMapBoard = () => {
   const gridSize = mapData.gridSize || 50;
   const offsetX = mapData.gridOffsetX || 0;
   const offsetY = mapData.gridOffsetY || 0;
+  const backgroundScale = mapData.backgroundScale || 1;
+  const backgroundRotation = mapData.backgroundRotation || 0;
 
   const spawnToken = (entity: any, type: 'hero' | 'npc' | 'poi' | 'check') => {
+    const isAlreadyOnMap = Object.values(mapData.tokens).some(t => entity && t.entityId === entity.id);
+    if (isAlreadyOnMap) return null;
+
     const id = `token-${Date.now()}`;
     const tokenData = {
       id,
@@ -109,26 +115,48 @@ const BattleMapBoard = () => {
             ➕ Добавить проверку (Check)
           </button>
           <div className="border-t border-neutral-800 my-4" />
-          {Object.values(heroes).map((h: any) => (
-            <div key={h.id} className="flex justify-between items-center text-neutral-300 text-sm">
-              <span>{h.name}</span>
-              <button 
-                draggable
-                onDragStart={(e) => e.dataTransfer.setData('text/plain', spawnToken(h, 'hero'))}
-                className="bg-indigo-600 text-white px-2 py-1 rounded text-xs hover:bg-indigo-700 cursor-grab"
-              >+</button>
-            </div>
-          ))}
-          {Object.values(npcs).map((n: any) => (
-            <div key={n.id} className="flex justify-between items-center text-neutral-300 text-sm">
-              <span>{n.name}</span>
-              <button 
-                draggable
-                onDragStart={(e) => e.dataTransfer.setData('text/plain', spawnToken(n, 'npc'))}
-                className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 cursor-grab"
-              >+</button>
-            </div>
-          ))}
+          
+          <div className="text-xs text-neutral-500 font-bold uppercase mb-2">Герои</div>
+          {Object.values(heroes).map((h: any) => {
+            const isOnMap = Object.values(mapData.tokens).some(t => t.entityId === h.id);
+            return (
+              <div key={h.id} className="flex justify-between items-center text-neutral-300 text-sm">
+                <span>{h.name}</span>
+                <button 
+                  draggable={!isOnMap}
+                  onDragStart={(e) => {
+                    const id = spawnToken(h, 'hero');
+                    if (id) e.dataTransfer.setData('text/plain', id);
+                  }}
+                  disabled={isOnMap}
+                  className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-grab'}`}
+                >{isOnMap ? 'На карте' : '+'}</button>
+              </div>
+            );
+          })}
+
+          <div className="text-xs text-neutral-500 font-bold uppercase mb-2 mt-4">NPC</div>
+          {Object.values(npcs).filter(n => {
+            const hasSchedule = n.schedule && n.schedule.length > 0;
+            const isScheduledHere = n.schedule?.some(s => s.startHour <= currentHour && s.endHour > currentHour && s.locationId === activeLocalMapId);
+            return !hasSchedule || isScheduledHere;
+          }).map((n: any) => {
+            const isOnMap = Object.values(mapData.tokens).some(t => t.entityId === n.id);
+            return (
+              <div key={n.id} className="flex justify-between items-center text-neutral-300 text-sm">
+                <span>{n.name}</span>
+                <button 
+                  draggable={!isOnMap}
+                  onDragStart={(e) => {
+                    const id = spawnToken(n, 'npc');
+                    if (id) e.dataTransfer.setData('text/plain', id);
+                  }}
+                  disabled={isOnMap}
+                  className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 cursor-grab'}`}
+                >{isOnMap ? 'На карте' : '+'}</button>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -158,6 +186,10 @@ const BattleMapBoard = () => {
             <label>X: <input type="number" value={offsetX} onChange={(e) => updateCalibration('gridOffsetX', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
             <label>Y: <input type="number" value={offsetY} onChange={(e) => updateCalibration('gridOffsetY', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
           </div>
+          <div className="flex gap-2 text-xs text-neutral-300">
+            <label>Масштаб: <input type="number" step="0.05" value={backgroundScale} onChange={(e) => updateLocalMap(activeLocalMapId, { backgroundScale: parseFloat(e.target.value) })} className="w-12 bg-neutral-800 text-white"/></label>
+            <label>Поворот: <input type="number" value={backgroundRotation} onChange={(e) => updateLocalMap(activeLocalMapId, { backgroundRotation: parseInt(e.target.value) })} className="w-12 bg-neutral-800 text-white"/></label>
+          </div>
           <button
             onClick={() => closeLocalMap()}
             className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 w-full text-sm"
@@ -175,8 +207,11 @@ const BattleMapBoard = () => {
             className="z-0"
             style={{ 
               backgroundImage: mapData?.backgroundImage ? `url("${mapData.backgroundImage}")` : 'none', 
-              backgroundSize: 'cover', 
+              backgroundSize: 'contain', 
               backgroundPosition: 'center', 
+              backgroundRepeat: 'no-repeat',
+              transform: `scale(${backgroundScale}) rotate(${backgroundRotation}deg)`,
+              transition: 'transform 0.1s ease-out',
               width: '100%', 
               height: '100%', 
               position: 'absolute' 
@@ -197,6 +232,16 @@ const BattleMapBoard = () => {
           {Object.values(mapData.tokens).map((token: any) => {
             const name = getEntityName(token);
             const isHero = token.type === 'hero';
+            const isNpc = token.type === 'npc';
+            
+            if (isNpc) {
+              const npc = npcs[token.entityId];
+              if (npc && npc.schedule) {
+                const isScheduledHere = npc.schedule.some(s => s.startHour <= currentHour && s.endHour > currentHour && s.locationId === activeLocalMapId);
+                if (!isScheduledHere) return null;
+              }
+            }
+
             return (
               <div
                 key={token.id}
