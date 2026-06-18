@@ -114,7 +114,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           });
         return { combat: { isActive: true, turnIndex: 0, participants } };
       }),
-      endCombat: () => set({ combat: { isActive: false, turnIndex: 0, participants: [] } }),
+      endCombat: () => set((state: any) => ({ 
+        combat: { isActive: false, turnIndex: 0, participants: [] } 
+      })),
       nextTurn: () => set((state: any) => ({
         combat: {
           ...state.combat,

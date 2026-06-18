@@ -6,6 +6,8 @@ import { InitiativeTracker } from '../InitiativeTracker'
 
 export default function CockpitSidebar() {
   const heroes = useWorkspaceStore((state) => state.heroes)
+  const activeView = useWorkspaceStore((state) => state.activeView)
+  const activeLocalMapId = useWorkspaceStore((state) => state.activeLocalMapId)
   const heroList = Object.values(heroes)
 
   return (
@@ -53,7 +55,7 @@ export default function CockpitSidebar() {
             <h2 className="text-[11px] uppercase tracking-wider font-semibold">Инициатива</h2>
           </div>
         </div>
-        <InitiativeTracker />
+        {activeView === 'map' && activeLocalMapId && <InitiativeTracker />}
       </div>
     </div>
   )
