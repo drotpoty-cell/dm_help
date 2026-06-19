@@ -8,6 +8,7 @@ import {
   LibraryCategory, 
   LibraryState, 
   NPC, 
+  Enemy,
   Hero,
   Quest, 
   BaseEntity, 
@@ -26,6 +27,7 @@ export const getEmptyWorldState = () => ({
   story: [],
   heroes: {},
   npcs: {},
+  enemies: {},
   quests: {},
   locations: {},
   secrets: {},
@@ -562,23 +564,42 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                 ac: npc.ac || 10,
                 passivePerception: npc.passivePerception || 10,
                 inventory: npc.inventory || '',
+                isMerchant: npc.isMerchant || false,
+                assortment: npc.assortment || [],
                 needsUpdate: false
               };
             }
           });
         }
 
-        if (data.interactiveObjects && Array.isArray(data.interactiveObjects)) {
-          data.interactiveObjects.forEach((obj: any) => {
-            if (obj.id) {
-              updatedExtras[obj.id] = {
-                ...updatedExtras[obj.id],
-                id: obj.id,
-                type: obj.type || 'poi',
-                name: obj.name || 'Объект',
-                description: obj.description || '',
-                linkedNodeId: obj.linkedNodeId || null,
-                locationId: obj.locationId || null
+        if (data.enemies && Array.isArray(data.enemies)) {
+          data.enemies.forEach((enemy: any) => {
+            if (enemy.id) {
+              state.enemies[enemy.id] = {
+                id: enemy.id,
+                name: enemy.name || 'Противник',
+                description: enemy.description || '',
+                hp: enemy.hp || 10,
+                maxHp: enemy.maxHp || 10,
+                ac: enemy.ac || 10,
+                cr: enemy.cr || '1',
+                attacks: enemy.attacks || '',
+                isMerchant: enemy.isMerchant || false,
+                assortment: enemy.assortment || []
+              };
+            }
+          });
+        }
+
+        if (data.crowd && Array.isArray(data.crowd)) {
+          data.crowd.forEach((item: any) => {
+            if (item.id) {
+              updatedExtras[item.id] = {
+                ...updatedExtras[item.id],
+                id: item.id,
+                type: 'crowd',
+                name: item.name || 'Болванчик',
+                description: item.description || ''
               };
             }
           });
@@ -587,6 +608,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         return {
           plotNodes: updatedPlotNodes,
           npcs: updatedNpcs,
+          enemies: state.enemies,
           extras: updatedExtras
         };
       }),
@@ -621,6 +643,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           savedWorlds: newSavedWorlds,
           activeWorldId: newId,
         };
+      }),
+      addEnemy: (enemy: Enemy) => set((state: any) => ({
+        enemies: { ...state.enemies, [enemy.id]: enemy }
+      })),
+      updateEnemy: (id: string, data: Partial<Enemy>) => set((state: any) => ({
+        enemies: { ...state.enemies, [id]: { ...state.enemies[id], ...data } }
+      })),
+      deleteEnemy: (id: string) => set((state: any) => {
+        const enemies = { ...state.enemies };
+        delete enemies[id];
+        return { enemies };
       }),
       // resetWorld: () => set(getEmptyWorldState())
     }),

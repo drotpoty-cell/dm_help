@@ -66,6 +66,20 @@ export interface Quest {
   locationId: string | null
 }
 
+export interface Enemy {
+  id: string
+  name: string
+  description: string
+  hp: number
+  maxHp: number
+  ac: number
+  cr: string
+  attacks: string
+  isMerchant?: boolean
+  assortment?: { itemName: string; price: string; description: string }[]
+  linkedNodeId?: string
+}
+
 export interface NPC {
   id: string
   name: string
@@ -74,6 +88,7 @@ export interface NPC {
   locationId: string | null
   needsUpdate: boolean
   isMerchant?: boolean
+  assortment?: { itemName: string; price: string; description: string }[]
   hp?: number
   maxHp?: number
   ac?: number
@@ -195,6 +210,7 @@ export interface WorkspaceState {
 
   heroes: Record<string, Hero>
   npcs: Record<string, NPC>
+  enemies: Record<string, Enemy>
   quests: Record<string, Quest>
   locations: Record<string, BaseEntity>
   secrets: Record<string, BaseEntity>
@@ -233,6 +249,9 @@ export interface WorkspaceState {
   addEntity: (category: LibraryCategory, entity: any) => void
   updateEntity: (category: LibraryCategory, id: string, data: any) => void
   deleteEntity: (category: LibraryCategory, id: string) => void
+  addEnemy: (enemy: Enemy) => void;
+  updateEnemy: (id: string, data: Partial<Enemy>) => void;
+  deleteEnemy: (id: string) => void;
 
   addPlotNode: (node: PlotNode) => void;
   updatePlotNode: (id: string, data: Partial<PlotNode>) => void;
@@ -242,7 +261,7 @@ export interface WorkspaceState {
   updateHero: (id: string, data: Partial<Hero>) => void
   updateNpc: (id: string, data: Partial<NPC>) => void
   attachToRegion: (childId: string, regionId: string | null) => void
-  clearNeedsUpdate: (type: 'node' | 'npc', targetId: string) => void
+  clearNeedsUpdate: (type: 'node' | 'npc' | 'enemy', targetId: string) => void
   viewedEntityId: string | null
   setViewedEntityId: (id: string | null) => void
 

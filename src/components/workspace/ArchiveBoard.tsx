@@ -31,6 +31,7 @@ import {
   type Hero,
   type Loot,
   type NPC,
+  type Enemy,
   type Quest
 } from '@/types/workspace'
 import { BestiaryForm } from '@/components/workspace/archive/BestiaryForm'
@@ -52,13 +53,13 @@ import { ArchiveHeader } from './archive/ArchiveHeader'
 import { ArchiveSidebar } from './archive/ArchiveSidebar'
 import { AiWand } from './ai/AiWand'
 
-type ArchiveEntity = Hero | NPC | Quest | Loot | Event | { id: string; name?: string; title?: string; description?: string }
+type ArchiveEntity = Hero | NPC | Enemy | Quest | Loot | Event | { id: string; name?: string; title?: string; description?: string }
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
 const isArchiveLike = (v: unknown) => {
   if (!isPlainObject(v)) return false
-  const candidates = ['heroes', 'locations', 'npcs', 'quests', 'secrets', 'loot', 'events'] as const
+  const candidates = ['heroes', 'locations', 'npcs', 'enemies', 'quests', 'secrets', 'loot', 'events'] as const
   return candidates.some((k) => k in v)
 }
 
@@ -87,6 +88,7 @@ export default function ArchiveBoard() {
     heroes: state.heroes,
     locations: state.locations,
     npcs: state.npcs,
+    enemies: state.enemies,
     quests: state.quests,
     secrets: state.secrets,
     loot: state.loot,
@@ -104,6 +106,7 @@ export default function ArchiveBoard() {
   const tabs = [
     { id: 'heroes', label: 'ГЕРОИ' },
     { id: 'npcs', label: 'ДЕЙСТВУЮЩИЕ ЛИЦА' },
+    { id: 'enemies', label: 'ПРОТИВНИКИ' },
     { id: 'extras', label: 'МАССОВКА' },
     { id: 'factions', label: 'ФРАКЦИИ' },
     { id: 'locations', label: 'ЛОКАЦИИ' },
@@ -118,6 +121,7 @@ export default function ArchiveBoard() {
       heroes: Object.values(library.heroes || {}),
       locations: Object.values(library.locations || {}),
       npcs: Object.values(library.npcs || {}),
+      enemies: Object.values(library.enemies || {}),
       quests: Object.values(library.quests || {}),
       secrets: Object.values(library.secrets || {}),
       loot: Object.values(library.loot || {}),
@@ -160,6 +164,7 @@ export default function ArchiveBoard() {
         heroes: safeParseToRecord(parsedData.heroes),
         locations: safeParseToRecord(parsedData.locations),
         npcs: safeParseToRecord(parsedData.npcs),
+        enemies: safeParseToRecord(parsedData.enemies),
         quests: safeParseToRecord(parsedData.quests),
         secrets: safeParseToRecord(parsedData.secrets),
         loot: safeParseToRecord(parsedData.loot),
@@ -175,6 +180,7 @@ export default function ArchiveBoard() {
         heroes: { ...state.heroes, ...safeState.heroes },
         locations: { ...state.locations, ...safeState.locations },
         npcs: { ...state.npcs, ...safeState.npcs },
+        enemies: { ...state.enemies, ...safeState.enemies },
         quests: { ...state.quests, ...safeState.quests },
         secrets: { ...state.secrets, ...safeState.secrets },
         loot: { ...state.loot, ...safeState.loot },
@@ -197,7 +203,7 @@ export default function ArchiveBoard() {
 
   const handleDownloadTemplate = () => {
     const template = {
-      "_INSTRUCTION_": "ВНИМАНИЕ! Верни СТРОГО один JSON-объект. Каждая категория (locations, factions, npcs, characters, extras, quests, loot, events, heroes) должна быть ОБЪЕКТОМ (словарём), где ключи — это уникальные ID (например, 'loc_1'), а значения — сами данные. Удали эту инструкцию из ответа. Для всех персонажей (npcs, heroes) обязательно добавляй пустой массив schedule: [] и поля defaultLocationId, locationId, currentActivity.",
+      "_INSTRUCTION_": "ВНИМАНИЕ! Верни СТРОГО один JSON-объект. Каждая категория (locations, factions, npcs, enemies, characters, extras, quests, loot, events, heroes) должна быть ОБЪЕКТОМ (словарём), где ключи — это уникальные ID (например, 'loc_1'), а значения — сами данные. Удали эту инструкцию из ответа. Для всех персонажей (npcs, heroes) обязательно добавляй пустой массив schedule: [] и поля defaultLocationId, locationId, currentActivity.",
       "locations": {
         "loc_1": { "id": "loc_1", "name": "Название локации", "description": "Описание", "type": "hub", "order": 1 }
       },
@@ -205,7 +211,10 @@ export default function ArchiveBoard() {
         "fac_1": { "id": "fac_1", "name": "Название фракции", "description": "Описание", "alignment": "Neutral", "status": "active", "order": 1 }
       },
       "npcs": {
-        "npc_1": { "id": "npc_1", "name": "Имя NPC или Монстра", "currentRole": "Роль/Враг", "description": "Описание", "traits": ["черта1", "черта2"], "order": 1, "defaultLocationId": "loc_1", "locationId": "loc_1", "currentActivity": "Ожидает", "schedule": [] }
+        "npc_1": { "id": "npc_1", "name": "Имя NPC", "currentRole": "Роль", "description": "Описание", "traits": ["черта1", "черта2"], "order": 1, "defaultLocationId": "loc_1", "locationId": "loc_1", "currentActivity": "Ожидает", "schedule": [] }
+      },
+      "enemies": {
+        "enemy_1": { "id": "enemy_1", "name": "Гоблин", "description": "Опасный", "hp": 15, "maxHp": 15, "ac": 14, "cr": "1/4", "attacks": "Нож (+4, 1d4+2)" }
       },
       "characters": {},
       "extras": {
@@ -252,6 +261,8 @@ export default function ArchiveBoard() {
                   ? ({ id, title: 'Новый сюжет', description: '', hook: '', giver: '', reward: '', consequence: '', deadline: 0, status: 'available', locationId: null, order } as Quest)
                   : activeTab === 'npcs'
                     ? ({ ...base, name: 'Новый персонаж', occupation: '', locationId: null, needsUpdate: false, goal: '', secret: '', personalLoot: '', stats: '', notes: '', showSchedule: false, schedule: [], traits: [], defaultLocationId: '' } satisfies NPC)
+                    : activeTab === 'enemies'
+                      ? ({ id, name: 'Новый противник', description: '', hp: 10, maxHp: 10, ac: 10, cr: '1', attacks: '', order } as Enemy)
                     : activeTab === 'loot'
                       ? ({ ...base, name: 'Новый артефакт', rarity: 'common', price: 0, weight: 0, stats: '', ownerId: null, detailedDescription: '', status: 'unclaimed' } as Loot)
                       : activeTab === 'events'
