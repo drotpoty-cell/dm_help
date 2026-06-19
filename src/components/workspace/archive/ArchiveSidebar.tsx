@@ -4,8 +4,8 @@ import EntityCard from './EntityCard'
 
 interface ArchiveSidebarProps {
   tabs: { id: string; label: string }[]
-  activeTab: LibraryCategory
-  handleTabChange: (tab: LibraryCategory) => void
+  activeTab: LibraryCategory | 'interactive'
+  handleTabChange: (tab: LibraryCategory | 'interactive') => void
   library: any
   fileInputRef: React.RefObject<HTMLInputElement | null>
   handleExport: () => void
@@ -29,7 +29,7 @@ export const ArchiveSidebar = ({
       {tabs.map((tab) => (
         <button
           key={tab.id}
-          onClick={() => handleTabChange(tab.id as LibraryCategory)}
+          onClick={() => handleTabChange(tab.id as LibraryCategory | 'interactive')}
           className={`w-full text-left px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${
             activeTab === tab.id
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
@@ -38,7 +38,10 @@ export const ArchiveSidebar = ({
         >
           {tab.label}{' '}
           <span className="float-right text-zinc-600">
-            {Object.keys(library[tab.id as LibraryCategory] || {}).length}
+            {tab.id === 'interactive' 
+              ? Object.values(library.extras || {}).filter((item: any) => item.tokenType === 'poi' || item.tokenType === 'check').length
+              : Object.keys(library[tab.id as LibraryCategory] || {}).length
+            }
           </span>
         </button>
       ))}

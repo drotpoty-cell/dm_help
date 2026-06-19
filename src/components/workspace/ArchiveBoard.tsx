@@ -61,7 +61,7 @@ const isArchiveLike = (v: unknown) => {
 }
 
 export default function ArchiveBoard() {
-  const [activeTab, setActiveTab] = useState<LibraryCategory | 'interactive'>('heroes')
+  const [activeTab, setActiveTab] = useState<LibraryCategory>('heroes')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
@@ -277,8 +277,10 @@ export default function ArchiveBoard() {
                         : activeTab === 'locations'
                           ? ({ ...base, name: 'Новая локация', secrets: '', charactersInside: '', currentState: '', status: 'discovered' } as any)
                           : base
-
-    addEntity(activeTab as LibraryCategory, newEntity)
+    
+    if (activeTab !== 'interactive') {
+      addEntity(activeTab as Exclude<LibraryCategory, 'interactive'>, newEntity)
+    }
   }
 
   const handlePlaceOnMap = (entity: any) => {
@@ -298,7 +300,7 @@ export default function ArchiveBoard() {
       const allExtras = Object.values(library.extras || {}) as any[];
       return allExtras.filter(item => item.tokenType === 'poi' || item.tokenType === 'check');
     }
-    return Object.values(library[activeTab as LibraryCategory] || {})
+    return Object.values(library[activeTab as Exclude<LibraryCategory, 'interactive'>] || {})
   }, [library, activeTab])
 
   const getLocationName = (locationId?: string) => {
@@ -346,7 +348,7 @@ export default function ArchiveBoard() {
       const newItems = arrayMove(filteredItems, oldIndex, newIndex);
 
       newItems.forEach((item, index) => {
-        updateEntity(activeTab as LibraryCategory, item.id, { order: index });
+        updateEntity(activeTab as Exclude<LibraryCategory, 'interactive'>, item.id, { order: index });
       });
     }
   }
