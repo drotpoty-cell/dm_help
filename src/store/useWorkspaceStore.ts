@@ -12,7 +12,8 @@ import {
   Quest, 
   BaseEntity, 
   ClimateType,
-  Combatant
+  Combatant,
+  PlotNode
 } from '@/types/workspace'
 
 export * from '@/types/workspace'
