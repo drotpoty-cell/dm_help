@@ -253,6 +253,7 @@ export interface WorkspaceState {
   isScratchpadOpen: boolean
   setScratchpad: (text: string) => void
   toggleScratchpad: () => void
+  resetWorld: () => void
 }
 
 export type LibraryState = Pick<

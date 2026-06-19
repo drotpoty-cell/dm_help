@@ -18,7 +18,37 @@ import {
 
 export * from '@/types/workspace'
 
-// Универсальная функция для очистки ссылок на удаленную локацию
+export const MOCK_DATA = {}
+
+export const getEmptyWorldState = () => ({
+  nodes: [],
+  edges: [],
+  story: [],
+  heroes: {},
+  npcs: {},
+  quests: {},
+  locations: {},
+  secrets: {},
+  loot: {},
+  events: {},
+  characters: {},
+  extras: {},
+  bestiary: {},
+  factions: {},
+  plotNodes: {},
+  localMaps: {},
+  activeLocalMapId: null,
+  viewedEntityId: null,
+  activeView: 'map' as const,
+  scratchpad: '',
+  isScratchpadOpen: false,
+  partyLocationId: null,
+  currentDay: 1,
+  currentHour: 8,
+  combat: { isActive: false, turnIndex: 0, participants: [] },
+  weather: { mode: 'disabled' as const, condition: 'Ясно', temp: 20, interval: 24, hoursSinceChange: 0, climate: 'temperate' as const, forecast: {} }
+})
+
 const cleanLocationLinks = (
   entities: Record<string, any>,
   nodeId: string
@@ -51,7 +81,6 @@ const updateInLibrary = <K extends keyof LibraryState>(
   } as WorkspaceState
 }
 
-// Вспомогательная функция для прокрутки расписания персонажей
 const processSchedules = (entitiesRecord: Record<string, any>, newHour: number) => {
   let hasChanges = false;
   const updated = { ...entitiesRecord };
@@ -62,7 +91,7 @@ const processSchedules = (entitiesRecord: Record<string, any>, newHour: number) 
       activeSchedule = entity.schedule.find((entry: any) => {
         if (entry.startHour <= entry.endHour) {
           return newHour >= entry.startHour && newHour < entry.endHour;
-        } else { // Ночная смена
+        } else {
           return newHour >= entry.startHour || newHour < entry.endHour;
         }
       });
@@ -88,17 +117,11 @@ const processSchedules = (entitiesRecord: Record<string, any>, newHour: number) 
   return { updated, hasChanges };
 }
 
-// Добавляем & any к create, чтобы TS не ругался в процессе перехода на новые типы
 export const useWorkspaceStore = create<WorkspaceState>()(
   persist(
     (set, get) => ({
-      nodes: [],
-      edges: [],
-      story: [],
-      currentDay: 1,
-      currentHour: 8,
+      ...getEmptyWorldState(),
       
-      combat: { isActive: false, turnIndex: 0, participants: [] },
       startCombat: (mapId: string) => set((state: any) => {
         const tokens = state.localMaps[mapId]?.tokens || {};
         const participants: Combatant[] = Object.values(tokens)
@@ -134,9 +157,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         }
         return { combat: { ...state.combat, participants } };
       }),
-
-      localMaps: {},
-      activeLocalMapId: null,
 
       openLocalMap: (locationId: string) => set((state: any) => {
         const localMaps = { ...state.localMaps };
@@ -178,8 +198,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       })),
       addLocalToken: (locationId: string, token: any) => set((state: any) => {
         const updatedLocalMaps = { ...state.localMaps };
-
-        // Очистка дубликатов NPC на всех остальных картах мира
         if (token.type === 'npc') {
           Object.keys(updatedLocalMaps).forEach((locId) => {
             if (updatedLocalMaps[locId]?.tokens) {
@@ -196,14 +214,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
             }
           });
         }
-
-        // Добавление на текущую карту
         const currentMap = updatedLocalMaps[locationId] || { gridSize: 60, tokens: {} };
         updatedLocalMaps[locationId] = {
           ...currentMap,
           tokens: { ...currentMap.tokens, [token.id]: token }
         };
-
         return { localMaps: updatedLocalMaps };
       }),
       removeLocalToken: (locationId: string, tokenId: string) => set((state: any) => {
@@ -220,10 +235,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         };
       }),
       
-      weather: { mode: 'disabled', condition: 'Ясно', temp: 20, interval: 24, hoursSinceChange: 0, climate: 'temperate', forecast: {} },
       setWeather: (newWeather: any) => set((state: any) => ({ weather: { ...state.weather, ...newWeather } })),
       
-      plotNodes: {},
       addPlotNode: (node: PlotNode) => set((state: any) => ({
         plotNodes: { ...state.plotNodes, [node.id]: node }
       })),
@@ -259,8 +272,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         return { weather: { ...state.weather, forecast: newForecast } };
       }),
       
-      partyLocationId: null,
-      
       setPartyLocation: (newLocationId: string | null) => {
         const state = get()
         const currentLocationId = state.partyLocationId
@@ -294,14 +305,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         
         set({ partyLocationId: newLocationId })
       },
-      
-      heroes: {}, npcs: {}, quests: {}, locations: {}, secrets: {}, loot: {}, events: {},
-      characters: {}, extras: {}, bestiary: {}, factions: {},
-      
-      viewedEntityId: null,
-      activeView: 'map',
-      scratchpad: '',
-      isScratchpadOpen: false,
       
       setNodes: (nodes: Node[]) => set({ nodes }),
       setEdges: (edges: Edge[]) => set({ edges }),
@@ -344,20 +347,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         }
         if (newDay < 1) { newDay = 1; newHour = 0; }
 
-        // СНАЧАЛА готовим новый объект стейта с обновленным временем
         const nextState: any = { 
           currentHour: newHour, 
           currentDay: newDay 
         };
 
-        // ЗАТЕМ в блоке try-catch безопасно пересчитываем расписания, чтобы ошибка не убила сохранение времени
         try {
           const processEntities = (entities: any) => {
             if (!entities) return entities;
             const updated = { ...entities };
             Object.keys(updated).forEach(id => {
               const entity = updated[id];
-              // Жесткая проверка на существование schedule
               if (!entity || !Array.isArray(entity.schedule) || entity.schedule.length === 0) {
                 if (entity && entity.defaultLocationId !== undefined) {
                   entity.locationId = entity.defaultLocationId || '';
@@ -390,7 +390,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           nextState.extras = processEntities(state.extras);
         } catch (error) {
           console.error("Ошибка при пересчете расписаний:", error);
-          // Даже если расписания сломались, время все равно обновится!
         }
 
         return nextState;
@@ -588,8 +587,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           npcs: updatedNpcs,
           extras: updatedExtras
         };
-      })
-
+      }),
+      
+      resetWorld: () => set(getEmptyWorldState())
     }),
     {
       name: 'gm-workspace-storage',

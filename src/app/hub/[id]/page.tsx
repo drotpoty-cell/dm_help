@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import CockpitHeader from '@/components/workspace/cockpit/CockpitHeader';
 import { InspectorPanel } from '@/components/workspace/cockpit/InspectorPanel';
@@ -13,8 +14,12 @@ import MapBoard from '@/components/workspace/MapBoard';
 import StoryBoard from '@/components/workspace/StoryBoard';
 import HeroesBoard from '@/components/workspace/HeroesBoard';
 
-export default function WorkspacePage() {
-  const { activeView, activeLocalMapId } = useWorkspaceStore();
+export default function WorkspacePage({ params }: { params: { id: string } }) {
+  const { activeView, activeLocalMapId, resetWorld } = useWorkspaceStore();
+
+  useEffect(() => {
+    resetWorld();
+  }, [params.id, resetWorld]);
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col bg-neutral-950 text-neutral-200">

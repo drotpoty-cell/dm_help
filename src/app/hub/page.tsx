@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { useWorkspaceStore, getEmptyWorldState } from '@/store/useWorkspaceStore';
 
 export default function HubPage() {
   const router = useRouter()
@@ -45,29 +46,7 @@ export default function HubPage() {
       if (!user) return
 
       // Стартовый контент, чтобы убить страх белого листа
-      const initialMapData = {
-        nodes: [
-          {
-            id: 'node-start',
-            type: 'safe',
-            position: { x: 400, y: 300 },
-            data: { label: 'Стартовая Таверна', description: 'Место, где всё начинается...', entityId: 'ent-start-loc' }
-          }
-        ],
-        edges: [],
-        currentDay: 1,
-        currentHour: 12,
-        library: { 
-          npcs: [{ id: 'ent-start-npc', name: 'Старый Трактирщик', occupation: 'Информатор', description: 'Знает всё о местных слухах.' }], 
-          quests: [], 
-          locations: [{ id: 'ent-start-loc', name: 'Стартовая Таверна', description: 'Уютное место с запахом эля и жареного мяса.' }], 
-          secrets: [], 
-          loot: [], 
-          events: [] 
-        },
-        story: [{ id: 'part-1', title: 'Акт I: Пробуждение', chapters: [] }],
-        scratchpad: "# Заметки мастера\nЗдесь можно писать быстрые идеи во время игры."
-      }
+      const initialMapData = getEmptyWorldState();
 
       const { data, error } = await supabase
         .from('campaigns')
