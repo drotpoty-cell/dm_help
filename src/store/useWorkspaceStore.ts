@@ -561,40 +561,38 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       }),
       
       switchWorld: (newId: string) => set((state: any) => {
-        // Если Zustand еще не завершил rehydrate() из localStorage, полностью блокируем выполнение
         if (!useWorkspaceStore.persist?.hasHydrated()) return state;
-
         if (state.activeWorldId === newId) return state;
 
         const newSavedWorlds = { ...state.savedWorlds };
 
+        // Сохраняем текущий мир
         if (state.activeWorldId) {
           newSavedWorlds[state.activeWorldId] = {
-            heroes: state.heroes,
-            npcs: state.npcs,
-            enemies: state.enemies,
-            crowd: state.crowd,
-            locations: state.locations,
-            plotNodes: state.plotNodes,
-            extras: state.extras,
-            quests: state.quests,
-            loot: state.loot,
-            events: state.events,
-            factions: state.factions,
-            secrets: state.secrets,
-            activeLocalMapId: state.activeLocalMapId,
-            viewedEntityId: state.viewedEntityId,
-            combat: state.combat,
-            nodes: state.nodes,
-            edges: state.edges
+            heroes: state.heroes, npcs: state.npcs, enemies: state.enemies, 
+            crowd: state.crowd, locations: state.locations, plotNodes: state.plotNodes, 
+            extras: state.extras, quests: state.quests, loot: state.loot, 
+            events: state.events, factions: state.factions, secrets: state.secrets,
+            activeLocalMapId: state.activeLocalMapId, viewedEntityId: state.viewedEntityId,
+            combat: state.combat, nodes: state.nodes, edges: state.edges
           };
         }
 
+        // Получаем данные нового мира или ЖЕСТКИЙ пустой шаблон
         const nextWorldData = newSavedWorlds[newId] || getEmptyWorldState();
 
+        // ЯДЕРНАЯ ОЧИСТКА: собираем все ключи текущего стейта, которые относятся к данным мира,
+        // и принудительно обнуляем их (undefined), чтобы Zustand их удалил/затер перед накатыванием новых.
+        const wipeState: any = {};
+        Object.keys(getEmptyWorldState()).forEach((key) => {
+          // @ts-ignore
+          wipeState[key] = undefined; // Заставляем Zustand забыть эти ключи
+        });
+
         return {
-          ...getEmptyWorldState(),
-          ...nextWorldData,
+          ...state,           // сохраняем системные вещи (если есть)
+          ...wipeState,       // принудительно стираем активные данные
+          ...nextWorldData,   // накатываем чистое состояние или загруженный мир
           savedWorlds: newSavedWorlds,
           activeWorldId: newId,
         };
