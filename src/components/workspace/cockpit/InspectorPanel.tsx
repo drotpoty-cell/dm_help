@@ -1,8 +1,9 @@
-import React from 'react';
-import { X, Shield, Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Shield, Heart, Sparkles, Loader2 } from 'lucide-react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 
 export const InspectorPanel = () => {
+  const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const { 
     viewedEntityId, 
     setViewedEntityId, 
@@ -19,6 +20,25 @@ export const InspectorPanel = () => {
     openLocalMap,
     setActiveView
   } = useWorkspaceStore();
+
+  const handleAIGenerate = async (field: string, contextPrompt: string) => {
+    setIsGenerating(field);
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: contextPrompt }),
+      });
+      const data = await response.json();
+      if (data.text) {
+        updateEntity('extras', entity.id, { [field]: data.text });
+      }
+    } catch (error) {
+      console.error('AI Generation error:', error);
+    } finally {
+      setIsGenerating(null);
+    }
+  };
 
   const allEntities = {
     ...heroes,
@@ -94,15 +114,45 @@ export const InspectorPanel = () => {
           {entity.tokenType === 'poi' && (
             <div className="space-y-4">
               <input value={entity.name} onChange={(e) => updateEntity('extras', entity.id, { name: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-lg font-bold" />
-              <textarea value={entity.description} onChange={(e) => updateEntity('extras', entity.id, { description: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-sm h-32" placeholder="Описание..." />
+              <div className="relative">
+                <textarea value={entity.description} onChange={(e) => updateEntity('extras', entity.id, { description: e.target.value })} className="w-full bg-neutral-900 text-white p-2 pr-10 rounded text-sm h-32" placeholder="Описание..." />
+                <button 
+                  onClick={() => handleAIGenerate('description', `Сгенерируй атмосферное описание для точки интереса с названием: ${entity.name}.`)}
+                  disabled={isGenerating === 'description'}
+                  className="absolute top-2 right-2 p-2 text-indigo-400 hover:text-indigo-300 disabled:text-neutral-600"
+                >
+                  {isGenerating === 'description' ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                </button>
+              </div>
             </div>
           )}
           {entity.tokenType === 'check' && (
             <div className="space-y-4">
               <input value={entity.name} onChange={(e) => updateEntity('extras', entity.id, { name: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-lg font-bold" />
               <textarea value={entity.context || ''} onChange={(e) => updateEntity('extras', entity.id, { context: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-sm h-20" placeholder="Что происходит..." />
-              <textarea value={entity.successResult || ''} onChange={(e) => updateEntity('extras', entity.id, { successResult: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-sm h-20" placeholder="Результат успеха..." />
-              <textarea value={entity.failureResult || ''} onChange={(e) => updateEntity('extras', entity.id, { failureResult: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-sm h-20" placeholder="Результат провала..." />
+              
+              <div className="relative">
+                <textarea value={entity.successResult || ''} onChange={(e) => updateEntity('extras', entity.id, { successResult: e.target.value })} className="w-full bg-neutral-900 text-white p-2 pr-10 rounded text-sm h-20" placeholder="Результат успеха..." />
+                <button 
+                  onClick={() => handleAIGenerate('successResult', `Сгенерируй описание успеха для проверки "${entity.name}" при контексте: ${entity.context || 'без контекста'}.`)}
+                  disabled={isGenerating === 'successResult'}
+                  className="absolute top-2 right-2 p-2 text-indigo-400 hover:text-indigo-300 disabled:text-neutral-600"
+                >
+                  {isGenerating === 'successResult' ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                </button>
+              </div>
+
+              <div className="relative">
+                <textarea value={entity.failureResult || ''} onChange={(e) => updateEntity('extras', entity.id, { failureResult: e.target.value })} className="w-full bg-neutral-900 text-white p-2 pr-10 rounded text-sm h-20" placeholder="Результат провала..." />
+                <button 
+                  onClick={() => handleAIGenerate('failureResult', `Сгенерируй описание провала для проверки "${entity.name}" при контексте: ${entity.context || 'без контекста'}.`)}
+                  disabled={isGenerating === 'failureResult'}
+                  className="absolute top-2 right-2 p-2 text-indigo-400 hover:text-indigo-300 disabled:text-neutral-600"
+                >
+                  {isGenerating === 'failureResult' ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                </button>
+              </div>
+
               <div className="flex items-center gap-2">
                 <label className="text-sm">Сложность (DC):</label>
                 <input type="number" value={entity.dc || 0} onChange={(e) => updateEntity('extras', entity.id, { dc: parseInt(e.target.value) || 0 })} className="w-16 bg-neutral-900 text-white p-2 rounded" />
