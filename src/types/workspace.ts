@@ -220,6 +220,7 @@ export interface WorkspaceState {
   extras: Record<string, any>
   bestiary: Record<string, any>
   factions: Record<string, any>
+  crowd: Record<string, any>
 
   combat: CombatState;
   startCombat: (mapId: string) => void;

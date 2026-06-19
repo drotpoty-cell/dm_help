@@ -37,6 +37,7 @@ export const getEmptyWorldState = () => ({
   extras: {},
   bestiary: {},
   factions: {},
+  crowd: {},
   plotNodes: {},
   localMaps: {},
   activeLocalMapId: null,
@@ -594,10 +595,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         if (data.crowd && Array.isArray(data.crowd)) {
           data.crowd.forEach((item: any) => {
             if (item.id) {
-              updatedExtras[item.id] = {
-                ...updatedExtras[item.id],
+              state.crowd[item.id] = {
+                ...state.crowd[item.id],
                 id: item.id,
-                type: 'crowd',
                 name: item.name || 'Болванчик',
                 description: item.description || ''
               };
@@ -609,7 +609,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           plotNodes: updatedPlotNodes,
           npcs: updatedNpcs,
           enemies: state.enemies,
-          extras: updatedExtras
+          extras: updatedExtras,
+          crowd: { ...state.crowd, ...data.crowd?.reduce((acc: any, item: any) => ({ ...acc, [item.id]: item }), {}) }
         };
       }),
       
@@ -677,6 +678,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         extras: state.extras,
         bestiary: state.bestiary,
         factions: state.factions,
+        crowd: state.crowd,
         currentDay: state.currentDay,
         currentHour: state.currentHour,
         weather: state.weather,
