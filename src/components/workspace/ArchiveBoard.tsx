@@ -68,8 +68,12 @@ export default function ArchiveBoard() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   
   const [isLootModalOpen, setIsLootModalOpen] = useState(false)
+  const [isAiImportOpen, setIsAiImportOpen] = useState(false)
+  const [aiJsonInput, setAiJsonInput] = useState('')
   const [promptCopied, setPromptCopied] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  const importAIData = useWorkspaceStore((state) => (state as any).importAIData)
 
   const AI_SYSTEM_PROMPT = `Ты — профессиональный гейм-мастер и сценарист настольных ролевых игр. Я дам тебе пустой JSON-шаблон структуры моей кампании. Твоя задача — полностью заполнить его интересным, глубоким и структурированным лором, NPC, квестами и локациями на основе моего текстового запроса.
 
@@ -376,6 +380,12 @@ export default function ArchiveBoard() {
         <div className="max-w-5xl mx-auto">
           <div className="mb-6 flex justify-end gap-2">
             <button
+              onClick={() => setIsAiImportOpen(true)}
+              className="text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-800 hover:border-indigo-500 transition-colors"
+            >
+              Импортировать данные ИИ
+            </button>
+            <button
               onClick={() => {
                 navigator.clipboard.writeText(generateAIPromptTemplate())
                 toast.success('Шаблон скопирован!')
@@ -395,6 +405,39 @@ export default function ArchiveBoard() {
               {promptCopied ? '✓ Промпт скопирован!' : 'Скопировать промпт для ИИ'}
             </button>
           </div>
+          
+          {isAiImportOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+              <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl w-full max-w-lg">
+                <h3 className="text-sm font-bold text-zinc-300 mb-4 uppercase tracking-wider">Импорт данных ИИ</h3>
+                <textarea
+                  value={aiJsonInput}
+                  onChange={(e) => setAiJsonInput(e.target.value)}
+                  placeholder="Вставьте сюда JSON, сгенерированный ИИ..."
+                  className="w-full h-64 bg-zinc-900 border border-zinc-800 p-4 text-xs text-zinc-300 rounded mb-4 resize-none"
+                />
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setIsAiImportOpen(false)} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-300">Отмена</button>
+                  <button
+                    onClick={() => {
+                      try {
+                        const parsedData = JSON.parse(aiJsonInput);
+                        importAIData(parsedData);
+                        setAiJsonInput('');
+                        setIsAiImportOpen(false);
+                        toast.success('Данные успешно импортированы!');
+                      } catch (e) {
+                        alert("Ошибка валидации JSON. Убедитесь, что текст скопирован полностью и не содержит лишней разметки.");
+                      }
+                    }}
+                    className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-indigo-900 text-indigo-100 rounded hover:bg-indigo-800"
+                  >
+                    Подтвердить импорт
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <ArchiveHeader
             tabs={tabs}
             activeTab={activeTab === 'interactive' ? 'extras' : activeTab}

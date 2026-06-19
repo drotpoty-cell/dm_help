@@ -221,6 +221,7 @@ export interface WorkspaceState {
   addLocalToken: (locationId: string, token: BattleToken) => void;
   removeLocalToken: (locationId: string, tokenId: string) => void;
 
+  importAIData: (data: any) => void;
   setNodes: (nodes: Node[]) => void
   setEdges: (edges: Edge[]) => void
   updateEdgeData: (edgeId: string, data: any) => void

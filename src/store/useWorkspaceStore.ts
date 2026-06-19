@@ -528,7 +528,68 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         if (type === 'npc' && state.npcs[targetId]) return { npcs: { ...state.npcs, [targetId]: { ...state.npcs[targetId], needsUpdate: false } } }
         if (type === 'character' && state.characters[targetId]) return { characters: { ...state.characters, [targetId]: { ...state.characters[targetId], needsUpdate: false } } }
         return state
+      }),
+
+      importAIData: (data) => set((state: any) => {
+        const updatedPlotNodes = { ...state.plotNodes };
+        const updatedNpcs = { ...state.npcs };
+        const updatedExtras = { ...state.extras };
+
+        if (data.plotNodes && Array.isArray(data.plotNodes)) {
+          data.plotNodes.forEach((node: any) => {
+            if (node.id) {
+              updatedPlotNodes[node.id] = {
+                id: node.id,
+                title: node.title || '',
+                description: node.description || '',
+                status: node.status || 'hidden'
+              };
+            }
+          });
+        }
+
+        if (data.npcs && Array.isArray(data.npcs)) {
+          data.npcs.forEach((npc: any) => {
+            if (npc.id) {
+              updatedNpcs[npc.id] = {
+                ...updatedNpcs[npc.id],
+                id: npc.id,
+                name: npc.name || 'Без имени',
+                description: npc.description || '',
+                hp: npc.hp || 10,
+                maxHp: npc.maxHp || 10,
+                ac: npc.ac || 10,
+                passivePerception: npc.passivePerception || 10,
+                inventory: npc.inventory || '',
+                needsUpdate: false
+              };
+            }
+          });
+        }
+
+        if (data.interactiveObjects && Array.isArray(data.interactiveObjects)) {
+          data.interactiveObjects.forEach((obj: any) => {
+            if (obj.id) {
+              updatedExtras[obj.id] = {
+                ...updatedExtras[obj.id],
+                id: obj.id,
+                type: obj.type || 'poi',
+                name: obj.name || 'Объект',
+                description: obj.description || '',
+                linkedNodeId: obj.linkedNodeId || null,
+                locationId: obj.locationId || null
+              };
+            }
+          });
+        }
+
+        return {
+          plotNodes: updatedPlotNodes,
+          npcs: updatedNpcs,
+          extras: updatedExtras
+        };
       })
+
     }),
     {
       name: 'gm-workspace-storage',
