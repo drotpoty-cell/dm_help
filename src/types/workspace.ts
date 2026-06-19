@@ -153,7 +153,7 @@ export interface StoryPart {
   chapters: StoryChapter[];
 }
 
-export type LibraryCategory = 'heroes' | 'npcs' | 'quests' | 'locations' | 'loot' | 'events' | 'extras' | 'factions' | 'secrets' | 'characters' | 'bestiary' | 'interactive'
+export type LibraryCategory = 'heroes' | 'npcs' | 'quests' | 'locations' | 'loot' | 'events' | 'extras' | 'factions' | 'secrets' | 'characters' | 'bestiary' | 'interactive' | 'enemies'
 
 export interface BattleToken {
   id: string; // уникальный ID токена на карте

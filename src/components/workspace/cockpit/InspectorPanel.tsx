@@ -281,7 +281,6 @@ export const InspectorPanel = () => {
             </button>
           )}
 
-
           {!entity.tokenType && (entity.description || entity.content) && (
             <p className="text-sm leading-relaxed">{entity.description || entity.content}</p>
           )}
