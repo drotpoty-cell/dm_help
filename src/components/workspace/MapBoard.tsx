@@ -19,8 +19,8 @@ const MapBoard = () => {
     activeView, activeLocalMapId
   } = useWorkspaceStore();
 
-  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
-
+  const [isArchivePanelOpen, setIsArchivePanelOpen] = useState(false);
+  
   const memoNodeTypes = useMemo(() => nodeTypes, []);
   const memoEdgeTypes = useMemo(() => ({ travel: TravelEdge }), []);
 
@@ -33,16 +33,21 @@ const MapBoard = () => {
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges(applyEdgeChanges(changes, edges)), [edges, setEdges]);
   const onConnect = useCallback((params: Connection | Edge) => setEdges(addEdge({ ...params, type: 'travel', data: { days: 0, hours: 0 } }, edges)), [edges, setEdges]);
 
-  const addLocationNode = () => {
-    const location = locations[selectedLocationId];
-    if (!location) return;
+  const availableLocations = useMemo(() => {
+    return Object.values(locations).filter(
+      (loc) => !nodes.some((node) => node.data?.entityId === loc.id)
+    );
+  }, [locations, nodes]);
+
+  const addLocationNode = (loc: any) => {
     const newNode = {
       id: `node-${Date.now()}`,
       type: 'safe',
       position: { x: 100, y: 100 },
-      data: { label: location.name, entityId: location.id, description: location.description || '' }
+      data: { label: loc.name, entityId: loc.id, description: loc.description || '' }
     };
     setNodes([...nodes, newNode]);
+    setIsArchivePanelOpen(false);
   };
 
   const handleNodeDoubleClick = (node: Node) => {
@@ -92,24 +97,42 @@ const MapBoard = () => {
 
   return (
     <div className="w-full h-full relative" ref={paneRef}>
-      <div className="absolute top-4 left-4 z-40 bg-zinc-900 border border-zinc-800 p-3 rounded-lg flex flex-col gap-2">
-        <select
-          value={selectedLocationId}
-          onChange={(e) => setSelectedLocationId(e.target.value)}
-          className="bg-zinc-950 text-white text-xs p-1 rounded border border-zinc-700"
-        >
-          <option value="">Выберите локацию...</option>
-          {Object.values(locations || {}).map((loc: any) => (
-            <option key={loc.id} value={loc.id}>{loc.name}</option>
-          ))}
-        </select>
+      <div className="absolute top-4 left-4 z-40">
         <button
-          onClick={addLocationNode}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-1 px-2 rounded"
+          onClick={() => setIsArchivePanelOpen(!isArchivePanelOpen)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-4 rounded-lg shadow-lg flex items-center gap-2"
         >
-          + Добавить на канвас
+          <span>📁</span> Локации из Архива
         </button>
       </div>
+
+      {isArchivePanelOpen && (
+        <div className="absolute top-16 left-4 z-40 w-72 h-[calc(100%-5rem)] bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl overflow-hidden flex flex-col">
+          <div className="p-3 border-b border-zinc-800 font-bold text-white flex justify-between items-center">
+            <span>Доступные локации</span>
+            <button onClick={() => setIsArchivePanelOpen(false)} className="text-zinc-500 hover:text-white">✕</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 gap-2 flex flex-col">
+            {availableLocations.length > 0 ? (
+              availableLocations.map((loc: any) => (
+                <div
+                  key={loc.id}
+                  onClick={() => addLocationNode(loc)}
+                  className="p-3 bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-700 cursor-pointer transition-colors"
+                >
+                  <div className="text-white font-medium">{loc.name}</div>
+                  <div className="text-xs text-zinc-400">{loc.type || 'Локация'}</div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-zinc-500 text-sm italic">
+                Все локации из Архива уже на карте или Архив пуст.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <ReactFlow
         nodes={nodes} edges={edges}
         nodeTypes={memoNodeTypes} edgeTypes={memoEdgeTypes}
