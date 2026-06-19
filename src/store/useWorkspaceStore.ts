@@ -592,6 +592,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       }),
       
       switchWorld: (newId: string) => set((state: any) => {
+        // Если Zustand еще не завершил rehydrate() из localStorage, полностью блокируем выполнение
+        if (!useWorkspaceStore.persist?.hasHydrated()) return state;
+
         if (state.activeWorldId === newId) return state;
 
         const newSavedWorlds = { ...state.savedWorlds };

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useStoreHydration } from '@/hooks/useStoreHydration';
 import CockpitHeader from '@/components/workspace/cockpit/CockpitHeader';
 import { InspectorPanel } from '@/components/workspace/cockpit/InspectorPanel';
 import CockpitSidebar from '@/components/workspace/cockpit/CockpitSidebar';
@@ -16,10 +17,14 @@ import HeroesBoard from '@/components/workspace/HeroesBoard';
 
 export default function WorkspacePage({ params }: { params: { id: string } }) {
   const { activeView, activeLocalMapId, switchWorld } = useWorkspaceStore();
+  const hydrated = useStoreHydration();
 
   useEffect(() => {
-    switchWorld(params.id);
-  }, [params.id, switchWorld]);
+    if (!hydrated) return;
+    if (params.id) {
+      switchWorld(params.id);
+    }
+  }, [params.id, hydrated, switchWorld]);
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col bg-neutral-950 text-neutral-200">
