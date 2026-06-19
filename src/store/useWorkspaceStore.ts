@@ -45,6 +45,8 @@ export const getEmptyWorldState = () => ({
   partyLocationId: null,
   currentDay: 1,
   currentHour: 8,
+  activeWorldId: null,
+  savedWorlds: {},
   combat: { isActive: false, turnIndex: 0, participants: [] },
   weather: { mode: 'disabled' as const, condition: 'Ясно', temp: 20, interval: 24, hoursSinceChange: 0, climate: 'temperate' as const, forecast: {} }
 })
@@ -589,7 +591,35 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         };
       }),
       
-      resetWorld: () => set(getEmptyWorldState())
+      switchWorld: (newId: string) => set((state: any) => {
+        if (state.activeWorldId === newId) return state;
+
+        const newSavedWorlds = { ...state.savedWorlds };
+
+        if (state.activeWorldId) {
+          newSavedWorlds[state.activeWorldId] = {
+            heroes: state.heroes,
+            npcs: state.npcs,
+            plotNodes: state.plotNodes,
+            extras: state.extras,
+            locations: state.locations,
+            activeLocalMapId: state.activeLocalMapId,
+            viewedEntityId: state.viewedEntityId,
+            combat: state.combat,
+            nodes: state.nodes,
+            edges: state.edges
+          };
+        }
+
+        const nextWorldData = newSavedWorlds[newId] || getEmptyWorldState();
+
+        return {
+          ...nextWorldData,
+          savedWorlds: newSavedWorlds,
+          activeWorldId: newId,
+        };
+      }),
+      // resetWorld: () => set(getEmptyWorldState())
     }),
     {
       name: 'gm-assistant-storage',

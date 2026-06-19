@@ -15,11 +15,11 @@ import StoryBoard from '@/components/workspace/StoryBoard';
 import HeroesBoard from '@/components/workspace/HeroesBoard';
 
 export default function WorkspacePage({ params }: { params: { id: string } }) {
-  const { activeView, activeLocalMapId, resetWorld } = useWorkspaceStore();
+  const { activeView, activeLocalMapId, switchWorld } = useWorkspaceStore();
 
   useEffect(() => {
-    resetWorld();
-  }, [params.id, resetWorld]);
+    switchWorld(params.id);
+  }, [params.id, switchWorld]);
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col bg-neutral-950 text-neutral-200">

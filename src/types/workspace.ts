@@ -249,11 +249,14 @@ export interface WorkspaceState {
   activeView: string
   setActiveView: (view: string) => void
 
+  activeWorldId: string | null;
+  savedWorlds: Record<string, any>;
+  switchWorld: (newId: string) => void;
+  
   scratchpad: string
   isScratchpadOpen: boolean
   setScratchpad: (text: string) => void
   toggleScratchpad: () => void
-  resetWorld: () => void
 }
 
 export type LibraryState = Pick<
