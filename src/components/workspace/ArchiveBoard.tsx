@@ -35,6 +35,7 @@ import {
   type Quest
 } from '@/types/workspace'
 import { BestiaryForm } from '@/components/workspace/archive/BestiaryForm'
+import { EnemyForm } from '@/components/workspace/archive/EnemyForm'
 import { FactionForm } from '@/components/workspace/archive/FactionForm'
 import { HeroForm } from '@/components/workspace/archive/HeroForm'
 import { NpcForm } from '@/components/workspace/archive/NpcForm'
@@ -469,6 +470,7 @@ export default function ArchiveBoard() {
                   {activeTab === 'crowd' && <CrowdForm crowd={selectedEntity} nodes={nodes} onUpdate={(data) => updateEntity('crowd', selectedEntity.id, data)} />}
                   {activeTab === 'characters' && <CharacterForm character={selectedEntity} onUpdate={(data) => updateEntity('characters', selectedEntity.id, data)} />}
                   {activeTab === 'npcs' && <NpcForm npc={selectedEntity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', selectedEntity.id, data)} />}
+                  {activeTab === 'enemies' && <EnemyForm enemy={selectedEntity as Enemy} onUpdate={(data) => updateEntity('enemies', selectedEntity.id, data)} />}
                   {activeTab === 'loot' && <LootForm loot={selectedEntity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', selectedEntity.id, data)} />}
                   {activeTab === 'events' && <EventForm event={selectedEntity as Event} onUpdate={(data) => updateEntity('events', selectedEntity.id, data)} />}
                   {activeTab === 'bestiary' && <BestiaryForm threat={selectedEntity} onUpdate={(data) => updateEntity('bestiary', selectedEntity.id, data)} />}
