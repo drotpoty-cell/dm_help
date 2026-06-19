@@ -28,17 +28,17 @@ export const getEmptyWorldState = () => ({
   heroes: {},
   npcs: {},
   enemies: {},
-  quests: {},
+  crowd: {},
   locations: {},
-  secrets: {},
+  plotNodes: {},
+  extras: {},
+  quests: {},
   loot: {},
   events: {},
-  characters: {},
-  extras: {},
-  bestiary: {},
   factions: {},
-  crowd: {},
-  plotNodes: {},
+  secrets: {},
+  characters: {},
+  bestiary: {},
   localMaps: {},
   activeLocalMapId: null,
   viewedEntityId: null,
@@ -535,82 +535,28 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       }),
 
       importAIData: (data) => set((state: any) => {
-        const updatedPlotNodes = { ...state.plotNodes };
-        const updatedNpcs = { ...state.npcs };
-        const updatedExtras = { ...state.extras };
-
-        if (data.plotNodes && Array.isArray(data.plotNodes)) {
-          data.plotNodes.forEach((node: any) => {
-            if (node.id) {
-              updatedPlotNodes[node.id] = {
-                id: node.id,
-                title: node.title || '',
-                description: node.description || '',
-                status: node.status || 'hidden'
-              };
-            }
-          });
-        }
-
-        if (data.npcs && Array.isArray(data.npcs)) {
-          data.npcs.forEach((npc: any) => {
-            if (npc.id) {
-              updatedNpcs[npc.id] = {
-                ...updatedNpcs[npc.id],
-                id: npc.id,
-                name: npc.name || 'Без имени',
-                description: npc.description || '',
-                hp: npc.hp || 10,
-                maxHp: npc.maxHp || 10,
-                ac: npc.ac || 10,
-                passivePerception: npc.passivePerception || 10,
-                inventory: npc.inventory || '',
-                isMerchant: npc.isMerchant || false,
-                assortment: npc.assortment || [],
-                needsUpdate: false
-              };
-            }
-          });
-        }
-
-        if (data.enemies && Array.isArray(data.enemies)) {
-          data.enemies.forEach((enemy: any) => {
-            if (enemy.id) {
-              state.enemies[enemy.id] = {
-                id: enemy.id,
-                name: enemy.name || 'Противник',
-                description: enemy.description || '',
-                hp: enemy.hp || 10,
-                maxHp: enemy.maxHp || 10,
-                ac: enemy.ac || 10,
-                cr: enemy.cr || '1',
-                attacks: enemy.attacks || '',
-                isMerchant: enemy.isMerchant || false,
-                assortment: enemy.assortment || []
-              };
-            }
-          });
-        }
-
-        if (data.crowd && Array.isArray(data.crowd)) {
-          data.crowd.forEach((item: any) => {
-            if (item.id) {
-              state.crowd[item.id] = {
-                ...state.crowd[item.id],
-                id: item.id,
-                name: item.name || 'Болванчик',
-                description: item.description || ''
-              };
-            }
-          });
-        }
+        const mergeData = (stateRecord: Record<string, any>, dataArray: any[]) => {
+          const result = { ...stateRecord };
+          if (Array.isArray(dataArray)) {
+            dataArray.forEach((item: any) => {
+              if (item.id) result[item.id] = { ...result[item.id], ...item };
+            });
+          }
+          return result;
+        };
 
         return {
-          plotNodes: updatedPlotNodes,
-          npcs: updatedNpcs,
-          enemies: state.enemies,
-          extras: updatedExtras,
-          crowd: { ...state.crowd, ...data.crowd?.reduce((acc: any, item: any) => ({ ...acc, [item.id]: item }), {}) }
+          plotNodes: mergeData(state.plotNodes, data.plotNodes),
+          npcs: mergeData(state.npcs, data.npcs),
+          enemies: mergeData(state.enemies, data.enemies),
+          crowd: mergeData(state.crowd, data.crowd),
+          locations: mergeData(state.locations, data.locations),
+          quests: mergeData(state.quests, data.quests),
+          loot: mergeData(state.loot, data.loot),
+          events: mergeData(state.events, data.events),
+          factions: mergeData(state.factions, data.factions),
+          secrets: mergeData(state.secrets, data.secrets),
+          extras: mergeData(state.extras, data.extras)
         };
       }),
       
