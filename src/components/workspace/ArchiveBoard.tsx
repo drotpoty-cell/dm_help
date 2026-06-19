@@ -61,7 +61,7 @@ const isArchiveLike = (v: unknown) => {
 }
 
 export default function ArchiveBoard() {
-  const [activeTab, setActiveTab] = useState<LibraryCategory>('heroes')
+  const [activeTab, setActiveTab] = useState<LibraryCategory | 'interactive'>('heroes')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
@@ -126,7 +126,8 @@ export default function ArchiveBoard() {
     { id: 'locations', label: 'ЛОКАЦИИ' },
     { id: 'quests', label: 'СЮЖЕТЫ' },
     { id: 'loot', label: 'АРТЕФАКТЫ' },
-    { id: 'events', label: 'СОБЫТИЯ' }
+    { id: 'events', label: 'СОБЫТИЯ' },
+    { id: 'interactive', label: 'ИНТЕРАКТИВНЫЕ ОБЪЕКТЫ' }
   ]
 
   const handleExport = () => {
@@ -277,7 +278,7 @@ export default function ArchiveBoard() {
                           ? ({ ...base, name: 'Новая локация', secrets: '', charactersInside: '', currentState: '', status: 'discovered' } as any)
                           : base
 
-    addEntity(activeTab, newEntity)
+    addEntity(activeTab as LibraryCategory, newEntity)
   }
 
   const handlePlaceOnMap = (entity: any) => {
@@ -292,12 +293,27 @@ export default function ArchiveBoard() {
     }
   }
 
-  const currentItems = Object.values(library[activeTab] || {})
+  const currentItems = useMemo(() => {
+    if (activeTab === 'interactive') {
+      const allExtras = Object.values(library.extras || {}) as any[];
+      return allExtras.filter(item => item.tokenType === 'poi' || item.tokenType === 'check');
+    }
+    return Object.values(library[activeTab as LibraryCategory] || {})
+  }, [library, activeTab])
+
+  const getLocationName = (locationId?: string) => {
+    if (!locationId) return "Локация неизвестна"
+    const location = library.locations?.[locationId]
+    return location?.name || "Локация неизвестна"
+  }
   
   const selectedEntity = useMemo(() => {
     if (!selectedEntityId) return null
+    if (activeTab === 'interactive') {
+      return (currentItems as any[]).find(e => e.id === selectedEntityId) || null
+    }
     return (currentItems as ArchiveEntity[]).find(e => e.id === selectedEntityId) || null
-  }, [selectedEntityId, currentItems])
+  }, [selectedEntityId, currentItems, activeTab])
 
   const npcsList = useMemo(() => Object.values(library.npcs || {}) as NPC[], [library.npcs])
   const charactersList = useMemo(() => Object.values(library.characters || {}), [library.characters])
@@ -313,7 +329,7 @@ export default function ArchiveBoard() {
     return items.sort((a, b) => ((a as any).order || 0) - ((b as any).order || 0))
   }, [currentItems, normalizedQuery])
 
-  const handleTabChange = (tab: LibraryCategory) => {
+  const handleTabChange = (tab: LibraryCategory | 'interactive') => {
     setActiveTab(tab)
     setSelectedEntityId(null)
     setDeletingId(null)
@@ -330,7 +346,7 @@ export default function ArchiveBoard() {
       const newItems = arrayMove(filteredItems, oldIndex, newIndex);
 
       newItems.forEach((item, index) => {
-        updateEntity(activeTab, item.id, { order: index });
+        updateEntity(activeTab as LibraryCategory, item.id, { order: index });
       });
     }
   }
@@ -369,7 +385,7 @@ export default function ArchiveBoard() {
           </div>
           <ArchiveHeader
             tabs={tabs}
-            activeTab={activeTab}
+            activeTab={activeTab === 'interactive' ? 'extras' : activeTab}
             setActiveTab={setActiveTab}
             query={query}
             setQuery={setQuery}
@@ -393,19 +409,37 @@ export default function ArchiveBoard() {
               strategy={rectSortingStrategy}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredItems.map((entity: ArchiveEntity) => (
+                {filteredItems.map((entity: any) => (
                   <div key={entity.id} className="flex flex-col">
-                    <EntityCard
-                      entity={entity as any}
-                      type={activeTab}
-                      isActive={selectedEntityId === entity.id}
+                    <div 
                       onClick={() => setSelectedEntityId(selectedEntityId === entity.id ? null : entity.id)}
-                    />
+                      className="cursor-pointer"
+                    >
+                      {activeTab === 'interactive' ? (
+                        <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl hover:border-indigo-500 transition-colors">
+                          <div className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-1">
+                            {entity.tokenType === 'poi' ? 'POI' : 'Проверка'}
+                          </div>
+                          <div className="text-sm font-bold text-zinc-200 mb-1">{entity.name}</div>
+                          <div className="text-[10px] text-zinc-500">
+                            Локация: {getLocationName(entity.locationId)}
+                          </div>
+                        </div>
+                      ) : (
+                        <EntityCard
+                          entity={entity as any}
+                          type={activeTab as any}
+                          isActive={selectedEntityId === entity.id}
+                          onClick={() => {}}
+                        />
+                      )}
+                    </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
+                        const targetCategory = activeTab === 'interactive' ? 'extras' : activeTab
                         if (deletingId === entity.id) {
-                          deleteEntity(activeTab, entity.id)
+                          deleteEntity(targetCategory as LibraryCategory, entity.id)
                           setDeletingId(null)
                           if (selectedEntityId === entity.id) setSelectedEntityId(null)
                         } else {
@@ -441,7 +475,7 @@ export default function ArchiveBoard() {
                 </div>
                 <div className="overflow-y-auto p-6 custom-scrollbar">
                   {activeTab === 'heroes' && <HeroForm hero={selectedEntity as Hero} onUpdate={(data) => updateEntity('heroes', selectedEntity.id, data)} />}
-                  {activeTab === 'extras' && <ExtraForm extra={selectedEntity} nodes={nodes} onUpdate={(data) => updateEntity('extras', selectedEntity.id, data)} />}
+                  {activeTab === 'extras' || activeTab === 'interactive' && <ExtraForm extra={selectedEntity} nodes={nodes} onUpdate={(data) => updateEntity('extras', selectedEntity.id, data)} />}
                   {activeTab === 'characters' && <CharacterForm character={selectedEntity} onUpdate={(data) => updateEntity('characters', selectedEntity.id, data)} />}
                   {activeTab === 'npcs' && <NpcForm npc={selectedEntity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', selectedEntity.id, data)} />}
                   {activeTab === 'loot' && <LootForm loot={selectedEntity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', selectedEntity.id, data)} />}
