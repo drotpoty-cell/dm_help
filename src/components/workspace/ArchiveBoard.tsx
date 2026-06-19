@@ -44,6 +44,7 @@ import { LootForm } from '@/components/workspace/archive/LootForm'
 import { EventForm } from '@/components/workspace/archive/EventForm'
 import { LocationForm } from '@/components/workspace/archive/LocationForm'
 import LootGeneratorModal from '@/components/workspace/ai/LootGeneratorModal'
+import { generateAIPromptTemplate } from '@/utils/aiTemplateGenerator'
 import { toast } from 'sonner'
 import EntityCard from './archive/EntityCard'
 import { ArchiveHeader } from './archive/ArchiveHeader'
@@ -373,7 +374,16 @@ export default function ArchiveBoard() {
 
       <div className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-5xl mx-auto">
-          <div className="mb-6 flex justify-end">
+          <div className="mb-6 flex justify-end gap-2">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(generateAIPromptTemplate())
+                toast.success('Шаблон скопирован!')
+              }}
+              className="text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded bg-indigo-900/40 text-indigo-400 border border-indigo-800 hover:text-indigo-300 transition-colors"
+            >
+              Выгрузить шаблон для ИИ
+            </button>
             <button
               onClick={handleCopyPrompt}
               className={`text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded transition-colors ${
