@@ -572,9 +572,16 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           newSavedWorlds[state.activeWorldId] = {
             heroes: state.heroes,
             npcs: state.npcs,
+            enemies: state.enemies,
+            crowd: state.crowd,
+            locations: state.locations,
             plotNodes: state.plotNodes,
             extras: state.extras,
-            locations: state.locations,
+            quests: state.quests,
+            loot: state.loot,
+            events: state.events,
+            factions: state.factions,
+            secrets: state.secrets,
             activeLocalMapId: state.activeLocalMapId,
             viewedEntityId: state.viewedEntityId,
             combat: state.combat,
@@ -586,6 +593,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         const nextWorldData = newSavedWorlds[newId] || getEmptyWorldState();
 
         return {
+          ...getEmptyWorldState(),
           ...nextWorldData,
           savedWorlds: newSavedWorlds,
           activeWorldId: newId,
@@ -615,23 +623,26 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         plotNodes: state.plotNodes,
         heroes: state.heroes,
         npcs: state.npcs,
+        enemies: state.enemies,
+        crowd: state.crowd,
         quests: state.quests,
         locations: state.locations,
         secrets: state.secrets,
         loot: state.loot,
         events: state.events,
+        factions: state.factions,
         characters: state.characters,
         extras: state.extras,
         bestiary: state.bestiary,
-        factions: state.factions,
-        crowd: state.crowd,
         currentDay: state.currentDay,
         currentHour: state.currentHour,
         weather: state.weather,
         partyLocationId: state.partyLocationId,
         activeView: state.activeView,
         localMaps: state.localMaps,
-        combat: state.combat
+        combat: state.combat,
+        savedWorlds: state.savedWorlds,
+        activeWorldId: state.activeWorldId
       })
     }
   )
