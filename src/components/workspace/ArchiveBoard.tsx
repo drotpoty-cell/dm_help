@@ -70,30 +70,9 @@ export default function ArchiveBoard() {
   const [isLootModalOpen, setIsLootModalOpen] = useState(false)
   const [isAiImportOpen, setIsAiImportOpen] = useState(false)
   const [aiJsonInput, setAiJsonInput] = useState('')
-  const [promptCopied, setPromptCopied] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const importAIData = useWorkspaceStore((state) => (state as any).importAIData)
-
-  const AI_SYSTEM_PROMPT = `Ты — профессиональный гейм-мастер и сценарист настольных ролевых игр. Я дам тебе пустой JSON-шаблон структуры моей кампании. Твоя задача — полностью заполнить его интересным, глубоким и структурированным лором, NPC, квестами и локациями на основе моего текстового запроса.
-
-КРИТИЧЕСКИЕ ПРАВИЛА ЗАПОЛНЕНИЯ (НАРУШЕНИЕ СЛОМАЕТ ПРИЛОЖЕНИЕ):
-1. Возвращай СТРОГО один валидный JSON-объект. Никакого лишнего текста, вступлений или заключений до и после JSON кода.
-2. Каждая категория (locations, factions, npcs, characters, extras, quests, loot, events, heroes) должна быть ОБЪЕКТОМ (Record/Словарём), а не массивом. Ключами должны быть уникальные строковые ID (например, "loc_1", "npc_2").
-3. У каждой сущности внутри словаря ОБЯЗАТЕЛЬНО должно быть уникальное числовое поле "order": 1, 2, 3... для работы сортировки Drag & Drop.
-4. Для всех персонажей (категории npcs и heroes) СТРОГО ОБЯЗАТЕЛЬНЫ следующие поля:
-   - "traits": массив строк (например, ["настороженный", "смелый"]), даже если пустой []. Никаких строк через запятую!
-   - "schedule": массив объектов расписания, даже если пустой []. Каждый объект имеет структуру: { "startHour": число, "endHour": число, "locationId": "id_локации", "activity": "занятие" }.
-   - "defaultLocationId": "id_локации" или "".
-   - "locationId": "id_локации" или "".
-   - "currentActivity": "текущее занятие" или "".
-5. Текстовые поля описаний (description, goal, secret) пиши развернуто, атмосферно и подробно. Не используй ленивые сокращения.`
-
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(AI_SYSTEM_PROMPT)
-    setPromptCopied(true)
-    setTimeout(() => setPromptCopied(false), 2000)
-  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -120,7 +99,6 @@ export default function ArchiveBoard() {
 
   const nodes = useWorkspaceStore((state) => state.nodes)
   const setNodes = useWorkspaceStore((state) => state.setNodes)
-  const setLibrary = useWorkspaceStore((state) => state.setLibrary)
   const { addEntity, updateEntity, deleteEntity } = useWorkspaceStore()
 
   const tabs = [
@@ -144,7 +122,6 @@ export default function ArchiveBoard() {
       secrets: Object.values(library.secrets || {}),
       loot: Object.values(library.loot || {}),
       events: Object.values(library.events || {}),
-      // Добавляем сюда для экспорта:
       characters: Object.values(library.characters || {}),
       extras: Object.values(library.extras || {}),
       bestiary: Object.values(library.bestiary || {}),
@@ -393,16 +370,6 @@ export default function ArchiveBoard() {
               className="text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded bg-indigo-900/40 text-indigo-400 border border-indigo-800 hover:text-indigo-300 transition-colors"
             >
               Выгрузить шаблон для ИИ
-            </button>
-            <button
-              onClick={handleCopyPrompt}
-              className={`text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded transition-colors ${
-                promptCopied 
-                  ? 'bg-green-900/40 text-green-400 border border-green-800' 
-                  : 'bg-zinc-900 text-zinc-500 hover:text-indigo-400 border border-zinc-800'
-              }`}
-            >
-              {promptCopied ? '✓ Промпт скопирован!' : 'Скопировать промпт для ИИ'}
             </button>
           </div>
           

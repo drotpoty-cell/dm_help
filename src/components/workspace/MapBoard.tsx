@@ -14,8 +14,12 @@ import CombatTracker from '@/components/workspace/CombatTracker';
 const MapBoard = () => {
   const {
     nodes, edges, setNodes, setEdges,
-    attachToRegion, setPartyLocation
+    attachToRegion, setPartyLocation,
+    locations, setActiveView,
+    activeView, activeLocalMapId
   } = useWorkspaceStore();
+
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
 
   const memoNodeTypes = useMemo(() => nodeTypes, []);
   const memoEdgeTypes = useMemo(() => ({ travel: TravelEdge }), []);
@@ -28,6 +32,24 @@ const MapBoard = () => {
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes(applyNodeChanges(changes, nodes)), [nodes, setNodes]);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges(applyEdgeChanges(changes, edges)), [edges, setEdges]);
   const onConnect = useCallback((params: Connection | Edge) => setEdges(addEdge({ ...params, type: 'travel', data: { days: 0, hours: 0 } }, edges)), [edges, setEdges]);
+
+  const addLocationNode = () => {
+    const location = locations[selectedLocationId];
+    if (!location) return;
+    const newNode = {
+      id: `node-${Date.now()}`,
+      type: 'safe',
+      position: { x: 100, y: 100 },
+      data: { label: location.name, entityId: location.id, description: location.description || '' }
+    };
+    setNodes([...nodes, newNode]);
+  };
+
+  const handleNodeDoubleClick = (node: Node) => {
+    if (node.data?.entityId && locations[node.data.entityId]) {
+      useWorkspaceStore.setState({ activeView: 'map', activeLocalMapId: node.data.entityId });
+    }
+  };
 
   const changeNodeType = useCallback((id: string, newType: string) => {
     setNodes(nodes.map((n) => {
@@ -70,11 +92,30 @@ const MapBoard = () => {
 
   return (
     <div className="w-full h-full relative" ref={paneRef}>
+      <div className="absolute top-4 left-4 z-40 bg-zinc-900 border border-zinc-800 p-3 rounded-lg flex flex-col gap-2">
+        <select
+          value={selectedLocationId}
+          onChange={(e) => setSelectedLocationId(e.target.value)}
+          className="bg-zinc-950 text-white text-xs p-1 rounded border border-zinc-700"
+        >
+          <option value="">Выберите локацию...</option>
+          {Object.values(locations || {}).map((loc: any) => (
+            <option key={loc.id} value={loc.id}>{loc.name}</option>
+          ))}
+        </select>
+        <button
+          onClick={addLocationNode}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-1 px-2 rounded"
+        >
+          + Добавить на канвас
+        </button>
+      </div>
       <ReactFlow
         nodes={nodes} edges={edges}
         nodeTypes={memoNodeTypes} edgeTypes={memoEdgeTypes}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
         onNodeClick={(_, n) => { setSelectedNodeId(n.id); setMenu(null); }}
+        onNodeDoubleClick={(_, n) => handleNodeDoubleClick(n)}
         onNodeContextMenu={onNodeContextMenu} onPaneClick={() => { setSelectedNodeId(null); setMenu(null); }}
         fitView
       >

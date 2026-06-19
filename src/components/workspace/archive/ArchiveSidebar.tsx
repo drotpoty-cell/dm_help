@@ -92,15 +92,6 @@ export const ArchiveSidebar = ({
           </svg>
           Экспорт
         </button>
-
-        <ArchiveTooltip text="Скормите этот шаблон нейросети (ChatGPT/Claude) вместе со своими заметками, чтобы она сгенерировала готовую базу лора, квестов и NPC для загрузки.">
-          <button
-            onClick={handleDownloadTemplate}
-            className="w-full mt-1 text-[9px] text-zinc-500 hover:text-indigo-400 underline decoration-dashed underline-offset-4 transition-colors"
-          >
-            Умный шаблон для ИИ
-          </button>
-        </ArchiveTooltip>
       </div>
     </div>
   )

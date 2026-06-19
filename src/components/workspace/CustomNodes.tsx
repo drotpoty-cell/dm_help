@@ -124,7 +124,7 @@ export const SafeNode = ({ id, data }: any) => {
       <div className="flex items-center gap-2 text-emerald-400 text-[9px] font-black uppercase tracking-widest mb-2">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div> Безопасно
       </div>
-      <div className="text-zinc-100 text-sm font-bold leading-snug pr-2 pb-1">{data.label}</div>
+      <div className="text-zinc-100 text-sm font-bold leading-snug pr-2 pb-1">{data.label || 'Новая локация'}</div>
       <EntityList nodeId={id} />
     </div>
   )
@@ -140,7 +140,7 @@ export const TenseNode = ({ id, data }: any) => {
       <div className="flex items-center gap-2 text-amber-400 text-[9px] font-black uppercase tracking-widest mb-2">
         <div className="w-1.5 h-1.5 rounded-sm bg-amber-400"></div> Напряжение
       </div>
-      <div className="text-zinc-100 text-sm font-bold leading-snug pr-2 pb-1">{data.label}</div>
+      <div className="text-zinc-100 text-sm font-bold leading-snug pr-2 pb-1">{data.label || 'Новая локация'}</div>
       <EntityList nodeId={id} />
     </div>
   )
@@ -156,7 +156,7 @@ export const HostileNode = ({ id, data }: any) => {
       <div className="flex items-center gap-2 text-red-400 text-[9px] font-black uppercase tracking-widest mb-2">
         <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[8px] border-l-transparent border-r-transparent border-b-red-400"></div> Враждебно
       </div>
-      <div className="text-zinc-100 text-sm font-bold leading-snug pr-2 pb-1">{data.label}</div>
+      <div className="text-zinc-100 text-sm font-bold leading-snug pr-2 pb-1">{data.label || 'Новая локация'}</div>
       <EntityList nodeId={id} />
     </div>
   )
