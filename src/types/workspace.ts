@@ -145,6 +145,9 @@ export interface LocalMapData {
   gridOffsetY?: number;
   backgroundScale?: number;
   backgroundRotation?: number;
+  cameraX?: number; // дефолт 0
+  cameraY?: number; // дефолт 0
+  zoom?: number;    // дефолт 1 (диапазон от 0.5 до 3)
   tokens: Record<string, BattleToken>;
 }
 
@@ -201,6 +204,7 @@ export interface WorkspaceState {
   openLocalMap: (locationId: string) => void;
   closeLocalMap: () => void;
   updateLocalMap: (locationId: string, data: Partial<LocalMapData>) => void;
+  updateMapCamera: (locationId: string, camera: { cameraX?: number; cameraY?: number; zoom?: number }) => void;
   updateLocalToken: (locationId: string, tokenId: string, data: Partial<BattleToken>) => void;
   addLocalToken: (locationId: string, token: BattleToken) => void;
   removeLocalToken: (locationId: string, tokenId: string) => void;

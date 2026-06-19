@@ -10,9 +10,11 @@ export const InspectorPanel = () => {
     npcs, 
     updateHero,
     updateNpc,
+    updateEntity,
     locations, 
     quests, 
     loot,
+    extras,
     nodes,
     openLocalMap,
     setActiveView
@@ -23,7 +25,8 @@ export const InspectorPanel = () => {
     ...npcs,
     ...locations,
     ...quests,
-    ...loot
+    ...loot,
+    ...extras
   };
 
   const entity = viewedEntityId ? (allEntities[viewedEntityId] as any) : null;
@@ -87,6 +90,25 @@ export const InspectorPanel = () => {
       
       {entity && (
         <div className="p-5 space-y-4 text-neutral-300">
+          {entity.tokenType === 'poi' && (
+            <div className="space-y-4">
+              <input value={entity.name} onChange={(e) => updateEntity('extras', entity.id, { name: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-lg font-bold" />
+              <textarea value={entity.description} onChange={(e) => updateEntity('extras', entity.id, { description: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-sm h-32" placeholder="Описание..." />
+            </div>
+          )}
+          {entity.tokenType === 'check' && (
+            <div className="space-y-4">
+              <input value={entity.name} onChange={(e) => updateEntity('extras', entity.id, { name: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-lg font-bold" />
+              <textarea value={entity.context} onChange={(e) => updateEntity('extras', entity.id, { context: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-sm h-20" placeholder="Что происходит..." />
+              <textarea value={entity.successResult} onChange={(e) => updateEntity('extras', entity.id, { successResult: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-sm h-20" placeholder="Результат успеха..." />
+              <textarea value={entity.failureResult} onChange={(e) => updateEntity('extras', entity.id, { failureResult: e.target.value })} className="w-full bg-neutral-900 text-white p-2 rounded text-sm h-20" placeholder="Результат провала..." />
+              <div className="flex items-center gap-2">
+                <label className="text-sm">Сложность (DC):</label>
+                <input type="number" value={entity.dc} onChange={(e) => updateEntity('extras', entity.id, { dc: parseInt(e.target.value) })} className="w-16 bg-neutral-900 text-white p-2 rounded" />
+              </div>
+            </div>
+          )}
+          
           {isLocationNode && (
             <button 
               onClick={(e) => {
@@ -100,11 +122,11 @@ export const InspectorPanel = () => {
             </button>
           )}
 
-          {(entity.description || entity.content) && (
+          {!entity.tokenType && (entity.description || entity.content) && (
             <p className="text-sm leading-relaxed">{entity.description || entity.content}</p>
           )}
 
-          {(entity.hp !== undefined || entity.ac !== undefined) && (
+          {!entity.tokenType && (entity.hp !== undefined || entity.ac !== undefined) && (
             <div className="space-y-4 pt-4 border-t border-neutral-800">
               <h3 className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Боевые характеристики</h3>
               

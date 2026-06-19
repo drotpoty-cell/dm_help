@@ -8,7 +8,7 @@ import { TimelineBar } from '@/components/workspace/cockpit/TimelineBar';
 import ArchiveBoard from '@/components/workspace/ArchiveBoard';
 import CalendarBoard from '@/components/workspace/CalendarBoard';
 import WeatherBoard from '@/components/workspace/WeatherBoard';
-import BattleMapBoard from '@/components/workspace/BattleMapBoard';
+import LocalMapBoard from '@/components/workspace/LocalMapBoard';
 import MapBoard from '@/components/workspace/MapBoard';
 import StoryBoard from '@/components/workspace/StoryBoard';
 import HeroesBoard from '@/components/workspace/HeroesBoard';
@@ -31,7 +31,7 @@ export default function WorkspacePage() {
         {/* Центральная зона (Карта) */}
         <section className="flex-1 relative bg-neutral-900">
           {activeView === 'map' && (
-            activeLocalMapId ? <BattleMapBoard /> : <MapBoard />
+            activeLocalMapId ? <LocalMapBoard /> : <MapBoard />
           )}
           {activeView === 'story' && <StoryBoard />}
           {activeView === 'archive' && <ArchiveBoard />}

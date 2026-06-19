@@ -3,7 +3,7 @@
 import React from 'react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 
-const BattleMapBoard = () => {
+const LocalMapBoard = () => {
   const { 
     localMaps, 
     activeLocalMapId,
@@ -12,6 +12,7 @@ const BattleMapBoard = () => {
     removeLocalToken, 
     closeLocalMap,
     updateLocalMap,
+    updateMapCamera,
     addEntity,
     setViewedEntityId,
     heroes, 
@@ -22,6 +23,34 @@ const BattleMapBoard = () => {
   const mapData = activeLocalMapId ? localMaps[activeLocalMapId] : null;
 
   const [tokenMenu, setTokenMenu] = React.useState<{ tokenId: string, entityId: string, x: number, y: number } | null>(null);
+  const [isPanning, setIsPanning] = React.useState(false);
+  const [panStart, setPanStart] = React.useState({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 1 || (e.button === 0 && e.shiftKey)) { // Middle mouse or Shift+Left
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - (mapData?.cameraX || 0), y: e.clientY - (mapData?.cameraY || 0) });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isPanning && activeLocalMapId) {
+      updateMapCamera(activeLocalMapId, { 
+        cameraX: e.clientX - panStart.x,
+        cameraY: e.clientY - panStart.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => setIsPanning(false);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!activeLocalMapId || !mapData) return;
+    const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+    const newZoom = Math.min(Math.max((mapData.zoom || 1) + zoomDelta, 0.5), 3);
+    updateMapCamera(activeLocalMapId, { zoom: newZoom });
+  };
+
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,10 +94,17 @@ const BattleMapBoard = () => {
     addLocalToken(activeLocalMapId, tokenData);
     
     if (type === 'poi' || type === 'check') {
+      const entityId = id; // Используем id токена как baseEntityId для привязки
       addEntity('extras', {
-        id,
+        id: entityId,
+        locationId: activeLocalMapId,
+        tokenId: id,
         name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
-        description: '',
+        description: type === 'poi' ? '' : undefined,
+        context: type === 'check' ? '' : undefined,
+        successResult: type === 'check' ? '' : undefined,
+        failureResult: type === 'check' ? '' : undefined,
+        dc: type === 'check' ? 10 : undefined,
         tokenType: type
       });
     }
@@ -205,7 +241,7 @@ const BattleMapBoard = () => {
             onClick={() => closeLocalMap()}
             className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 w-full text-sm"
           >
-            Выйти из боя
+            Вернуться на карту мира
           </button>
         </div>
 
@@ -213,6 +249,11 @@ const BattleMapBoard = () => {
           className="w-full h-full relative overflow-hidden"
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
         >
           <div
             className="z-0"
@@ -221,8 +262,9 @@ const BattleMapBoard = () => {
               backgroundSize: 'contain', 
               backgroundPosition: 'center', 
               backgroundRepeat: 'no-repeat',
-              transform: `scale(${backgroundScale}) rotate(${backgroundRotation}deg)`,
-              transition: 'transform 0.1s ease-out',
+              transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`,
+              transformOrigin: '0 0',
+              transition: isPanning ? 'none' : 'transform 0.1s ease-out',
               width: '100%', 
               height: '100%', 
               position: 'absolute' 
@@ -237,7 +279,9 @@ const BattleMapBoard = () => {
               width: '100%', 
               height: '100%', 
               position: 'absolute', 
-              pointerEvents: 'none' 
+              pointerEvents: 'none',
+              transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`,
+              transformOrigin: '0 0'
             }}
           />
           {Object.values(mapData.tokens).map((token: any) => {
@@ -263,7 +307,9 @@ const BattleMapBoard = () => {
                   left: token.x * gridSize + offsetX,
                   top: token.y * gridSize + offsetY,
                   width: (token.size || 1) * gridSize,
-                  height: (token.size || 1) * gridSize
+                  height: (token.size || 1) * gridSize,
+                  transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`,
+                  transformOrigin: '0 0'
                 }}
               >
                 {(() => {
@@ -355,4 +401,4 @@ const BattleMapBoard = () => {
   );
 };
 
-export default BattleMapBoard;
+export default LocalMapBoard;

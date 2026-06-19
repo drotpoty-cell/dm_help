@@ -145,6 +145,15 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         return { localMaps, activeLocalMapId: locationId };
       }),
       closeLocalMap: () => set({ activeLocalMapId: null }),
+      updateMapCamera: (locationId: string, camera: { cameraX?: number; cameraY?: number; zoom?: number }) => set((state: any) => ({
+        localMaps: {
+          ...state.localMaps,
+          [locationId]: {
+            ...state.localMaps[locationId],
+            ...camera
+          }
+        }
+      })),
       updateLocalMap: (locationId, data) => set((state: any) => {
         const existingMap = state.localMaps[locationId] || { gridSize: 60, tokens: {}, backgroundImage: null };
         return {
