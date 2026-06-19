@@ -24,14 +24,19 @@ export const InspectorPanel = () => {
   const handleAIGenerate = async (field: string, contextPrompt: string) => {
     setIsGenerating(field);
     try {
-      const response = await fetch('/api/generate', {
+      const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: contextPrompt }),
+        body: JSON.stringify({ 
+          prompt: contextPrompt,
+          systemPrompt: "Ты — креативный помощник Мастера Подземелий D&D 5e."
+        }),
       });
       const data = await response.json();
       if (data.text) {
         updateEntity('extras', entity.id, { [field]: data.text });
+      } else if (data.error) {
+        throw new Error(data.error);
       }
     } catch (error) {
       console.error('AI Generation error:', error);
