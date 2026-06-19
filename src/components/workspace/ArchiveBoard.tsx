@@ -40,6 +40,7 @@ import { HeroForm } from '@/components/workspace/archive/HeroForm'
 import { NpcForm } from '@/components/workspace/archive/NpcForm'
 import { CharacterForm } from '@/components/workspace/archive/CharacterForm'
 import { ExtraForm } from '@/components/workspace/archive/ExtraForm'
+import { CrowdForm } from '@/components/workspace/archive/CrowdForm'
 import { QuestForm } from '@/components/workspace/archive/QuestForm'
 import { LootForm } from '@/components/workspace/archive/LootForm'
 import { EventForm } from '@/components/workspace/archive/EventForm'
@@ -107,7 +108,8 @@ export default function ArchiveBoard() {
     { id: 'heroes', label: 'ГЕРОИ' },
     { id: 'npcs', label: 'ДЕЙСТВУЮЩИЕ ЛИЦА' },
     { id: 'enemies', label: 'ПРОТИВНИКИ' },
-    { id: 'extras', label: 'МАССОВКА' },
+    { id: 'crowd', label: 'МАССОВКА' },
+    { id: 'extras', label: 'ДОП. МАТЕРИАЛЫ' },
     { id: 'factions', label: 'ФРАКЦИИ' },
     { id: 'locations', label: 'ЛОКАЦИИ' },
     { id: 'quests', label: 'СЮЖЕТЫ' },
@@ -461,7 +463,9 @@ export default function ArchiveBoard() {
                 </div>
                 <div className="overflow-y-auto p-6 custom-scrollbar">
                   {activeTab === 'heroes' && <HeroForm hero={selectedEntity as Hero} onUpdate={(data) => updateEntity('heroes', selectedEntity.id, data)} />}
-                  {activeTab === 'extras' || activeTab === 'interactive' && <ExtraForm extra={selectedEntity} nodes={nodes} onUpdate={(data) => updateEntity('extras', selectedEntity.id, data)} />}
+                  {activeTab === 'extras' && <ExtraForm extra={selectedEntity} nodes={nodes} onUpdate={(data) => updateEntity('extras', selectedEntity.id, data)} />}
+                  {activeTab === 'interactive' && <ExtraForm extra={selectedEntity} nodes={nodes} onUpdate={(data) => updateEntity('extras', selectedEntity.id, data)} />}
+                  {activeTab === 'crowd' && <CrowdForm crowd={selectedEntity} nodes={nodes} onUpdate={(data) => updateEntity('crowd', selectedEntity.id, data)} />}
                   {activeTab === 'characters' && <CharacterForm character={selectedEntity} onUpdate={(data) => updateEntity('characters', selectedEntity.id, data)} />}
                   {activeTab === 'npcs' && <NpcForm npc={selectedEntity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', selectedEntity.id, data)} />}
                   {activeTab === 'loot' && <LootForm loot={selectedEntity as Loot} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('loot', selectedEntity.id, data)} />}
