@@ -1,5 +1,12 @@
 import { Node, Edge } from 'reactflow'
 
+export interface PlotNode {
+  id: string;
+  title: string;
+  description: string;
+  status: 'hidden' | 'active' | 'completed';
+}
+
 export type EntityStatus = 'available' | 'active' | 'completed' | 'failed'
 export type LootRarity = 'common' | 'rare' | 'epic' | 'legendary'
 
@@ -15,6 +22,7 @@ export interface Hero {
   initiativeModifier?: number
   passivePerception?: number
   description?: string
+  linkedNodeId?: string;
 }
 
 export type WeatherMode = 'disabled' | 'static' | 'dynamic'
@@ -84,6 +92,7 @@ export interface NPC {
   showSchedule?: boolean;
   defaultLocationId?: string | null; 
   traits?: string[];
+  linkedNodeId?: string;
 }
 
 export interface Loot {
@@ -170,6 +179,7 @@ export interface WorkspaceState {
   nodes: Node[]
   edges: Edge[]
   story: StoryPart[]
+  plotNodes: Record<string, PlotNode>;
 
   currentDay: number
   currentHour: number
@@ -220,6 +230,10 @@ export interface WorkspaceState {
   addEntity: (category: LibraryCategory, entity: any) => void
   updateEntity: (category: LibraryCategory, id: string, data: any) => void
   deleteEntity: (category: LibraryCategory, id: string) => void
+
+  addPlotNode: (node: PlotNode) => void;
+  updatePlotNode: (id: string, data: Partial<PlotNode>) => void;
+  deletePlotNode: (id: string) => void;
 
   updateQuestStatus: (questId: string, newStatus: EntityStatus) => void
   updateHero: (id: string, data: Partial<Hero>) => void

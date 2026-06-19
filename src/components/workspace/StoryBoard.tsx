@@ -122,6 +122,9 @@ export default function StoryBoard() {
   const story = useWorkspaceStore(state => state.story)
   const setStory = useWorkspaceStore(state => state.setStory)
   
+  const plotNodes = useWorkspaceStore(state => state.plotNodes)
+  const addPlotNode = useWorkspaceStore(state => state.addPlotNode)
+  
   const nodes = useWorkspaceStore(state => state.nodes.filter(n => n.type !== 'region'))
   const quests = useWorkspaceStore(state => state.quests)
 
@@ -190,6 +193,27 @@ export default function StoryBoard() {
       
       {/* ЛЕВАЯ ПАНЕЛЬ НАВИГАЦИИ */}
       <div className="w-80 border-r border-zinc-900 bg-zinc-950 flex flex-col shrink-0 z-20 shadow-2xl">
+        <div className="p-5 border-b border-zinc-900 bg-zinc-900/40">
+          <h2 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-4">Сценарий</h2>
+          <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar mb-4">
+            {Object.values(plotNodes).map(node => (
+              <div key={node.id} className="bg-zinc-900 p-2 rounded border border-zinc-800">
+                <div className="flex justify-between items-center mb-0.5">
+                  <h3 className="text-[10px] font-bold text-zinc-300">{node.title}</h3>
+                  <span className={`text-[8px] uppercase px-1 rounded ${node.status === 'completed' ? 'bg-green-900 text-green-300' : node.status === 'active' ? 'bg-amber-900 text-amber-300' : 'bg-zinc-800 text-zinc-400'}`}>{node.status}</span>
+                </div>
+                <p className="text-[9px] text-zinc-500 truncate">{node.description}</p>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => {
+            const title = prompt('Название этапа');
+            if (title) addPlotNode({ id: `plot-${Date.now()}`, title, description: '', status: 'active' });
+          }} className="w-full px-3 py-1.5 bg-green-600/10 hover:bg-green-600/20 text-green-400 rounded transition-colors text-[9px] font-black uppercase tracking-widest border border-green-500/20">
+            + Этап
+          </button>
+        </div>
+        
         <div className="p-5 border-b border-zinc-900 flex justify-between items-center bg-zinc-900/40">
           <h2 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Структура Сценария</h2>
           <button onClick={addPart} className="px-3 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 rounded transition-colors text-[9px] font-black uppercase tracking-widest border border-indigo-500/20">

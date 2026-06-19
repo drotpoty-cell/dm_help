@@ -222,7 +222,18 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       weather: { mode: 'disabled', condition: 'Ясно', temp: 20, interval: 24, hoursSinceChange: 0, climate: 'temperate', forecast: {} },
       setWeather: (newWeather: any) => set((state: any) => ({ weather: { ...state.weather, ...newWeather } })),
       
-      // ... rest of store body ...
+      plotNodes: {},
+      addPlotNode: (node: PlotNode) => set((state: any) => ({
+        plotNodes: { ...state.plotNodes, [node.id]: node }
+      })),
+      updatePlotNode: (id: string, data: Partial<PlotNode>) => set((state: any) => ({
+        plotNodes: { ...state.plotNodes, [id]: { ...state.plotNodes[id], ...data } }
+      })),
+      deletePlotNode: (id: string) => set((state: any) => {
+        const next = { ...state.plotNodes };
+        delete next[id];
+        return { plotNodes: next };
+      }),
       generateForecast: (daysCount: number) => set((state: any) => {
         const newForecast = { ...state.weather.forecast };
         const startDay = state.currentDay;
@@ -525,6 +536,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         nodes: state.nodes,
         edges: state.edges,
         story: state.story,
+        plotNodes: state.plotNodes,
         heroes: state.heroes,
         npcs: state.npcs,
         quests: state.quests,

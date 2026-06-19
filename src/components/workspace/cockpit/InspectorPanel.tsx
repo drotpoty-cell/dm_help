@@ -18,17 +18,44 @@ export const InspectorPanel = () => {
     extras,
     nodes,
     openLocalMap,
-    setActiveView
+    setActiveView,
+    currentDay,
+    currentHour,
+    activeLocalMapId,
+    plotNodes,
+    updatePlotNode
   } = useWorkspaceStore();
 
-  const handleAIGenerate = async (field: string, contextPrompt: string) => {
+  const handleAIGenerate = async (field: string, entity: any) => {
     setIsGenerating(field);
     try {
+      const activeLocation = activeLocalMapId ? locations[activeLocalMapId] : null;
+      const locationName = activeLocation ? activeLocation.name : 'Неизвестная локация';
+      const timeContext = `Текущее внутриигровое время: День ${currentDay}, ${currentHour}:00.`;
+      const entityContext = entity.description || entity.context || '';
+
+      let aiPrompt = `Ты — профессиональный Dungeon Master. Твоя задача: написать текст для игры.
+Контекст сцены:
+- Место: ${locationName}
+- ${timeContext}
+- Объект взаимодействия: ${entity.name}
+- Известные детали: ${entityContext}
+
+`;
+
+      if (field === 'description' && entity.tokenType === 'poi') {
+        aiPrompt += `Напиши атмосферное, захватывающее художественное описание этого объекта (POI) для игроков. Используй 2-3 предложения. Опиши запахи, звуки или визуальные детали, зависящие от текущего времени суток.`;
+      } else if (field === 'successResult' && entity.tokenType === 'check') {
+        aiPrompt += `Игроки УСПЕШНО прошли проверку (Сложность: ${entity.dc || 'не указана'}). Напиши, что они узнали, увидели или получили. Опиши триумф или полезную зацепку.`;
+      } else if (field === 'failureResult' && entity.tokenType === 'check') {
+        aiPrompt += `Игроки ПРОВАЛИЛИ проверку (Сложность: ${entity.dc || 'не указана'}). Напиши последствия. Это может быть ловушка, потеря времени, ложная информация или нарастание угрозы. Без смертельных исходов, но с напряжением.`;
+      }
+
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          prompt: contextPrompt,
+          prompt: aiPrompt,
           systemPrompt: "Ты — креативный помощник Мастера Подземелий D&D 5e."
         }),
       });
@@ -122,7 +149,7 @@ export const InspectorPanel = () => {
               <div className="relative">
                 <textarea value={entity.description} onChange={(e) => updateEntity('extras', entity.id, { description: e.target.value })} className="w-full bg-neutral-900 text-white p-2 pr-10 rounded text-sm h-32" placeholder="Описание..." />
                 <button 
-                  onClick={() => handleAIGenerate('description', `Сгенерируй атмосферное описание для точки интереса с названием: ${entity.name}.`)}
+                  onClick={() => handleAIGenerate('description', entity)}
                   disabled={isGenerating === 'description'}
                   className="absolute top-2 right-2 p-2 text-indigo-400 hover:text-indigo-300 disabled:text-neutral-600"
                 >
@@ -139,7 +166,7 @@ export const InspectorPanel = () => {
               <div className="relative">
                 <textarea value={entity.successResult || ''} onChange={(e) => updateEntity('extras', entity.id, { successResult: e.target.value })} className="w-full bg-neutral-900 text-white p-2 pr-10 rounded text-sm h-20" placeholder="Результат успеха..." />
                 <button 
-                  onClick={() => handleAIGenerate('successResult', `Сгенерируй описание успеха для проверки "${entity.name}" при контексте: ${entity.context || 'без контекста'}.`)}
+                  onClick={() => handleAIGenerate('successResult', entity)}
                   disabled={isGenerating === 'successResult'}
                   className="absolute top-2 right-2 p-2 text-indigo-400 hover:text-indigo-300 disabled:text-neutral-600"
                 >
@@ -150,7 +177,7 @@ export const InspectorPanel = () => {
               <div className="relative">
                 <textarea value={entity.failureResult || ''} onChange={(e) => updateEntity('extras', entity.id, { failureResult: e.target.value })} className="w-full bg-neutral-900 text-white p-2 pr-10 rounded text-sm h-20" placeholder="Результат провала..." />
                 <button 
-                  onClick={() => handleAIGenerate('failureResult', `Сгенерируй описание провала для проверки "${entity.name}" при контексте: ${entity.context || 'без контекста'}.`)}
+                  onClick={() => handleAIGenerate('failureResult', entity)}
                   disabled={isGenerating === 'failureResult'}
                   className="absolute top-2 right-2 p-2 text-indigo-400 hover:text-indigo-300 disabled:text-neutral-600"
                 >
@@ -161,6 +188,29 @@ export const InspectorPanel = () => {
               <div className="flex items-center gap-2">
                 <label className="text-sm">Сложность (DC):</label>
                 <input type="number" value={entity.dc || 0} onChange={(e) => updateEntity('extras', entity.id, { dc: parseInt(e.target.value) || 0 })} className="w-16 bg-neutral-900 text-white p-2 rounded" />
+              </div>
+
+              <div className="pt-4 border-t border-neutral-800 space-y-2">
+                <h4 className="text-sm font-bold text-neutral-400">Связь со сценарием</h4>
+                <select 
+                  value={entity.linkedNodeId || ''} 
+                  onChange={(e) => updateEntity('extras', entity.id, { linkedNodeId: e.target.value || undefined })}
+                  className="w-full bg-neutral-900 text-white p-2 rounded"
+                >
+                  <option value="">Не выбрано</option>
+                  {Object.values(plotNodes).map(node => (
+                    <option key={node.id} value={node.id}>{node.title}</option>
+                  ))}
+                </select>
+
+                {entity.linkedNodeId && plotNodes[entity.linkedNodeId] && (
+                  <button 
+                    onClick={() => updatePlotNode(entity.linkedNodeId!, { status: 'completed' })}
+                    className="w-full bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-500/30 py-2 rounded text-xs transition-colors"
+                  >
+                    Завершить связанный этап
+                  </button>
+                )}
               </div>
             </div>
           )}
