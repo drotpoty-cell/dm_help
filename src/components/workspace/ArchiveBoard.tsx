@@ -97,7 +97,8 @@ export default function ArchiveBoard() {
     characters: state.characters,
     extras: state.extras,
     bestiary: state.bestiary,
-    factions: state.factions
+    factions: state.factions,
+    crowd: state.crowd
   }))
 
   const nodes = useWorkspaceStore((state) => state.nodes)
