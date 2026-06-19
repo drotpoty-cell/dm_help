@@ -27,9 +27,8 @@ const LocalMapBoard = () => {
   const [panStart, setPanStart] = React.useState({ x: 0, y: 0 });
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Панорамирование на среднюю кнопку (колесико) ИЛИ Alt + Левая кнопка
-    if (e.button === 1 || (e.button === 0 && e.altKey)) {
-      e.preventDefault();
+    // Запускаем панорамирование на ЛКМ (0) или Колесико (1)
+    if (e.button === 0 || e.button === 1) {
       setIsPanning(true);
       setPanStart({ x: e.clientX - (mapData?.cameraX || 0), y: e.clientY - (mapData?.cameraY || 0) });
     }
@@ -256,7 +255,7 @@ const LocalMapBoard = () => {
         </div>
 
         <div
-          className="relative flex-1 w-full h-full overflow-hidden bg-neutral-950"
+          className={`relative flex-1 w-full h-full overflow-hidden bg-neutral-950 ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -311,6 +310,7 @@ const LocalMapBoard = () => {
                   <div
                     key={token.id}
                     className="absolute flex flex-col items-center pointer-events-auto"
+                    onMouseDown={(e) => e.stopPropagation()}
                     style={{
                       left: token.x * gridSize + offsetX,
                       top: token.y * gridSize + offsetY,
