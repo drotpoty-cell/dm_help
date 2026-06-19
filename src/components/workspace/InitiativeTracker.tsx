@@ -33,8 +33,14 @@ export const InitiativeTracker = () => {
             >
               <div className="flex flex-col">
                 <span className="font-bold">{entity.name || 'Unknown'}</span>
-                <span className="text-xs text-neutral-400">HP: {entity.hp ?? p.hp} / AC: {entity.ac ?? 0}</span>
+                <span className="text-xs text-neutral-400">
+                  HP: {entity.hp ?? p.hp} / AC: {entity.ac ?? 0}
+                  {p.type === 'hero' && (entity as any).passivePerception !== undefined && (
+                    <span className="ml-2 text-indigo-400">PP: {(entity as any).passivePerception}</span>
+                  )}
+                </span>
               </div>
+
               <input 
                 type="number" 
                 className="w-16 bg-gray-900 border border-gray-600 p-1 rounded text-center"

@@ -87,6 +87,32 @@ export const InspectorPanel = () => {
 
   const entityType = (viewedEntityId && heroes[viewedEntityId]) ? 'hero' : (viewedEntityId && npcs[viewedEntityId]) ? 'npc' : null;
 
+  const handlePassivePerceptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value) || 0;
+    if (entityType === 'hero') updateHero(entity.id, { passivePerception: val });
+  };
+
+  const handleInventoryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (entityType === 'hero') updateHero(entity.id, { inventory: e.target.value });
+  };
+
+  const updateResource = (index: number, field: 'current' | 'max', delta: number) => {
+    if (entityType !== 'hero') return;
+    const resources = [...(entity.classResources || [])];
+    if (field === 'current') {
+      resources[index].current = Math.max(0, Math.min(resources[index].max, resources[index].current + delta));
+    } else {
+      resources[index].max = Math.max(1, resources[index].max + delta);
+    }
+    updateHero(entity.id, { classResources: resources });
+  };
+
+  const addResource = () => {
+    if (entityType !== 'hero') return;
+    const resources = [...(entity.classResources || []), { name: 'Новый ресурс', current: 0, max: 1 }];
+    updateHero(entity.id, { classResources: resources });
+  };
+
   const handleHpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newHp = parseInt(e.target.value) || 0;
     if (entityType === 'hero') {
@@ -95,6 +121,7 @@ export const InspectorPanel = () => {
       updateNpc(entity.id, { hp: newHp });
     }
   };
+
 
   const handleMaxHpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMaxHp = parseInt(e.target.value) || 0;
@@ -215,6 +242,32 @@ export const InspectorPanel = () => {
             </div>
           )}
           
+          {entityType === 'hero' && (
+            <div className="space-y-4 pt-4 border-t border-neutral-800">
+              <h3 className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Геройские данные</h3>
+              <div>
+                <label className="text-[10px] text-neutral-500 block mb-1">Пассивная внимательность</label>
+                <input type="number" value={entity.passivePerception || 0} onChange={handlePassivePerceptionChange} className="w-full bg-neutral-800 text-white p-2 rounded text-sm" />
+              </div>
+              <div>
+                <label className="text-[10px] text-neutral-500 block mb-1">Инвентарь</label>
+                <textarea value={entity.inventory || ''} onChange={handleInventoryChange} className="w-full bg-neutral-800 text-white p-2 rounded text-sm h-20" />
+              </div>
+              <div>
+                <label className="text-[10px] text-neutral-500 block mb-1">Ресурсы</label>
+                {(entity.classResources || []).map((res: any, idx: number) => (
+                  <div key={idx} className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-white truncate flex-1">{res.name}</span>
+                    <button onClick={() => updateResource(idx, 'current', -1)} className="bg-neutral-700 px-2 rounded">-</button>
+                    <span className="text-xs">{res.current} / {res.max}</span>
+                    <button onClick={() => updateResource(idx, 'current', 1)} className="bg-neutral-700 px-2 rounded">+</button>
+                  </div>
+                ))}
+                <button onClick={addResource} className="text-xs text-indigo-400">+ Добавить ресурс</button>
+              </div>
+            </div>
+          )}
+
           {isLocationNode && (
             <button 
               onClick={(e) => {
@@ -227,6 +280,7 @@ export const InspectorPanel = () => {
               🗺️ Войти на тактическую карту
             </button>
           )}
+
 
           {!entity.tokenType && (entity.description || entity.content) && (
             <p className="text-sm leading-relaxed">{entity.description || entity.content}</p>

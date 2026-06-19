@@ -21,6 +21,8 @@ export interface Hero {
   ac?: number
   initiativeModifier?: number
   passivePerception?: number
+  inventory?: string
+  classResources?: { name: string; current: number; max: number }[]
   description?: string
   linkedNodeId?: string;
 }
