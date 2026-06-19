@@ -592,8 +592,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       resetWorld: () => set(getEmptyWorldState())
     }),
     {
-      name: 'gm-workspace-storage',
+      name: 'gm-assistant-storage',
       version: 1,
+      skipHydration: true,
       partialize: (state) => ({
         nodes: state.nodes,
         edges: state.edges,
