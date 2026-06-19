@@ -27,19 +27,23 @@ const LocalMapBoard = () => {
   const [panStart, setPanStart] = React.useState({ x: 0, y: 0 });
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && e.shiftKey)) { // Middle mouse or Shift+Left
+    // Панорамирование на среднюю кнопку (колесико) ИЛИ Alt + Левая кнопка
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+      e.preventDefault();
       setIsPanning(true);
       setPanStart({ x: e.clientX - (mapData?.cameraX || 0), y: e.clientY - (mapData?.cameraY || 0) });
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isPanning && activeLocalMapId) {
-      updateMapCamera(activeLocalMapId, { 
-        cameraX: e.clientX - panStart.x,
-        cameraY: e.clientY - panStart.y
-      });
-    }
+    if (!isPanning || !activeLocalMapId) return;
+    const dx = e.clientX - panStart.x;
+    const dy = e.clientY - panStart.y;
+
+    updateMapCamera(activeLocalMapId, {
+      cameraX: e.clientX - panStart.x,
+      cameraY: e.clientY - panStart.y
+    });
   };
 
   const handleMouseUp = () => setIsPanning(false);
@@ -115,11 +119,17 @@ const LocalMapBoard = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const tokenId = e.dataTransfer.getData('text/plain');
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect(); // Вьюпорт
     const xPixels = e.clientX - rect.left;
     const yPixels = e.clientY - rect.top;
-    const gridX = Math.floor((xPixels - offsetX) / gridSize);
-    const gridY = Math.floor((yPixels - offsetY) / gridSize);
+
+    // Обратная трансформация: отнимаем смещение камеры и делим на зум
+    const worldX = (xPixels - (mapData?.cameraX || 0)) / (mapData?.zoom || 1);
+    const worldY = (yPixels - (mapData?.cameraY || 0)) / (mapData?.zoom || 1);
+
+    // Расчет финальной клетки с учетом оффсета сетки
+    const gridX = Math.floor((worldX - (mapData?.gridOffsetX || 0)) / gridSize);
+    const gridY = Math.floor((worldY - (mapData?.gridOffsetY || 0)) / gridSize);
     updateLocalToken(activeLocalMapId, tokenId, { x: gridX, y: gridY });
   };
 
@@ -246,128 +256,126 @@ const LocalMapBoard = () => {
         </div>
 
         <div
-          className="w-full h-full relative overflow-hidden"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDrop}
+          className="relative flex-1 w-full h-full overflow-hidden bg-neutral-950"
+          onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onWheel={handleWheel}
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          onClick={() => setTokenMenu(null)}
+          onContextMenu={(e) => { e.preventDefault(); setTokenMenu(null); }}
         >
-          <div
-            className="z-0"
-            style={{ 
-              backgroundImage: mapData?.backgroundImage ? `url("${mapData.backgroundImage}")` : 'none', 
-              backgroundSize: 'contain', 
-              backgroundPosition: 'center', 
-              backgroundRepeat: 'no-repeat',
+          <div 
+            className="absolute top-0 left-0 origin-top-left w-full h-full"
+            style={{
               transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`,
-              transformOrigin: '0 0',
-              transition: isPanning ? 'none' : 'transform 0.1s ease-out',
-              width: '100%', 
-              height: '100%', 
-              position: 'absolute' 
+              pointerEvents: 'none'
             }}
-          />
-          <div
-            className="z-10"
-            style={{ 
-              backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)', 
-              backgroundSize: `${gridSize}px ${gridSize}px`, 
-              backgroundPosition: `${offsetX}px ${offsetY}px`, 
-              width: '100%', 
-              height: '100%', 
-              position: 'absolute', 
-              pointerEvents: 'none',
-              transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`,
-              transformOrigin: '0 0'
-            }}
-          />
-          {Object.values(mapData.tokens).map((token: any) => {
-            const name = getEntityName(token);
-            const isHero = token.type === 'hero';
-            const isNpc = token.type === 'npc';
-            const isPoi = token.type === 'poi';
-            const isCheck = token.type === 'check';
-            
-            if (isNpc) {
-              const npc = npcs[token.entityId];
-              if (npc && npc.schedule) {
-                const isScheduledHere = npc.schedule.some(s => s.startHour <= currentHour && s.endHour > currentHour && s.locationId === activeLocalMapId);
-                if (!isScheduledHere) return null;
-              }
-            }
+          >
+            <div
+              className="absolute inset-0 z-0 pointer-events-auto"
+              style={{ 
+                backgroundImage: mapData?.backgroundImage ? `url("${mapData.backgroundImage}")` : 'none', 
+                backgroundSize: 'contain', 
+                backgroundPosition: 'center', 
+                backgroundRepeat: 'no-repeat'
+              }}
+            />
+            <div
+              className="absolute inset-0 z-10 pointer-events-none"
+              style={{ 
+                backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)', 
+                backgroundSize: `${gridSize}px ${gridSize}px`, 
+                backgroundPosition: `${offsetX}px ${offsetY}px`
+              }}
+            />
+            <div className="relative z-20 pointer-events-none">
+              {Object.values(mapData.tokens).map((token: any) => {
+                const name = getEntityName(token);
+                const isHero = token.type === 'hero';
+                const isNpc = token.type === 'npc';
+                const isPoi = token.type === 'poi';
+                const isCheck = token.type === 'check';
+                
+                if (isNpc) {
+                  const npc = npcs[token.entityId];
+                  if (npc && npc.schedule) {
+                    const isScheduledHere = npc.schedule.some(s => s.startHour <= currentHour && s.endHour > currentHour && s.locationId === activeLocalMapId);
+                    if (!isScheduledHere) return null;
+                  }
+                }
 
-            return (
-              <div
-                key={token.id}
-                className="absolute flex flex-col items-center z-20"
-                style={{
-                  left: token.x * gridSize + offsetX,
-                  top: token.y * gridSize + offsetY,
-                  width: (token.size || 1) * gridSize,
-                  height: (token.size || 1) * gridSize,
-                  transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`,
-                  transformOrigin: '0 0'
-                }}
-              >
-                {(() => {
-                  const entity = token.type === 'hero' ? heroes[token.entityId] : (token.type === 'npc' ? npcs[token.entityId] : undefined);
-                  
-                  return (
-                    <>
-                      {entity?.hp !== undefined && entity?.maxHp && !isPoi && !isCheck && (
-                        <div className="absolute -top-3 w-full h-1.5 bg-red-950 border border-zinc-900 rounded-sm overflow-hidden">
-                          <div 
-                            className="h-full bg-green-500 transition-all" 
-                            style={{ width: `${Math.max(0, Math.min(100, (entity.hp / entity.maxHp) * 100))}%` }}
-                          />
-                        </div>
-                      )}
+                return (
+                  <div
+                    key={token.id}
+                    className="absolute flex flex-col items-center pointer-events-auto"
+                    style={{
+                      left: token.x * gridSize + offsetX,
+                      top: token.y * gridSize + offsetY,
+                      width: (token.size || 1) * gridSize,
+                      height: (token.size || 1) * gridSize,
+                    }}
+                  >
+                    {(() => {
+                      const entity = token.type === 'hero' ? heroes[token.entityId] : (token.type === 'npc' ? npcs[token.entityId] : undefined);
                       
-                      <div
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', token.id);
-                        }}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setTokenMenu({ tokenId: token.id, entityId: token.entityId, x: e.clientX, y: e.clientY });
-                        }}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          if (isPoi || isCheck) {
-                            setViewedEntityId(token.entityId);
-                          } else {
-                            removeLocalToken(activeLocalMapId, token.id);
-                          }
-                        }}
-                        className={`w-full h-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
-                          isPoi 
-                            ? 'rounded-md bg-amber-500/80 border-amber-400 text-black' 
-                            : isCheck
-                              ? 'rotate-45 bg-fuchsia-700/80 border-fuchsia-400 text-white'
-                              : isHero 
-                                ? 'rounded-full bg-indigo-900/80 border-indigo-500 text-white' 
-                                : 'rounded-full bg-red-900/80 border-red-500 text-white'
-                        }`}
-                      >
-                        <div className={isCheck ? '-rotate-45' : ''}>
-                          {isPoi ? '🔍' : isCheck ? '🎲' : name.substring(0, 2).toUpperCase()}
-                        </div>
-                      </div>
+                      return (
+                        <>
+                          {entity?.hp !== undefined && entity?.maxHp && !isPoi && !isCheck && (
+                            <div className="absolute -top-3 w-full h-1.5 bg-red-950 border border-zinc-900 rounded-sm overflow-hidden">
+                              <div 
+                                className="h-full bg-green-500 transition-all" 
+                                style={{ width: `${Math.max(0, Math.min(100, (entity.hp / entity.maxHp) * 100))}%` }}
+                              />
+                            </div>
+                          )}
+                          
+                          <div
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('text/plain', token.id);
+                            }}
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setTokenMenu({ tokenId: token.id, entityId: token.entityId, x: e.clientX, y: e.clientY });
+                            }}
+                            onDoubleClick={(e) => {
+                              e.stopPropagation();
+                              if (isPoi || isCheck) {
+                                setViewedEntityId(token.entityId);
+                              } else {
+                                removeLocalToken(activeLocalMapId, token.id);
+                              }
+                            }}
+                            className={`w-full h-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
+                              isPoi 
+                                ? 'rounded-md bg-amber-500/80 border-amber-400 text-black' 
+                                : isCheck
+                                  ? 'rotate-45 bg-fuchsia-700/80 border-fuchsia-400 text-white'
+                                  : isHero 
+                                    ? 'rounded-full bg-indigo-900/80 border-indigo-500 text-white' 
+                                    : 'rounded-full bg-red-900/80 border-red-500 text-white'
+                            }`}
+                          >
+                            <div className={isCheck ? '-rotate-45' : ''}>
+                              {isPoi ? '🔍' : isCheck ? '🎲' : name.substring(0, 2).toUpperCase()}
+                            </div>
+                          </div>
 
-                      <div className="absolute -bottom-5 text-[9px] font-bold text-white bg-black/70 px-1 rounded whitespace-nowrap pointer-events-none">
-                        {isPoi ? 'Точка интереса' : isCheck ? 'Проверка' : (entity?.name || name)}
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            );
-          })}
+                          <div className="absolute -bottom-5 text-[9px] font-bold text-white bg-black/70 px-1 rounded whitespace-nowrap pointer-events-none">
+                            {isPoi ? 'Точка интереса' : isCheck ? 'Проверка' : (entity?.name || name)}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
       
