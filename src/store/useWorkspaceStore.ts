@@ -201,9 +201,16 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           }
         }
       })),
-      spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check') => set((state: any) => {
+      spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot') => set((state: any) => {
         const nextLocalMaps = { ...state.localMaps };
         const tokenId = `token-${Date.now()}`;
+
+        // Если сущности еще нет в архиве (например, новый объект), добавляем её
+        const category = type === 'poi' || type === 'check' ? 'extras' : type as LibraryCategory;
+        const updatedLibrary = {
+          ...state[category],
+          [entity.id]: { ...(state[category][entity.id] || {}), ...entity }
+        };
 
         // 1. Очистка сущности со всех других карт
         Object.keys(nextLocalMaps).forEach(locId => {
@@ -224,14 +231,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           tokens: { ...targetMap.tokens, [tokenId]: newToken }
         };
 
-        // 4. Обновление самой сущности (привязка к карте)
-        const category = type === 'hero' ? 'heroes' : 'npcs'; // Дополни логику для врагов
-        const updatedEntities = {
-          ...state[category],
-          [entity.id]: { ...state[category][entity.id], locationId }
-        };
-
-        return { localMaps: nextLocalMaps, [category]: updatedEntities };
+        return { localMaps: nextLocalMaps, [category]: updatedLibrary };
       }),
       removeLocalToken: (locationId: string, tokenId: string) => set((state: any) => {
         const nextTokens = { ...state.localMaps[locationId]?.tokens };

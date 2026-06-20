@@ -236,7 +236,7 @@ export interface WorkspaceState {
   updateLocalMap: (locationId: string, data: Partial<LocalMapData>) => void;
   updateMapCamera: (locationId: string, camera: { cameraX?: number; cameraY?: number; zoom?: number }) => void;
   updateLocalToken: (locationId: string, tokenId: string, data: Partial<BattleToken>) => void;
-  spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check') => void;
+  spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot') => void;
   removeLocalToken: (locationId: string, tokenId: string) => void;
 
   importAIData: (data: any) => void;

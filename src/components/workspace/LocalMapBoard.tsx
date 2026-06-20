@@ -142,39 +142,44 @@ const LocalMapBoard = () => {
   const backgroundScale = mapData.backgroundScale || 1;
   const backgroundRotation = mapData.backgroundRotation || 0;
 
-  const spawnToken = (entity: any, type: 'hero' | 'npc' | 'poi' | 'check', locationId: string | null = activeLocalMapId) => {
+  const spawnToken = (entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot', locationId: string | null = activeLocalMapId) => {
     const isAlreadyOnMap = Object.values(mapData.tokens).some(t => entity && t.entityId === entity.id);
     if (isAlreadyOnMap) return null;
 
-    const id = `token-${Date.now()}`;
-    const tokenData = {
-      id,
-      entityId: entity?.id || id,
-      type,
-      locationId: locationId || '',
-      x: 0,
-      y: 0,
-      size: 1
-    };
-    spawnEntityToMap(locationId || activeLocalMapId || '', entity, type);
+    const id = entity?.id || `token-${Date.now()}`;
     
-    if (type === 'poi' || type === 'check') {
-      const entityId = id; // Используем id токена как baseEntityId для привязки
-      addEntity('extras', {
-        id: entityId,
-        locationId: locationId || '',
-        tokenId: id,
-        name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
-        description: type === 'poi' ? '' : undefined,
-        context: type === 'check' ? '' : undefined,
-        successResult: type === 'check' ? '' : undefined,
-        failureResult: type === 'check' ? '' : undefined,
-        dc: type === 'check' ? 10 : undefined,
-        tokenType: type
-      });
-    }
+    spawnEntityToMap(locationId || activeLocalMapId || '', { id: id, name: entity?.name || (type === 'poi' ? 'POI' : 'Check') }, type);
     
     return id;
+  };
+
+  const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot')[] = ['heroes', 'npcs', 'enemies', 'crowd', 'loot'];
+
+  const renderSidebar = () => {
+    return categories.map(category => (
+      <div key={category} className="mb-6">
+        <div className="text-xs text-neutral-500 font-bold uppercase mb-2">
+          {category.charAt(0).toUpperCase() + category.slice(1)}
+        </div>
+        <div className="space-y-1">
+          {Object.values((useWorkspaceStore.getState() as any)[category] || {}).map((item: any) => {
+            const isOnMap = Object.values(mapData.tokens).some(t => t.entityId === item.id);
+            return (
+              <div key={item.id} className="flex justify-between items-center text-neutral-300 text-sm p-1 hover:bg-neutral-800 rounded">
+                <span>{item.name}</span>
+                <button 
+                  onClick={() => spawnEntityToMap(activeLocalMapId!, item, category as any)}
+                  disabled={isOnMap}
+                  className={`px-2 py-0.5 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                >
+                  {isOnMap ? 'На карте' : '+'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ));
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -206,74 +211,22 @@ const LocalMapBoard = () => {
       onContextMenu={() => setTokenMenu(null)}
     >
       <div className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col p-4 overflow-y-auto">
-        <h2 className="text-white font-bold mb-4">Персонажи</h2>
+        <h2 className="text-white font-bold mb-4">Архив</h2>
         <div className="space-y-4">
           <button 
-            onClick={() => spawnToken(null, 'poi', useWorkspaceStore.getState().activeLocalMapId)}
+            onClick={() => spawnEntityToMap(activeLocalMapId!, { id: `poi-${Date.now()}`, name: 'POI' }, 'poi')}
             className="w-full bg-yellow-600 text-white px-2 py-2 rounded text-sm hover:bg-yellow-700"
           >
             ➕ Добавить точку интереса (POI)
           </button>
           <button 
-            onClick={() => spawnToken(null, 'check', useWorkspaceStore.getState().activeLocalMapId)}
+            onClick={() => spawnEntityToMap(activeLocalMapId!, { id: `check-${Date.now()}`, name: 'Check' }, 'check')}
             className="w-full bg-orange-600 text-white px-2 py-2 rounded text-sm hover:bg-orange-700"
           >
             ➕ Добавить проверку (Check)
           </button>
           <div className="border-t border-neutral-800 my-4" />
-          
-          <div className="text-xs text-neutral-500 font-bold uppercase mb-2">Герои</div>
-          {Object.values(heroes).map((h: any) => {
-            const isOnMap = Object.values(mapData.tokens).some(t => t.entityId === h.id);
-            return (
-              <div key={h.id} className="flex justify-between items-center text-neutral-300 text-sm">
-                <span>{h.name}</span>
-                <button 
-                  draggable={!isOnMap}
-                  onDragStart={(e) => {
-                    const id = spawnToken(h, 'hero');
-                    if (id) e.dataTransfer.setData('text/plain', id);
-                  }}
-                  disabled={isOnMap}
-                  className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-grab'}`}
-                >{isOnMap ? 'На карте' : '+'}</button>
-              </div>
-            );
-          })}
-
-          <div className="text-xs text-neutral-500 font-bold uppercase mb-2 mt-4">NPC (По расписанию здесь)</div>
-          {Object.values(npcs).filter(n => {
-            const hasSchedule = n.schedule && n.schedule.length > 0;
-            const isScheduledHere = n.schedule?.some(s => s.startHour <= currentHour && s.endHour > currentHour && s.locationId === activeLocalMapId);
-            return !hasSchedule || isScheduledHere;
-          }).map((n: any) => {
-            const isOnMap = Object.values(mapData.tokens).some(t => t.entityId === n.id);
-            return (
-              <div key={n.id} className="flex justify-between items-center text-neutral-300 text-sm">
-                <span>{n.name}</span>
-                <button 
-                  onClick={() => spawnEntityToMap(activeLocalMapId, n, 'npc')}
-                  disabled={isOnMap}
-                  className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
-                >{isOnMap ? 'На карте' : '+'}</button>
-              </div>
-            );
-          })}
-
-          <div className="text-xs text-neutral-500 font-bold uppercase mb-2 mt-4">Все персонажи мира</div>
-          {Object.values(npcs).map((n: any) => {
-            const isOnMap = Object.values(mapData.tokens).some(t => t.entityId === n.id);
-            return (
-              <div key={`all-${n.id}`} className="flex justify-between items-center text-neutral-300 text-sm">
-                <span>{n.name}</span>
-                <button 
-                  onClick={() => spawnEntityToMap(activeLocalMapId, n, 'npc')}
-                  disabled={isOnMap}
-                  className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-900 text-white hover:bg-red-800'}`}
-                >{isOnMap ? 'На карте' : '+'}</button>
-              </div>
-            );
-          })}
+          {renderSidebar()}
         </div>
       </div>
 
