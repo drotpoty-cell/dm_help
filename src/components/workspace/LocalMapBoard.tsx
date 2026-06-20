@@ -291,7 +291,7 @@ const LocalMapBoard = () => {
                 backgroundPosition: `${offsetX}px ${offsetY}px`
               }}
             />
-            <div className="absolute inset-0 z-20">
+            <div className="absolute inset-0 z-20 pointer-events-auto">
               {Object.values(mapData.tokens).map((token: any) => {
                 const name = getEntityName(token);
                 const isHero = token.type === 'hero';
@@ -321,7 +321,10 @@ const LocalMapBoard = () => {
                     }}
                   >
                     {(() => {
-                      const entity = token.type === 'hero' ? heroes[token.entityId] : (token.type === 'npc' ? npcs[token.entityId] : undefined);
+                      const entity = heroes[token.entityId] || 
+                                     npcs[token.entityId] || 
+                                     enemies[token.entityId] || 
+                                     crowd[token.entityId];
                       const initial = entity?.name ? entity.name.charAt(0).toUpperCase() : '?';
 
                       return (
