@@ -13,7 +13,6 @@ const LocalMapBoard = () => {
     closeLocalMap,
     updateLocalMap,
     updateMapCamera,
-    addEntity,
     setViewedEntityId,
     heroes, 
     npcs,
@@ -88,7 +87,6 @@ const LocalMapBoard = () => {
   const [panStart, setPanStart] = React.useState({ x: 0, y: 0 });
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Запускаем панорамирование на ЛКМ (0) или Колесико (1)
     if (e.button === 0 || e.button === 1) {
       setIsPanning(true);
       setPanStart({ x: e.clientX - (mapData?.cameraX || 0), y: e.clientY - (mapData?.cameraY || 0) });
@@ -97,9 +95,6 @@ const LocalMapBoard = () => {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isPanning || !activeLocalMapId) return;
-    const dx = e.clientX - panStart.x;
-    const dy = e.clientY - panStart.y;
-
     updateMapCamera(activeLocalMapId, {
       cameraX: e.clientX - panStart.x,
       cameraY: e.clientY - panStart.y
@@ -180,17 +175,6 @@ const LocalMapBoard = () => {
   const backgroundScale = mapData.backgroundScale || 1;
   const backgroundRotation = mapData.backgroundRotation || 0;
 
-  const spawnToken = (entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot', locationId: string | null = activeLocalMapId) => {
-    const isAlreadyOnMap = Object.values(mapData.tokens).some(t => entity && t.entityId === entity.id);
-    if (isAlreadyOnMap) return null;
-
-    const id = entity?.id || `token-${Date.now()}`;
-    
-    spawnEntityToMap(locationId || activeLocalMapId || '', { id: id, name: entity?.name || (type === 'poi' ? 'POI' : 'Check') }, type === 'poi' || type === 'check' ? 'interactive' : type as any);
-    
-    return id;
-  };
-
   const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot' | 'interactive')[] = ['heroes', 'npcs', 'enemies', 'crowd', 'loot', 'interactive'];
 
   const categoryNames: Record<string, string> = {
@@ -232,15 +216,13 @@ const LocalMapBoard = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const tokenId = e.dataTransfer.getData('text/plain');
-    const rect = e.currentTarget.getBoundingClientRect(); // Вьюпорт
+    const rect = e.currentTarget.getBoundingClientRect();
     const xPixels = e.clientX - rect.left;
     const yPixels = e.clientY - rect.top;
 
-    // Обратная трансформация: отнимаем смещение камеры и делим на зум
     const worldX = (xPixels - (mapData?.cameraX || 0)) / (mapData?.zoom || 1);
     const worldY = (yPixels - (mapData?.cameraY || 0)) / (mapData?.zoom || 1);
 
-    // Расчет финальной клетки с учетом оффсета сетки
     const gridX = Math.floor((worldX - (mapData?.gridOffsetX || 0)) / gridSize);
     const gridY = Math.floor((worldY - (mapData?.gridOffsetY || 0)) / gridSize);
     updateLocalToken(activeLocalMapId, tokenId, { x: gridX, y: gridY });
@@ -261,13 +243,13 @@ const LocalMapBoard = () => {
         <h2 className="text-white font-bold mb-4">Архив</h2>
         <div className="space-y-4">
           <button 
-            onClick={() => spawnEntityToMap(activeLocalMapId!, { id: `poi-${Date.now()}`, name: 'POI' }, 'poi')}
+            onClick={() => spawnEntityToMap(activeLocalMapId!, { id: `poi-${Date.now()}` }, 'poi')}
             className="w-full bg-yellow-600 text-white px-2 py-2 rounded text-sm hover:bg-yellow-700"
           >
             ➕ Добавить точку интереса (POI)
           </button>
           <button 
-            onClick={() => spawnEntityToMap(activeLocalMapId!, { id: `check-${Date.now()}`, name: 'Check' }, 'check')}
+            onClick={() => spawnEntityToMap(activeLocalMapId!, { id: `check-${Date.now()}` }, 'check')}
             className="w-full bg-orange-600 text-white px-2 py-2 rounded text-sm hover:bg-orange-700"
           >
             ➕ Добавить проверку (Check)
@@ -298,15 +280,6 @@ const LocalMapBoard = () => {
               </button>
             )}
           </div>
-          <div className="flex gap-2 text-xs text-neutral-300">
-            <label>Размер: <input type="number" value={gridSize} onChange={(e) => updateCalibration('gridSize', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
-            <label>X: <input type="number" value={offsetX} onChange={(e) => updateCalibration('gridOffsetX', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
-            <label>Y: <input type="number" value={offsetY} onChange={(e) => updateCalibration('gridOffsetY', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
-          </div>
-          <div className="flex gap-2 text-xs text-neutral-300">
-            <label>Масштаб: <input type="number" step="0.05" value={backgroundScale} onChange={(e) => updateLocalMap(activeLocalMapId, { backgroundScale: parseFloat(e.target.value) })} className="w-12 bg-neutral-800 text-white"/></label>
-            <label>Поворот: <input type="number" value={backgroundRotation} onChange={(e) => updateLocalMap(activeLocalMapId, { backgroundRotation: parseInt(e.target.value) })} className="w-12 bg-neutral-800 text-white"/></label>
-          </div>
           <button
             onClick={() => closeLocalMap()}
             className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 w-full text-sm"
@@ -333,12 +306,10 @@ const LocalMapBoard = () => {
               transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`
             }}
           >
-            {/* Layer 0: Background - самый нижний */}
             <div className="absolute inset-0 z-0">
                {mapData?.backgroundImage && <img src={mapData.backgroundImage} className="w-full h-full object-contain" />}
             </div>
 
-            {/* Layer 1: Grid - поверх фона */}
             <div
               className="absolute inset-0 z-10 pointer-events-none"
               style={{ 
@@ -348,7 +319,6 @@ const LocalMapBoard = () => {
               }}
             />
 
-            {/* Layer 2: Tokens - самый верхний, кликабельный */}
             <div className="absolute inset-0 z-20 pointer-events-auto">
               {Object.values(mapData.tokens).map((token: any) => {
                 const name = getEntityName(token);
@@ -357,18 +327,10 @@ const LocalMapBoard = () => {
                 const isPoi = token.type === 'poi';
                 const isCheck = token.type === 'check';
                 
-                let isScheduledHere = true;
-                if (isNpc) {
-                  const npc = npcs[token.entityId];
-                  if (npc?.schedule && npc.schedule.length > 0) {
-                    isScheduledHere = npc.schedule.some(s => s.startHour <= currentHour && s.endHour > currentHour && s.locationId === activeLocalMapId);
-                  }
-                }
-
                 return (
                   <div
                     key={token.id}
-                    className={`absolute flex flex-col items-center pointer-events-auto ${!isScheduledHere ? 'opacity-50' : ''}`}
+                    className="absolute flex flex-col items-center pointer-events-auto"
                     onMouseDown={(e) => e.stopPropagation()}
                     style={{
                       left: token.x * gridSize + offsetX,
@@ -378,63 +340,32 @@ const LocalMapBoard = () => {
                       position: 'absolute'
                     }}
                   >
-                    {(() => {
-                      const entity = heroes[token.entityId] || 
-                                     npcs[token.entityId] || 
-                                     enemies[token.entityId] || 
-                                     crowd[token.entityId];
-                      const initial = entity?.name ? entity.name.charAt(0).toUpperCase() : '?';
-
-                      return (
-                        <>
-                          {entity?.hp !== undefined && entity?.maxHp && !isPoi && !isCheck && (
-                            <div className="absolute -top-3 w-full h-1.5 bg-red-950 border border-zinc-900 rounded-sm overflow-hidden">
-                              <div 
-                                className="h-full bg-green-500 transition-all" 
-                                style={{ width: `${Math.max(0, Math.min(100, (entity.hp / entity.maxHp) * 100))}%` }}
-                              />
-                            </div>
-                          )}
-                          
-                          <div
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData('text/plain', token.id);
-                            }}
-                            onContextMenu={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setTokenMenu({ tokenId: token.id, entityId: token.entityId, x: e.clientX, y: e.clientY });
-                            }}
-                            onDoubleClick={(e) => {
-                              e.stopPropagation();
-                              if (isPoi || isCheck) {
-                                setViewedEntityId(token.entityId);
-                              } else {
-                                removeLocalToken(activeLocalMapId, token.id);
-                              }
-                            }}
-                            className={`w-full h-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
-                              isPoi 
-                                ? 'rounded-md bg-amber-500/80 border-amber-400 text-black' 
-                                : isCheck
-                                  ? 'rotate-45 bg-fuchsia-700/80 border-fuchsia-400 text-white'
-                                  : isHero 
-                                    ? 'rounded-full bg-indigo-900/80 border-indigo-500 text-white' 
-                                    : 'rounded-full bg-red-900/80 border-red-500 text-white'
-                            }`}
-                          >
-                            <div className={isCheck ? '-rotate-45' : ''}>
-                              {isPoi ? '🔍' : isCheck ? '🎲' : initial}
-                            </div>
-                          </div>
-
-                          <div className="absolute -bottom-5 text-[9px] font-bold text-white bg-black/70 px-1 rounded whitespace-nowrap pointer-events-none">
-                            {isPoi ? 'Точка интереса' : isCheck ? 'Проверка' : (entity?.name || name)}
-                          </div>
-                        </>
-                      );
-                    })()}
+                    <div
+                      draggable
+                      onDragStart={(e) => e.dataTransfer.setData('text/plain', token.id)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setTokenMenu({ tokenId: token.id, entityId: token.entityId, x: e.clientX, y: e.clientY });
+                      }}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setViewedEntityId(token.entityId);
+                      }}
+                      className={`w-full h-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
+                        isPoi 
+                          ? 'rounded-md bg-amber-500/80 border-amber-400 text-black' 
+                          : isCheck
+                            ? 'rotate-45 bg-fuchsia-700/80 border-fuchsia-400 text-white'
+                            : isHero 
+                              ? 'rounded-full bg-indigo-900/80 border-indigo-500 text-white' 
+                              : 'rounded-full bg-red-900/80 border-red-500 text-white'
+                      }`}
+                    >
+                      <div className={isCheck ? '-rotate-45' : ''}>
+                        {isPoi ? '🔍' : isCheck ? '🎲' : '?'}
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -451,7 +382,7 @@ const LocalMapBoard = () => {
         >
           <button 
             onClick={() => {
-              useWorkspaceStore.getState().setViewedEntityId(tokenMenu.entityId);
+              setViewedEntityId(tokenMenu.entityId);
               setTokenMenu(null);
             }} 
             className="px-4 py-2 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white text-left flex items-center gap-2 transition-colors"

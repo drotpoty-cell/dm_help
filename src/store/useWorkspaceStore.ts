@@ -39,6 +39,7 @@ export const getEmptyWorldState = () => ({
   secrets: {},
   characters: {},
   bestiary: {},
+  interactive: {},
   localMaps: {},
   activeLocalMapId: null,
   viewedEntityId: null,
@@ -207,9 +208,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
         // Если сущности еще нет в архиве (например, новый объект), добавляем её
         const category = type === 'poi' || type === 'check' ? 'interactive' : type as LibraryCategory;
+        const newEntity = (type === 'poi' || type === 'check') ? {
+          id: entity.id,
+          name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
+          description: '',
+          dc: type === 'check' ? 10 : undefined,
+          type: type
+        } : entity;
+
         const updatedLibrary = {
           ...state[category],
-          [entity.id]: { ...(state[category][entity.id] || {}), ...entity }
+          [entity.id]: { ...(state[category][entity.id] || {}), ...newEntity }
         };
 
         // 1. Очистка сущности со всех других карт
@@ -646,6 +655,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           characters: state.characters,
           extras: state.extras,
           bestiary: state.bestiary,
+          interactive: state.interactive,
           currentDay: state.currentDay,
           currentHour: state.currentHour,
           weather: state.weather,

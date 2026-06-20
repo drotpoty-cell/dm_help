@@ -220,6 +220,7 @@ export interface WorkspaceState {
   characters: Record<string, any>
   extras: Record<string, any>
   bestiary: Record<string, any>
+  interactive: Record<string, any>
   factions: Record<string, any>
   crowd: Record<string, any>
 
