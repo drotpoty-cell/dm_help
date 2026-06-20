@@ -17,6 +17,8 @@ const LocalMapBoard = () => {
     setViewedEntityId,
     heroes, 
     npcs,
+    enemies,
+    crowd,
     currentHour
   } = useWorkspaceStore();
   
@@ -133,9 +135,8 @@ const LocalMapBoard = () => {
   };
 
   const getEntityName = (token: any) => {
-    if (token.type === 'hero') return heroes[token.entityId]?.name || 'Hero';
-    if (token.type === 'npc' || token.type === 'monster') return npcs[token.entityId]?.name || 'NPC';
-    return '?';
+    const entity = heroes[token.entityId] || npcs[token.entityId] || enemies[token.entityId] || crowd[token.entityId];
+    return entity?.name || (token.type === 'hero' ? 'Hero' : token.type === 'npc' ? 'NPC' : '?');
   };
 
   return (
