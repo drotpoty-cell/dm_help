@@ -24,63 +24,63 @@ const LocalMapBoard = () => {
   
   const mapData = activeLocalMapId ? localMaps[activeLocalMapId] : null;
 
-  React.useEffect(() => {
-    (window as any).debugMapSync = () => {
-      const state = useWorkspaceStore.getState();
-      const activeId = state.activeLocalMapId;
-      if (!activeId) {
-        console.warn('debugMapSync: Нет активной карты.');
-        return;
-      }
-      const map = state.localMaps[activeId];
-      if (!map) {
-        console.warn('debugMapSync: Активная карта не найдена в store.');
-        return;
-      }
+  const debugMapSync = () => {
+    const state = useWorkspaceStore.getState();
+    const activeId = state.activeLocalMapId;
+    if (!activeId) {
+      console.warn('debugMapSync: Нет активной карты.');
+      return;
+    }
+    const map = state.localMaps[activeId];
+    if (!map) {
+      console.warn('debugMapSync: Активная карта не найдена в store.');
+      return;
+    }
 
-      const allEntities = { ...state.npcs, ...state.enemies, ...state.heroes };
-      const tokens = Object.values(map.tokens);
-      
-      const expected = Object.values(allEntities).filter((e: any) => e.locationId === activeId);
-      
-      const report: any[] = [];
-      
-      expected.forEach(e => {
-        const found = tokens.find(t => t.entityId === e.id);
+    const allEntities = { ...state.npcs, ...state.enemies, ...state.heroes };
+    const tokens = Object.values(map.tokens);
+    
+    const expected = Object.values(allEntities).filter((e: any) => e.locationId === activeId);
+    
+    const report: any[] = [];
+    
+    expected.forEach(e => {
+      const found = tokens.find(t => t.entityId === e.id);
+      report.push({
+        entityName: e.name,
+        entityId: e.id,
+        expectedLocation: activeId,
+        presentOnMap: !!found,
+        status: found ? 'OK' : 'MISSING'
+      });
+    });
+    
+    tokens.forEach(t => {
+      const entity = (allEntities as any)[t.entityId];
+      if (!entity) {
         report.push({
-          entityName: e.name,
-          entityId: e.id,
-          expectedLocation: activeId,
-          presentOnMap: !!found,
-          status: found ? 'OK' : 'MISSING'
+          entityName: 'Unknown',
+          entityId: t.entityId,
+          expectedLocation: 'N/A',
+          presentOnMap: true,
+          status: 'ORPHAN_TOKEN'
         });
-      });
-      
-      tokens.forEach(t => {
-        const entity = (allEntities as any)[t.entityId];
-        if (!entity) {
-          report.push({
-            entityName: 'Unknown',
-            entityId: t.entityId,
-            expectedLocation: 'N/A',
-            presentOnMap: true,
-            status: 'ORPHAN_TOKEN'
-          });
-        } else if (entity.locationId !== activeId && t.type !== 'poi' && t.type !== 'check') {
-          report.push({
-            entityName: entity.name,
-            entityId: t.entityId,
-            expectedLocation: entity.locationId,
-            presentOnMap: true,
-            status: 'MISPLACED'
-          });
-        }
-      });
-      
-      console.table(report);
-    };
+      } else if (entity.locationId !== activeId && t.type !== 'poi' && t.type !== 'check') {
+        report.push({
+          entityName: entity.name,
+          entityId: t.entityId,
+          expectedLocation: entity.locationId,
+          presentOnMap: true,
+          status: 'MISPLACED'
+        });
+      }
+    });
+    
+    console.table(report);
+  };
 
-    (window as any).debugMapSync();
+  React.useEffect(() => {
+    (window as any).debugMapSync = debugMapSync;
   }, [activeLocalMapId, currentHour]);
 
   const [tokenMenu, setTokenMenu] = React.useState<{ tokenId: string, entityId: string, x: number, y: number } | null>(null);
@@ -156,7 +156,7 @@ const LocalMapBoard = () => {
       y: 0,
       size: 1
     };
-    spawnEntityToMap(locationId || activeLocalMapId || '', { id: entity?.id }, type);
+    spawnEntityToMap(locationId || activeLocalMapId || '', entity, type);
     
     if (type === 'poi' || type === 'check') {
       const entityId = id; // Используем id токена как baseEntityId для привязки
@@ -349,7 +349,7 @@ const LocalMapBoard = () => {
             />
 
             {/* Layer 2: Tokens - самый верхний, кликабельный */}
-            <div className="absolute inset-0 z-20 pointer-events-none">
+            <div className="absolute inset-0 z-20 pointer-events-auto">
               {Object.values(mapData.tokens).map((token: any) => {
                 const name = getEntityName(token);
                 const isHero = token.type === 'hero';
@@ -357,18 +357,18 @@ const LocalMapBoard = () => {
                 const isPoi = token.type === 'poi';
                 const isCheck = token.type === 'check';
                 
+                let isScheduledHere = true;
                 if (isNpc) {
                   const npc = npcs[token.entityId];
-                  if (npc && npc.schedule) {
-                    const isScheduledHere = npc.schedule.some(s => s.startHour <= currentHour && s.endHour > currentHour && s.locationId === activeLocalMapId);
-                    if (!isScheduledHere) return null;
+                  if (npc?.schedule && npc.schedule.length > 0) {
+                    isScheduledHere = npc.schedule.some(s => s.startHour <= currentHour && s.endHour > currentHour && s.locationId === activeLocalMapId);
                   }
                 }
 
                 return (
                   <div
                     key={token.id}
-                    className="absolute flex flex-col items-center pointer-events-auto"
+                    className={`absolute flex flex-col items-center pointer-events-auto ${!isScheduledHere ? 'opacity-50' : ''}`}
                     onMouseDown={(e) => e.stopPropagation()}
                     style={{
                       left: token.x * gridSize + offsetX,
