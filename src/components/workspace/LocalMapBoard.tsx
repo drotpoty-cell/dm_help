@@ -116,14 +116,52 @@ const LocalMapBoard = () => {
   };
 
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  React.useEffect(() => {
+    const loadBackground = async () => {
+      if (!activeLocalMapId) return;
+      try {
+        const db = await initDB();
+        const transaction = db.transaction("backgrounds", "readonly");
+        const store = transaction.objectStore("backgrounds");
+        const request = store.get(activeLocalMapId);
+        
+        request.onsuccess = () => {
+          if (request.result) {
+            updateLocalMap(activeLocalMapId, { backgroundImage: request.result });
+          }
+        };
+      } catch (error) {
+        console.error("Ошибка загрузки фона из IndexedDB:", error);
+      }
+    };
+    loadBackground();
+  }, [activeLocalMapId]);
+
+  const initDB = () => {
+    return new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("GMAssistant_Maps", 1);
+      request.onupgradeneeded = () => request.result.createObjectStore("backgrounds");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeLocalMapId) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64String = event.target?.result as string;
       updateLocalMap(activeLocalMapId, { backgroundImage: base64String });
+      
+      try {
+        const db = await initDB();
+        const transaction = db.transaction("backgrounds", "readwrite");
+        transaction.objectStore("backgrounds").put(base64String, activeLocalMapId);
+      } catch (error) {
+        console.error("Ошибка сохранения фона в IndexedDB:", error);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -148,18 +186,27 @@ const LocalMapBoard = () => {
 
     const id = entity?.id || `token-${Date.now()}`;
     
-    spawnEntityToMap(locationId || activeLocalMapId || '', { id: id, name: entity?.name || (type === 'poi' ? 'POI' : 'Check') }, type);
+    spawnEntityToMap(locationId || activeLocalMapId || '', { id: id, name: entity?.name || (type === 'poi' ? 'POI' : 'Check') }, type === 'poi' || type === 'check' ? 'interactive' : type as any);
     
     return id;
   };
 
-  const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot')[] = ['heroes', 'npcs', 'enemies', 'crowd', 'loot'];
+  const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot' | 'interactive')[] = ['heroes', 'npcs', 'enemies', 'crowd', 'loot', 'interactive'];
+
+  const categoryNames: Record<string, string> = {
+    heroes: "Герои",
+    npcs: "Действующие лица",
+    enemies: "Противники",
+    crowd: "Массовка",
+    loot: "Артефакты / Лут",
+    interactive: "Интерактивные объекты"
+  };
 
   const renderSidebar = () => {
     return categories.map(category => (
       <div key={category} className="mb-6">
         <div className="text-xs text-neutral-500 font-bold uppercase mb-2">
-          {category.charAt(0).toUpperCase() + category.slice(1)}
+          {categoryNames[category] || category}
         </div>
         <div className="space-y-1">
           {Object.values((useWorkspaceStore.getState() as any)[category] || {}).map((item: any) => {

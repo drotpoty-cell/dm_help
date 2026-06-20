@@ -206,7 +206,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         const tokenId = `token-${Date.now()}`;
 
         // Если сущности еще нет в архиве (например, новый объект), добавляем её
-        const category = type === 'poi' || type === 'check' ? 'extras' : type as LibraryCategory;
+        const category = type === 'poi' || type === 'check' ? 'interactive' : type as LibraryCategory;
         const updatedLibrary = {
           ...state[category],
           [entity.id]: { ...(state[category][entity.id] || {}), ...entity }
