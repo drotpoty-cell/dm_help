@@ -274,7 +274,7 @@ const LocalMapBoard = () => {
             }}
           >
             <div
-              className="absolute inset-0 z-0 pointer-events-auto"
+              className="absolute inset-0 z-0"
               style={{ 
                 backgroundImage: mapData?.backgroundImage ? `url("${mapData.backgroundImage}")` : 'none', 
                 backgroundSize: 'contain', 
@@ -290,7 +290,7 @@ const LocalMapBoard = () => {
                 backgroundPosition: `${offsetX}px ${offsetY}px`
               }}
             />
-            <div className="relative z-20 pointer-events-none">
+            <div className="absolute inset-0 z-20">
               {Object.values(mapData.tokens).map((token: any) => {
                 const name = getEntityName(token);
                 const isHero = token.type === 'hero';
@@ -309,18 +309,20 @@ const LocalMapBoard = () => {
                 return (
                   <div
                     key={token.id}
-                    className="absolute flex flex-col items-center pointer-events-auto"
+                    className="absolute flex flex-col items-center"
                     onMouseDown={(e) => e.stopPropagation()}
                     style={{
                       left: token.x * gridSize + offsetX,
                       top: token.y * gridSize + offsetY,
                       width: (token.size || 1) * gridSize,
                       height: (token.size || 1) * gridSize,
+                      position: 'absolute'
                     }}
                   >
                     {(() => {
                       const entity = token.type === 'hero' ? heroes[token.entityId] : (token.type === 'npc' ? npcs[token.entityId] : undefined);
-                      
+                      const initial = entity?.name ? entity.name.charAt(0).toUpperCase() : '?';
+
                       return (
                         <>
                           {entity?.hp !== undefined && entity?.maxHp && !isPoi && !isCheck && (
@@ -361,7 +363,7 @@ const LocalMapBoard = () => {
                             }`}
                           >
                             <div className={isCheck ? '-rotate-45' : ''}>
-                              {isPoi ? '🔍' : isCheck ? '🎲' : name.substring(0, 2).toUpperCase()}
+                              {isPoi ? '🔍' : isCheck ? '🎲' : initial}
                             </div>
                           </div>
 
