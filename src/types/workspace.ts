@@ -159,6 +159,7 @@ export interface BattleToken {
   id: string; // уникальный ID токена на карте
   entityId: string; // ссылка на героя или NPC
   type: 'hero' | 'npc' | 'monster' | 'poi' | 'check';
+  locationId?: string; // текущая локация
   x: number; // координата колонки (например, 0, 1, 2)
   y: number; // координата строки
   size?: number; // размер (1 = 1x1 клетка, 2 = 2x2 и т.д.)

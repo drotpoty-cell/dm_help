@@ -151,8 +151,9 @@ const LocalMapBoard = () => {
       id,
       entityId: entity?.id || id,
       type,
-      x: 2,
-      y: 2,
+      locationId: activeLocalMapId,
+      x: 0,
+      y: 0,
       size: 1
     };
     addLocalToken(activeLocalMapId, tokenData);
@@ -251,7 +252,7 @@ const LocalMapBoard = () => {
               <div key={n.id} className="flex justify-between items-center text-neutral-300 text-sm">
                 <span>{n.name}</span>
                 <button 
-                  onClick={() => addLocalToken(activeLocalMapId, { id: `token-${Date.now()}`, entityId: n.id, type: 'npc', x: 2, y: 2, size: 1 })}
+                  onClick={() => addLocalToken(activeLocalMapId, { id: `token-${Date.now()}`, entityId: n.id, type: 'npc', x: 0, y: 0, size: 1 })}
                   disabled={isOnMap}
                   className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
                 >{isOnMap ? 'На карте' : '+'}</button>
@@ -266,7 +267,7 @@ const LocalMapBoard = () => {
               <div key={`all-${n.id}`} className="flex justify-between items-center text-neutral-300 text-sm">
                 <span>{n.name}</span>
                 <button 
-                  onClick={() => addLocalToken(activeLocalMapId, { id: `token-${Date.now()}`, entityId: n.id, type: 'npc', x: 2, y: 2, size: 1 })}
+                  onClick={() => addLocalToken(activeLocalMapId, { id: `token-${Date.now()}`, entityId: n.id, type: 'npc', x: 0, y: 0, size: 1 })}
                   disabled={isOnMap}
                   className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-900 text-white hover:bg-red-800'}`}
                 >{isOnMap ? 'На карте' : '+'}</button>
