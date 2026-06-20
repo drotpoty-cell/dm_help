@@ -24,6 +24,65 @@ const LocalMapBoard = () => {
   
   const mapData = activeLocalMapId ? localMaps[activeLocalMapId] : null;
 
+  React.useEffect(() => {
+    (window as any).debugMapSync = () => {
+      const state = useWorkspaceStore.getState();
+      const activeId = state.activeLocalMapId;
+      if (!activeId) {
+        console.warn('debugMapSync: Нет активной карты.');
+        return;
+      }
+      const map = state.localMaps[activeId];
+      if (!map) {
+        console.warn('debugMapSync: Активная карта не найдена в store.');
+        return;
+      }
+
+      const allEntities = { ...state.npcs, ...state.enemies, ...state.heroes };
+      const tokens = Object.values(map.tokens);
+      
+      const expected = Object.values(allEntities).filter((e: any) => e.locationId === activeId);
+      
+      const report: any[] = [];
+      
+      expected.forEach(e => {
+        const found = tokens.find(t => t.entityId === e.id);
+        report.push({
+          entityName: e.name,
+          entityId: e.id,
+          expectedLocation: activeId,
+          presentOnMap: !!found,
+          status: found ? 'OK' : 'MISSING'
+        });
+      });
+      
+      tokens.forEach(t => {
+        const entity = (allEntities as any)[t.entityId];
+        if (!entity) {
+          report.push({
+            entityName: 'Unknown',
+            entityId: t.entityId,
+            expectedLocation: 'N/A',
+            presentOnMap: true,
+            status: 'ORPHAN_TOKEN'
+          });
+        } else if (entity.locationId !== activeId && t.type !== 'poi' && t.type !== 'check') {
+          report.push({
+            entityName: entity.name,
+            entityId: t.entityId,
+            expectedLocation: entity.locationId,
+            presentOnMap: true,
+            status: 'MISPLACED'
+          });
+        }
+      });
+      
+      console.table(report);
+    };
+
+    (window as any).debugMapSync();
+  }, [activeLocalMapId, currentHour]);
+
   const [tokenMenu, setTokenMenu] = React.useState<{ tokenId: string, entityId: string, x: number, y: number } | null>(null);
   const [isPanning, setIsPanning] = React.useState(false);
   const [panStart, setPanStart] = React.useState({ x: 0, y: 0 });
