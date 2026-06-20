@@ -8,7 +8,7 @@ const LocalMapBoard = () => {
     localMaps, 
     activeLocalMapId,
     updateLocalToken, 
-    addLocalToken, 
+    spawnEntityToMap, 
     removeLocalToken, 
     closeLocalMap,
     updateLocalMap,
@@ -156,7 +156,7 @@ const LocalMapBoard = () => {
       y: 0,
       size: 1
     };
-    addLocalToken(locationId || activeLocalMapId || '', tokenData);
+    spawnEntityToMap(locationId || activeLocalMapId || '', { id: entity?.id }, type);
     
     if (type === 'poi' || type === 'check') {
       const entityId = id; // Используем id токена как baseEntityId для привязки
@@ -252,7 +252,7 @@ const LocalMapBoard = () => {
               <div key={n.id} className="flex justify-between items-center text-neutral-300 text-sm">
                 <span>{n.name}</span>
                 <button 
-                  onClick={() => addLocalToken(activeLocalMapId, { id: `token-${Date.now()}`, entityId: n.id, type: 'npc', x: 0, y: 0, size: 1 })}
+                  onClick={() => spawnEntityToMap(activeLocalMapId, n, 'npc')}
                   disabled={isOnMap}
                   className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
                 >{isOnMap ? 'На карте' : '+'}</button>
@@ -267,7 +267,7 @@ const LocalMapBoard = () => {
               <div key={`all-${n.id}`} className="flex justify-between items-center text-neutral-300 text-sm">
                 <span>{n.name}</span>
                 <button 
-                  onClick={() => addLocalToken(activeLocalMapId, { id: `token-${Date.now()}`, entityId: n.id, type: 'npc', x: 0, y: 0, size: 1 })}
+                  onClick={() => spawnEntityToMap(activeLocalMapId, n, 'npc')}
                   disabled={isOnMap}
                   className={`px-2 py-1 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-red-900 text-white hover:bg-red-800'}`}
                 >{isOnMap ? 'На карте' : '+'}</button>
@@ -327,22 +327,18 @@ const LocalMapBoard = () => {
           onClick={() => setTokenMenu(null)}
           onContextMenu={(e) => { e.preventDefault(); setTokenMenu(null); }}
         >
-          <div 
+          <div
             className="absolute top-0 left-0 origin-top-left w-full h-full"
             style={{
-              transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`,
-              pointerEvents: 'none'
+              transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`
             }}
           >
-            <div
-              className="absolute inset-0 z-0"
-              style={{ 
-                backgroundImage: mapData?.backgroundImage ? `url("${mapData.backgroundImage}")` : 'none', 
-                backgroundSize: 'contain', 
-                backgroundPosition: 'center', 
-                backgroundRepeat: 'no-repeat'
-              }}
-            />
+            {/* Layer 0: Background - самый нижний */}
+            <div className="absolute inset-0 z-0">
+               {mapData?.backgroundImage && <img src={mapData.backgroundImage} className="w-full h-full object-contain" />}
+            </div>
+
+            {/* Layer 1: Grid - поверх фона */}
             <div
               className="absolute inset-0 z-10 pointer-events-none"
               style={{ 
@@ -351,7 +347,9 @@ const LocalMapBoard = () => {
                 backgroundPosition: `${offsetX}px ${offsetY}px`
               }}
             />
-            <div className="absolute inset-0 z-20 pointer-events-auto">
+
+            {/* Layer 2: Tokens - самый верхний, кликабельный */}
+            <div className="absolute inset-0 z-20 pointer-events-none">
               {Object.values(mapData.tokens).map((token: any) => {
                 const name = getEntityName(token);
                 const isHero = token.type === 'hero';
@@ -370,7 +368,7 @@ const LocalMapBoard = () => {
                 return (
                   <div
                     key={token.id}
-                    className="absolute flex flex-col items-center"
+                    className="absolute flex flex-col items-center pointer-events-auto"
                     onMouseDown={(e) => e.stopPropagation()}
                     style={{
                       left: token.x * gridSize + offsetX,

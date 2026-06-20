@@ -201,30 +201,37 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           }
         }
       })),
-      addLocalToken: (locationId: string, token: any) => set((state: any) => {
-        const updatedLocalMaps = { ...state.localMaps };
-        if (token.type === 'npc') {
-          Object.keys(updatedLocalMaps).forEach((locId) => {
-            if (updatedLocalMaps[locId]?.tokens) {
-              const filteredTokens = { ...updatedLocalMaps[locId].tokens };
-              Object.keys(filteredTokens).forEach((tId) => {
-                if (filteredTokens[tId].entityId === token.entityId) {
-                  delete filteredTokens[tId];
-                }
-              });
-              updatedLocalMaps[locId] = {
-                ...updatedLocalMaps[locId],
-                tokens: filteredTokens,
-              };
-            }
-          });
-        }
-        const currentMap = updatedLocalMaps[locationId] || { gridSize: 60, tokens: {} };
-        updatedLocalMaps[locationId] = {
-          ...currentMap,
-          tokens: { ...currentMap.tokens, [token.id]: token }
+      spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check') => set((state: any) => {
+        const nextLocalMaps = { ...state.localMaps };
+        const tokenId = `token-${Date.now()}`;
+
+        // 1. Очистка сущности со всех других карт
+        Object.keys(nextLocalMaps).forEach(locId => {
+          if (nextLocalMaps[locId]?.tokens) {
+            nextLocalMaps[locId].tokens = Object.fromEntries(
+              Object.entries(nextLocalMaps[locId].tokens).filter(([_, t]: any) => t.entityId !== entity.id)
+            );
+          }
+        });
+
+        // 2. Создание токена
+        const newToken = { id: tokenId, entityId: entity.id, type, locationId, x: 0, y: 0, size: 1 };
+        
+        // 3. Обновление целевой карты
+        const targetMap = nextLocalMaps[locationId] || { gridSize: 60, tokens: {} };
+        nextLocalMaps[locationId] = {
+          ...targetMap,
+          tokens: { ...targetMap.tokens, [tokenId]: newToken }
         };
-        return { localMaps: updatedLocalMaps };
+
+        // 4. Обновление самой сущности (привязка к карте)
+        const category = type === 'hero' ? 'heroes' : 'npcs'; // Дополни логику для врагов
+        const updatedEntities = {
+          ...state[category],
+          [entity.id]: { ...state[category][entity.id], locationId }
+        };
+
+        return { localMaps: nextLocalMaps, [category]: updatedEntities };
       }),
       removeLocalToken: (locationId: string, tokenId: string) => set((state: any) => {
         const nextTokens = { ...state.localMaps[locationId]?.tokens };
@@ -614,34 +621,42 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       name: 'gm-assistant-storage',
       version: 1,
       skipHydration: true,
-      partialize: (state) => ({
-        nodes: state.nodes,
-        edges: state.edges,
-        story: state.story,
-        plotNodes: state.plotNodes,
-        heroes: state.heroes,
-        npcs: state.npcs,
-        enemies: state.enemies,
-        crowd: state.crowd,
-        quests: state.quests,
-        locations: state.locations,
-        secrets: state.secrets,
-        loot: state.loot,
-        events: state.events,
-        factions: state.factions,
-        characters: state.characters,
-        extras: state.extras,
-        bestiary: state.bestiary,
-        currentDay: state.currentDay,
-        currentHour: state.currentHour,
-        weather: state.weather,
-        partyLocationId: state.partyLocationId,
-        activeView: state.activeView,
-        localMaps: state.localMaps,
-        combat: state.combat,
-        savedWorlds: state.savedWorlds,
-        activeWorldId: state.activeWorldId
-      })
+      partialize: (state) => {
+        // Создаем "легкую" копию localMaps без тяжелых base64 изображений
+        const lightLocalMaps = Object.entries(state.localMaps).reduce((acc, [key, val]) => {
+          acc[key] = { ...val, backgroundImage: null }; // Очищаем фон для сохранения
+          return acc;
+        }, {} as Record<string, any>);
+
+        return {
+          nodes: state.nodes,
+          edges: state.edges,
+          story: state.story,
+          plotNodes: state.plotNodes,
+          heroes: state.heroes,
+          npcs: state.npcs,
+          enemies: state.enemies,
+          crowd: state.crowd,
+          quests: state.quests,
+          locations: state.locations,
+          secrets: state.secrets,
+          loot: state.loot,
+          events: state.events,
+          factions: state.factions,
+          characters: state.characters,
+          extras: state.extras,
+          bestiary: state.bestiary,
+          currentDay: state.currentDay,
+          currentHour: state.currentHour,
+          weather: state.weather,
+          partyLocationId: state.partyLocationId,
+          activeView: state.activeView,
+          localMaps: lightLocalMaps, // Сохраняем только структуру и токены
+          combat: state.combat,
+          savedWorlds: state.savedWorlds,
+          activeWorldId: state.activeWorldId
+        };
+      }
     }
   )
 )
