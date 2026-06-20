@@ -269,6 +269,8 @@ export default function ArchiveBoard() {
                       ? ({ id, name: 'Новый противник', description: '', hp: 10, maxHp: 10, ac: 10, cr: '1', attacks: '', order } as Enemy)
                     : activeTab === 'loot'
                       ? ({ ...base, name: 'Новый артефакт', rarity: 'common', price: 0, weight: 0, stats: '', ownerId: null, detailedDescription: '', status: 'unclaimed' } as Loot)
+                    : activeTab === 'interactive'
+                      ? ({ id, name: 'Новый интерактивный объект', description: '', type: 'poi' })
                       : activeTab === 'events'
                         ? ({ ...base, name: 'Новое событие', startDay: 1, duration: 1, status: 'backlog' } as Event)
                         : activeTab === 'locations'

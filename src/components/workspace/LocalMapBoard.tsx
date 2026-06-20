@@ -292,6 +292,11 @@ const LocalMapBoard = () => {
           >
             Вернуться на карту мира
           </button>
+          <div className="flex gap-2 text-xs text-neutral-300 mt-2">
+            <label>Сетка: <input type="number" value={gridSize} onChange={(e) => updateCalibration('gridSize', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
+            <label>X: <input type="number" value={offsetX} onChange={(e) => updateCalibration('gridOffsetX', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
+            <label>Y: <input type="number" value={offsetY} onChange={(e) => updateCalibration('gridOffsetY', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
+          </div>
         </div>
 
         <div

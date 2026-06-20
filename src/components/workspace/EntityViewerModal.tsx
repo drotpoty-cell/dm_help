@@ -82,16 +82,38 @@ export default function EntityViewerModal() {
           <button onClick={() => { handleSave(); close(); }} className="text-zinc-500 hover:text-white text-xl p-1 leading-none">✕</button>
         </div>
 
-        <div className="flex flex-col gap-2">
-            <Label>Описание</Label>
-            <Textarea 
-              value={formData.description || ''}
-              onChange={(e) => handleChange('description', e.target.value)}
-              className="bg-zinc-900 border-zinc-800"
+        {category === 'interactive' && (
+          <div className="space-y-4 p-4">
+            <input 
+              value={formData.name || ''} 
+              onChange={(e) => handleChange('name', e.target.value)}
+              className="w-full bg-neutral-800 text-white p-2 rounded"
+              placeholder="Название объекта"
             />
-        </div>
+            <textarea 
+              value={formData.description || ''} 
+              onChange={(e) => handleChange('description', e.target.value)}
+              className="w-full bg-neutral-800 text-white p-2 rounded h-32"
+              placeholder="Описание"
+            />
+            {formData.type === 'check' && (
+              <label className="text-white">Сложность (DC): <input type="number" value={formData.dc || 10} onChange={(e) => handleChange('dc', parseInt(e.target.value))} className="bg-neutral-800 p-1 rounded w-16"/></label>
+            )}
+          </div>
+        )}
 
-        {category === 'interactive' && formData.type === 'check' && (
+        {category !== 'interactive' && (
+          <div className="flex flex-col gap-2">
+              <Label>Описание</Label>
+              <Textarea 
+                value={formData.description || ''}
+                onChange={(e) => handleChange('description', e.target.value)}
+                className="bg-zinc-900 border-zinc-800"
+              />
+          </div>
+        )}
+
+        {category !== 'interactive' && category === 'interactive' && formData.type === 'check' && (
             <div className="flex flex-col gap-2">
                 <Label>Сложность (DC)</Label>
                 <Input 
