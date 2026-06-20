@@ -240,7 +240,21 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           tokens: { ...targetMap.tokens, [tokenId]: newToken }
         };
 
-        return { localMaps: nextLocalMaps, [category]: updatedLibrary };
+        // 4. Обязательное добавление в interactive, если это POI или Check
+        let nextInteractive = state.interactive;
+        if (type === 'poi' || type === 'check') {
+          nextInteractive = {
+            ...state.interactive,
+            [entity.id]: {
+              id: entity.id,
+              name: newEntity.name,
+              type: type,
+              description: ''
+            }
+          };
+        }
+
+        return { localMaps: nextLocalMaps, [category]: updatedLibrary, interactive: nextInteractive };
       }),
       removeLocalToken: (locationId: string, tokenId: string) => set((state: any) => {
         const nextTokens = { ...state.localMaps[locationId]?.tokens };

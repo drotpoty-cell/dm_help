@@ -243,13 +243,19 @@ const LocalMapBoard = () => {
         <h2 className="text-white font-bold mb-4">Архив</h2>
         <div className="space-y-4">
           <button 
-            onClick={() => spawnEntityToMap(activeLocalMapId!, { id: `poi-${Date.now()}` }, 'poi')}
+            onClick={() => {
+              const tokenId = `poi-${Date.now()}`;
+              spawnEntityToMap(activeLocalMapId!, { id: tokenId, name: 'POI', type: 'poi' }, 'poi');
+            }}
             className="w-full bg-yellow-600 text-white px-2 py-2 rounded text-sm hover:bg-yellow-700"
           >
             ➕ Добавить точку интереса (POI)
           </button>
           <button 
-            onClick={() => spawnEntityToMap(activeLocalMapId!, { id: `check-${Date.now()}` }, 'check')}
+            onClick={() => {
+              const tokenId = `check-${Date.now()}`;
+              spawnEntityToMap(activeLocalMapId!, { id: tokenId, name: 'Check', type: 'check' }, 'check');
+            }}
             className="w-full bg-orange-600 text-white px-2 py-2 rounded text-sm hover:bg-orange-700"
           >
             ➕ Добавить проверку (Check)
@@ -319,7 +325,10 @@ const LocalMapBoard = () => {
               }}
             />
 
-            <div className="absolute inset-0 z-20 pointer-events-auto">
+            <div 
+              className="absolute inset-0 z-20 pointer-events-none"
+              onWheel={handleWheel}
+            >
               {Object.values(mapData.tokens).map((token: any) => {
                 const name = getEntityName(token);
                 const isHero = token.type === 'hero';
