@@ -17,22 +17,24 @@ export default function EntityViewerModal() {
   const getEntityData = () => {
     if (!viewedEntityId) return null
     
-    const categories: Record<string, Record<string, any>> = { 
-        heroes: state.heroes, 
-        npcs: state.npcs, 
-        enemies: state.enemies, 
-        crowd: state.crowd, 
-        loot: state.loot, 
-        interactive: state.interactive, 
-        extras: state.extras,
-        quests: state.quests,
-        locations: state.locations,
-        secrets: state.secrets,
-        events: state.events
-    }
-
+    const categories = { 
+      heroes: state.heroes, 
+      npcs: state.npcs, 
+      enemies: state.enemies, 
+      crowd: state.crowd, 
+      loot: state.loot, 
+      interactive: state.interactive, 
+      extras: state.extras, 
+      quests: state.quests, 
+      events: state.events, 
+      locations: state.locations, 
+      bestiary: state.bestiary, 
+      factions: state.factions, 
+      characters: state.characters 
+    };
+  
     for (const [categoryName, categoryObj] of Object.entries(categories)) {
-      if (!categoryObj) continue; // КРИТИЧЕСКИЙ ФИКС: защита от падения
+      if (!categoryObj) continue;
       if (categoryObj[viewedEntityId]) {
         return { entity: categoryObj[viewedEntityId], category: categoryName };
       }

@@ -99,7 +99,8 @@ export default function ArchiveBoard() {
     extras: state.extras,
     bestiary: state.bestiary,
     factions: state.factions,
-    crowd: state.crowd
+    crowd: state.crowd,
+    interactive: state.interactive
   }))
 
   const nodes = useWorkspaceStore((state) => state.nodes)
@@ -298,8 +299,7 @@ export default function ArchiveBoard() {
 
   const currentItems = useMemo(() => {
     if (activeTab === 'interactive') {
-      const allExtras = Object.values(library.extras || {}) as any[];
-      return allExtras.filter(item => item.tokenType === 'poi' || item.tokenType === 'check');
+      return Object.values(library.interactive || {}); // Читаем напрямую из нужного стейта!
     }
     return Object.values(library[activeTab as Exclude<LibraryCategory, 'interactive'>] || {})
   }, [library, activeTab])

@@ -196,7 +196,8 @@ const LocalMapBoard = () => {
         id: newEntityId,
         name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
         description: '',
-        type: type,
+        tokenType: type, // <--- ИСПОЛЬЗУЙ ИЛИ ЭТО
+        type: type, // <--- ИЛИ ЭТО, НО БУДЬ ПОСЛЕДОВАТЕЛЕН!
         dc: type === 'check' ? 10 : undefined
       };
       // СНАЧАЛА создаем карточку в Архиве (чтобы досье могло её найти)
