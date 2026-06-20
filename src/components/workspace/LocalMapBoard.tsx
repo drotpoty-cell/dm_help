@@ -161,9 +161,9 @@ const LocalMapBoard = () => {
     reader.readAsDataURL(file);
   };
 
-  const updateCalibration = (field: 'gridSize' | 'gridOffsetX' | 'gridOffsetY', value: number) => {
+  const updateCalibration = (field: 'gridSize' | 'gridOffsetX' | 'gridOffsetY' | 'backgroundScale', value: number) => {
     if (activeLocalMapId && mapData) {
-      updateLocalMap(activeLocalMapId, { [field]: value });
+      updateLocalMap(activeLocalMapId, { [field]: value || 0 }); // Добавлена защита от NaN
     }
   };
 
@@ -313,14 +313,24 @@ const LocalMapBoard = () => {
             }}
           >
             <div className="absolute inset-0 z-0">
-               {mapData?.backgroundImage && <img src={mapData.backgroundImage} className="w-full h-full object-contain" />}
+               {mapData?.backgroundImage && (
+                <img 
+                  src={mapData.backgroundImage} 
+                  className="w-full h-full"
+                  style={{ 
+                    objectFit: 'contain', 
+                    objectPosition: 'center', 
+                    transform: `scale(${backgroundScale})` // КРИТИЧЕСКИЙ ФИКС ДЛЯ МАСШТАБА ФОНА
+                  }}
+                />
+               )}
             </div>
 
             <div
               className="absolute inset-0 z-10 pointer-events-none"
               style={{ 
                 backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)', 
-                backgroundSize: `${gridSize}px ${gridSize}px`, 
+                backgroundSize: `${gridSize}px ${gridSize}px`, // ВОТ ЗДЕСЬ
                 backgroundPosition: `${offsetX}px ${offsetY}px`
               }}
             />

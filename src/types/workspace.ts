@@ -283,5 +283,5 @@ export interface WorkspaceState {
 
 export type LibraryState = Pick<
   WorkspaceState,
-  'heroes' | 'npcs' | 'quests' | 'locations' | 'secrets' | 'loot' | 'events' | 'characters' | 'extras' | 'bestiary' | 'factions'
->
+  'heroes' | 'npcs' | 'enemies' | 'crowd' | 'quests' | 'locations' | 'secrets' | 'loot' | 'events' | 'characters' | 'extras' | 'bestiary' | 'factions' | 'interactive'
+>;

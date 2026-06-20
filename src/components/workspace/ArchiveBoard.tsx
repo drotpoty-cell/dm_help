@@ -277,6 +277,8 @@ export default function ArchiveBoard() {
     
     if (activeTab !== 'interactive') {
       addEntity(activeTab as Exclude<LibraryCategory, 'interactive'>, newEntity)
+    } else {
+      addEntity('interactive', newEntity)
     }
   }
 

@@ -32,8 +32,9 @@ export default function EntityViewerModal() {
     }
 
     for (const [categoryName, categoryObj] of Object.entries(categories)) {
-      if (categoryObj && categoryObj[viewedEntityId]) {
-        return { entity: categoryObj[viewedEntityId], category: categoryName }
+      if (!categoryObj) continue; // КРИТИЧЕСКИЙ ФИКС: защита от падения
+      if (categoryObj[viewedEntityId]) {
+        return { entity: categoryObj[viewedEntityId], category: categoryName };
       }
     }
     return null
