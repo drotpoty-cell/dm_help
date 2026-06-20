@@ -186,6 +186,29 @@ const LocalMapBoard = () => {
     interactive: "Интерактивные объекты"
   };
 
+  const spawnToken = (entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd', locationId: string | null = activeLocalMapId) => {
+    let targetEntity = entity;
+    
+    // Если это новый интерактивный объект с карты (нет готового entity)
+    if (!targetEntity && (type === 'poi' || type === 'check')) {
+      const newEntityId = `interactive-${Date.now()}`;
+      targetEntity = {
+        id: newEntityId,
+        name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
+        description: '',
+        type: type,
+        dc: type === 'check' ? 10 : undefined
+      };
+      // СНАЧАЛА создаем карточку в Архиве (чтобы досье могло её найти)
+      useWorkspaceStore.getState().addEntity('interactive', targetEntity);
+    }
+
+    if (!targetEntity) return null;
+
+    // ЗАТЕМ спавним токен с привязкой к созданной карточке
+    useWorkspaceStore.getState().spawnEntityToMap(locationId || '', targetEntity, type);
+  };
+
   const renderSidebar = () => {
     return categories.map(category => (
       <div key={category} className="mb-6">
@@ -199,7 +222,7 @@ const LocalMapBoard = () => {
               <div key={item.id} className="flex justify-between items-center text-neutral-300 text-sm p-1 hover:bg-neutral-800 rounded">
                 <span>{item.name}</span>
                 <button 
-                  onClick={() => spawnEntityToMap(activeLocalMapId!, item, category as any)}
+                  onClick={() => spawnToken(item, category as any)}
                   disabled={isOnMap}
                   className={`px-2 py-0.5 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                 >
@@ -243,19 +266,13 @@ const LocalMapBoard = () => {
         <h2 className="text-white font-bold mb-4">Архив</h2>
         <div className="space-y-4">
           <button 
-            onClick={() => {
-              const tokenId = `poi-${Date.now()}`;
-              spawnEntityToMap(activeLocalMapId!, { id: tokenId, name: 'POI', type: 'poi' }, 'poi');
-            }}
+            onClick={() => spawnToken(null, 'poi')}
             className="w-full bg-yellow-600 text-white px-2 py-2 rounded text-sm hover:bg-yellow-700"
           >
             ➕ Добавить точку интереса (POI)
           </button>
           <button 
-            onClick={() => {
-              const tokenId = `check-${Date.now()}`;
-              spawnEntityToMap(activeLocalMapId!, { id: tokenId, name: 'Check', type: 'check' }, 'check');
-            }}
+            onClick={() => spawnToken(null, 'check')}
             className="w-full bg-orange-600 text-white px-2 py-2 rounded text-sm hover:bg-orange-700"
           >
             ➕ Добавить проверку (Check)
