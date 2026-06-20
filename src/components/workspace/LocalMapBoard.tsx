@@ -142,7 +142,7 @@ const LocalMapBoard = () => {
   const backgroundScale = mapData.backgroundScale || 1;
   const backgroundRotation = mapData.backgroundRotation || 0;
 
-  const spawnToken = (entity: any, type: 'hero' | 'npc' | 'poi' | 'check') => {
+  const spawnToken = (entity: any, type: 'hero' | 'npc' | 'poi' | 'check', locationId: string | null = activeLocalMapId) => {
     const isAlreadyOnMap = Object.values(mapData.tokens).some(t => entity && t.entityId === entity.id);
     if (isAlreadyOnMap) return null;
 
@@ -151,18 +151,18 @@ const LocalMapBoard = () => {
       id,
       entityId: entity?.id || id,
       type,
-      locationId: activeLocalMapId,
+      locationId: locationId || '',
       x: 0,
       y: 0,
       size: 1
     };
-    addLocalToken(activeLocalMapId, tokenData);
+    addLocalToken(locationId || activeLocalMapId || '', tokenData);
     
     if (type === 'poi' || type === 'check') {
       const entityId = id; // Используем id токена как baseEntityId для привязки
       addEntity('extras', {
         id: entityId,
-        locationId: activeLocalMapId,
+        locationId: locationId || '',
         tokenId: id,
         name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
         description: type === 'poi' ? '' : undefined,
@@ -209,13 +209,13 @@ const LocalMapBoard = () => {
         <h2 className="text-white font-bold mb-4">Персонажи</h2>
         <div className="space-y-4">
           <button 
-            onClick={() => spawnToken(null, 'poi')}
+            onClick={() => spawnToken(null, 'poi', useWorkspaceStore.getState().activeLocalMapId)}
             className="w-full bg-yellow-600 text-white px-2 py-2 rounded text-sm hover:bg-yellow-700"
           >
             ➕ Добавить точку интереса (POI)
           </button>
           <button 
-            onClick={() => spawnToken(null, 'check')}
+            onClick={() => spawnToken(null, 'check', useWorkspaceStore.getState().activeLocalMapId)}
             className="w-full bg-orange-600 text-white px-2 py-2 rounded text-sm hover:bg-orange-700"
           >
             ➕ Добавить проверку (Check)
