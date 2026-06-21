@@ -251,7 +251,7 @@ export default function ArchiveBoard() {
     const id = `ent-${Date.now()}`
     const order = Date.now()
     const base = { id, name: 'Новая запись', description: '', order }
-    const newEntity =
+    let newEntity =
       activeTab === 'heroes'
         ? ({ id, name: 'Новый герой', playerName: '', raceClass: '', level: 1, hp: 10, maxHp: 10, ac: 10, initiativeModifier: 0, passivePerception: 10, description: '', order } as Hero)
         : activeTab === 'characters'
@@ -271,17 +271,17 @@ export default function ArchiveBoard() {
                     : activeTab === 'loot'
                       ? ({ ...base, name: 'Новый артефакт', rarity: 'common', price: 0, weight: 0, stats: '', ownerId: null, detailedDescription: '', status: 'unclaimed' } as Loot)
                     : activeTab === 'interactive'
-                      ? ({ id, name: 'Новый интерактивный объект', description: '', type: 'poi' })
+                      ? { id, name: 'Новый интерактивный объект', description: '', type: 'poi' }
                       : activeTab === 'events'
                         ? ({ ...base, name: 'Новое событие', startDay: 1, duration: 1, status: 'backlog' } as Event)
                         : activeTab === 'locations'
                           ? ({ ...base, name: 'Новая локация', secrets: '', charactersInside: '', currentState: '', status: 'discovered' } as any)
                           : base
     
-    if (activeTab !== 'interactive') {
-      addEntity(activeTab as Exclude<LibraryCategory, 'interactive'>, newEntity)
-    } else {
+    if (activeTab === 'interactive') {
       addEntity('interactive', newEntity)
+    } else {
+      addEntity(activeTab as Exclude<LibraryCategory, 'interactive'>, newEntity)
     }
   }
 

@@ -175,7 +175,8 @@ const LocalMapBoard = () => {
   const backgroundScale = mapData.backgroundScale || 1;
   const backgroundRotation = mapData.backgroundRotation || 0;
 
-  const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot' | 'interactive')[] = ['heroes', 'npcs', 'enemies', 'crowd', 'loot', 'interactive'];
+  const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot' | 'interactive')[] = 
+    ['heroes', 'npcs', 'enemies', 'crowd', 'loot', 'interactive'];
 
   const categoryNames: Record<string, string> = {
     heroes: "Герои",

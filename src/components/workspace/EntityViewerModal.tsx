@@ -19,9 +19,8 @@ export default function EntityViewerModal() {
     // ВАЖНО: state.interactive должен быть передан сюда!
     const state = useWorkspaceStore.getState();
     const categories = { 
-      heroes: state.heroes, npcs: state.npcs, enemies: state.enemies, 
+      interactive: state.interactive, heroes: state.heroes, npcs: state.npcs, enemies: state.enemies, 
       crowd: state.crowd, loot: state.loot, extras: state.extras, 
-      interactive: state.interactive, // <--- КРИТИЧНО!
       quests: state.quests, events: state.events, locations: state.locations, 
       bestiary: state.bestiary, factions: state.factions, characters: state.characters 
     };
