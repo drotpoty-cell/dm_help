@@ -161,9 +161,9 @@ const LocalMapBoard = () => {
     reader.readAsDataURL(file);
   };
 
-  const updateCalibration = (field: 'gridSize' | 'gridOffsetX' | 'gridOffsetY' | 'backgroundScale', value: number) => {
+  const handleCalibrationChange = (field: 'gridSize' | 'gridOffsetX' | 'gridOffsetY' | 'backgroundScale', value: number) => {
     if (activeLocalMapId && mapData) {
-      updateLocalMap(activeLocalMapId, { [field]: value || 0 }); // Добавлена защита от NaN
+      updateLocalMap(activeLocalMapId, { [field]: value || 0 });
     }
   };
 
@@ -173,69 +173,79 @@ const LocalMapBoard = () => {
   const offsetX = mapData.gridOffsetX || 0;
   const offsetY = mapData.gridOffsetY || 0;
   const backgroundScale = mapData.backgroundScale || 1;
-  const backgroundRotation = mapData.backgroundRotation || 0;
 
-  const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot' | 'interactive')[] = 
-    ['heroes', 'npcs', 'enemies', 'crowd', 'loot', 'interactive'];
-
-  const categoryNames: Record<string, string> = {
-    heroes: "Герои",
-    npcs: "Действующие лица",
-    enemies: "Противники",
-    crowd: "Массовка",
-    loot: "Артефакты / Лут",
-    interactive: "Интерактивные объекты"
-  };
-
-  const spawnToken = (entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd', locationId: string | null = activeLocalMapId) => {
-    let targetEntity = entity;
+  // =====================================================
+  // 2. КОМПОНЕНТ: Сайдбар (Архив и Кнопки)
+  // =====================================================
+  const MapSidebar = ({ activeLocalMapId }: { activeLocalMapId: string }) => {
+    const store = useWorkspaceStore();
+    const mapData = store.localMaps[activeLocalMapId];
     
-    // Если это новый интерактивный объект с карты (нет готового entity)
-    if (!targetEntity && (type === 'poi' || type === 'check')) {
-      const newEntityId = `interactive-${Date.now()}`;
-      targetEntity = {
-        id: newEntityId,
-        name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
-        description: '',
-        tokenType: type, // <--- ИСПОЛЬЗУЙ ИЛИ ЭТО
-        type: type, // <--- ИЛИ ЭТО, НО БУДЬ ПОСЛЕДОВАТЕЛЕН!
-        dc: type === 'check' ? 10 : undefined
-      };
-      // СНАЧАЛА создаем карточку в Архиве (чтобы досье могло её найти)
-      useWorkspaceStore.getState().addEntity('interactive', targetEntity);
-    }
+    const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot' | 'interactive')[] = 
+      ['heroes', 'npcs', 'enemies', 'crowd', 'loot', 'interactive'];
 
-    if (!targetEntity) return null;
+    const categoryNames: Record<string, string> = {
+      heroes: "Герои",
+      npcs: "Действующие лица",
+      enemies: "Противники",
+      crowd: "Массовка",
+      loot: "Артефакты / Лут",
+      interactive: "Интерактивные объекты"
+    };
 
-    // ЗАТЕМ спавним токен с привязкой к созданной карточке
-    useWorkspaceStore.getState().spawnEntityToMap(locationId || '', targetEntity, type);
-  };
+    // Конвертируем название категории базы данных в тип токена для карты
+    const getTokenType = (category: string, item: any): 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot' => {
+      if (category === 'heroes') return 'hero';
+      if (category === 'npcs') return 'npc';
+      if (category === 'interactive') return item.type || 'poi'; // Для интерактивов берем их личный тип (poi или check)
+      return category as any; // Остальные совпадают
+    };
 
-  const renderSidebar = () => {
-    return categories.map(category => (
-      <div key={category} className="mb-6">
-        <div className="text-xs text-neutral-500 font-bold uppercase mb-2">
-          {categoryNames[category] || category}
-        </div>
-        <div className="space-y-1">
-          {Object.values((useWorkspaceStore.getState() as any)[category] || {}).map((item: any) => {
-            const isOnMap = Object.values(mapData.tokens).some(t => t.entityId === item.id);
-            return (
-              <div key={item.id} className="flex justify-between items-center text-neutral-300 text-sm p-1 hover:bg-neutral-800 rounded">
-                <span>{item.name}</span>
-                <button 
-                  onClick={() => spawnToken(item, category as any)}
-                  disabled={isOnMap}
-                  className={`px-2 py-0.5 rounded text-xs ${isOnMap ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                >
-                  {isOnMap ? 'На карте' : '+'}
-                </button>
+    return (
+      <div className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col p-4 overflow-y-auto">
+        <h2 className="text-white font-bold mb-4">Архив</h2>
+        <div className="space-y-4">
+          <button 
+            onClick={() => store.createAndSpawnInteractive(activeLocalMapId, 'poi')}
+            className="w-full bg-yellow-600 text-white px-2 py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-yellow-500 transition-colors"
+          >
+            ➕ Точка интереса (POI)
+          </button>
+          <button 
+            onClick={() => store.createAndSpawnInteractive(activeLocalMapId, 'check')}
+            className="w-full bg-fuchsia-700 text-white px-2 py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-fuchsia-600 transition-colors"
+          >
+            ➕ Проверка (Check)
+          </button>
+          <div className="border-t border-neutral-800 my-4" />
+          
+          {categories.map(category => (
+            <div key={category} className="mb-6">
+              <div className="text-xs text-neutral-500 font-bold uppercase mb-2 tracking-wider">
+                {categoryNames[category] || category}
               </div>
-            );
-          })}
+              <div className="space-y-1">
+                {Object.values((store as any)[category] || {}).map((item: any) => {
+                  const isOnMap = Object.values(mapData?.tokens || {}).some((t: any) => t.entityId === item.id);
+                  return (
+                    <div key={item.id} className="flex justify-between items-center text-neutral-300 text-sm p-1.5 hover:bg-neutral-800/80 rounded transition-colors group">
+                      <span className="truncate pr-2 group-hover:text-white transition-colors">{item.name}</span>
+                      <button 
+                        onClick={() => store.spawnEntityToMap(activeLocalMapId, item, getTokenType(category, item))}
+                        disabled={isOnMap}
+                        className={`px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap transition-all ${isOnMap ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-md'}`}
+                      >
+                        {isOnMap ? 'На карте' : '+'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-    ));
+    );
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -264,25 +274,7 @@ const LocalMapBoard = () => {
       onClick={() => setTokenMenu(null)}
       onContextMenu={() => setTokenMenu(null)}
     >
-      <div className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col p-4 overflow-y-auto">
-        <h2 className="text-white font-bold mb-4">Архив</h2>
-        <div className="space-y-4">
-          <button 
-            onClick={() => useWorkspaceStore.getState().createAndSpawnInteractive(activeLocalMapId!, 'poi')}
-            className="w-full bg-yellow-600 text-white px-2 py-2 rounded text-sm hover:bg-yellow-700"
-          >
-            ➕ Добавить точку интереса (POI)
-          </button>
-          <button 
-            onClick={() => useWorkspaceStore.getState().createAndSpawnInteractive(activeLocalMapId!, 'check')}
-            className="w-full bg-orange-600 text-white px-2 py-2 rounded text-sm hover:bg-orange-700"
-          >
-            ➕ Добавить проверку (Check)
-          </button>
-          <div className="border-t border-neutral-800 my-4" />
-          {renderSidebar()}
-        </div>
-      </div>
+      <MapSidebar activeLocalMapId={activeLocalMapId!} />
 
       <div className="flex-1 h-full relative">
         <div className="absolute top-4 left-4 z-20 flex gap-2 bg-neutral-900 p-2 rounded shadow flex-col">
@@ -312,9 +304,9 @@ const LocalMapBoard = () => {
             Вернуться на карту мира
           </button>
           <div className="flex gap-2 text-xs text-neutral-300 mt-2">
-            <label>Сетка: <input type="number" value={gridSize} onChange={(e) => updateCalibration('gridSize', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
-            <label>X: <input type="number" value={offsetX} onChange={(e) => updateCalibration('gridOffsetX', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
-            <label>Y: <input type="number" value={offsetY} onChange={(e) => updateCalibration('gridOffsetY', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
+            <label>Сетка: <input type="number" value={gridSize} onChange={(e) => handleCalibrationChange('gridSize', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
+            <label>X: <input type="number" value={offsetX} onChange={(e) => handleCalibrationChange('gridOffsetX', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
+            <label>Y: <input type="number" value={offsetY} onChange={(e) => handleCalibrationChange('gridOffsetY', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
           </div>
         </div>
 
@@ -446,5 +438,3 @@ const LocalMapBoard = () => {
     </div>
   );
 };
-
-export default LocalMapBoard;
