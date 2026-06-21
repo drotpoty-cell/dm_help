@@ -190,6 +190,38 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           }
         };
       }),
+      createAndSpawnInteractive: (locationId: string, type: 'poi' | 'check') => set((state: any) => {
+        if (!locationId) return state;
+        
+        const newEntityId = `interactive-${Date.now()}`;
+        // 1. Создаем чистую сущность для Архива
+        const newEntity = {
+          id: newEntityId,
+          name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
+          description: '',
+          type: type, // Строго 'poi' или 'check'
+          dc: type === 'check' ? 10 : undefined,
+          locationId: locationId
+        };
+
+        // 2. Создаем токен для карты
+        const tokenId = `token-${Date.now()}`;
+        const newToken = { id: tokenId, entityId: newEntityId, type, locationId, x: 0, y: 0, size: 1 };
+
+        const targetMap = state.localMaps[locationId] || { gridSize: 60, tokens: {} };
+        
+        // 3. Атомарно обновляем и Архив (interactive), и Карту (localMaps)
+        return {
+          interactive: { ...state.interactive, [newEntityId]: newEntity },
+          localMaps: {
+            ...state.localMaps,
+            [locationId]: {
+              ...targetMap,
+              tokens: { ...targetMap.tokens, [tokenId]: newToken }
+            }
+          }
+        };
+      }),
       updateLocalToken: (locationId: string, tokenId: string, data: any) => set((state: any) => ({
         localMaps: {
           ...state.localMaps,

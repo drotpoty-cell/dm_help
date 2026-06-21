@@ -267,13 +267,13 @@ const LocalMapBoard = () => {
         <h2 className="text-white font-bold mb-4">Архив</h2>
         <div className="space-y-4">
           <button 
-            onClick={() => spawnToken(null, 'poi')}
+            onClick={() => useWorkspaceStore.getState().createAndSpawnInteractive(activeLocalMapId!, 'poi')}
             className="w-full bg-yellow-600 text-white px-2 py-2 rounded text-sm hover:bg-yellow-700"
           >
             ➕ Добавить точку интереса (POI)
           </button>
           <button 
-            onClick={() => spawnToken(null, 'check')}
+            onClick={() => useWorkspaceStore.getState().createAndSpawnInteractive(activeLocalMapId!, 'check')}
             className="w-full bg-orange-600 text-white px-2 py-2 rounded text-sm hover:bg-orange-700"
           >
             ➕ Добавить проверку (Check)

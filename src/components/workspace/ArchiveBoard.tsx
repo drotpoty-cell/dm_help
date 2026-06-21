@@ -299,10 +299,10 @@ export default function ArchiveBoard() {
 
   const currentItems = useMemo(() => {
     if (activeTab === 'interactive') {
-      return Object.values(library.interactive || {}); // Читаем напрямую из нужного стейта!
+      return Object.values(library.interactive || {}); // Больше никаких фильтров по extras!
     }
-    return Object.values(library[activeTab as Exclude<LibraryCategory, 'interactive'>] || {})
-  }, [library, activeTab])
+    return Object.values(library[activeTab as Exclude<LibraryCategory, 'interactive'>] || {});
+  }, [library, activeTab]);
 
   const getLocationName = (locationId?: string) => {
     if (!locationId) return "Локация неизвестна"

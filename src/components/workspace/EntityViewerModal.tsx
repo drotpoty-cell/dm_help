@@ -15,32 +15,25 @@ export default function EntityViewerModal() {
   
   // Ищем сущность во всех категориях
   const getEntityData = () => {
-    if (!viewedEntityId) return null
-    
+    if (!viewedEntityId) return null;
+    // ВАЖНО: state.interactive должен быть передан сюда!
+    const state = useWorkspaceStore.getState();
     const categories = { 
-      heroes: state.heroes, 
-      npcs: state.npcs, 
-      enemies: state.enemies, 
-      crowd: state.crowd, 
-      loot: state.loot, 
-      interactive: state.interactive, 
-      extras: state.extras, 
-      quests: state.quests, 
-      events: state.events, 
-      locations: state.locations, 
-      bestiary: state.bestiary, 
-      factions: state.factions, 
-      characters: state.characters 
+      heroes: state.heroes, npcs: state.npcs, enemies: state.enemies, 
+      crowd: state.crowd, loot: state.loot, extras: state.extras, 
+      interactive: state.interactive, // <--- КРИТИЧНО!
+      quests: state.quests, events: state.events, locations: state.locations, 
+      bestiary: state.bestiary, factions: state.factions, characters: state.characters 
     };
-  
+    
     for (const [categoryName, categoryObj] of Object.entries(categories)) {
       if (!categoryObj) continue;
       if (categoryObj[viewedEntityId]) {
         return { entity: categoryObj[viewedEntityId], category: categoryName };
       }
     }
-    return null
-  }
+    return null;
+  };
 
   const entityData = getEntityData()
   if (!viewedEntityId || !entityData) return null
