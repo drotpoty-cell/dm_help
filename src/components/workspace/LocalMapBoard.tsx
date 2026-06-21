@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import EntityViewerModal from '@/components/workspace/EntityViewerModal';
 
 // =====================================================
 // 1. ХУК: Сохранение и загрузка фонов (IndexedDB)
@@ -48,7 +49,7 @@ const useMapBackground = (activeLocalMapId: string | null) => {
         const transaction = db.transaction("backgrounds", "readwrite");
         transaction.objectStore("backgrounds").put(base64String, activeLocalMapId);
       } catch (error) {
-        console.error("Ошибка сохранения фона в IndexedDB:", error);
+        console.error("Ошибка保存 фона в IndexedDB:", error);
       }
     };
     reader.readAsDataURL(file);
@@ -281,6 +282,19 @@ const LocalMapBoard = () => {
                 const isPoi = token.type === 'poi';
                 const isCheck = token.type === 'check';
                 const isHero = token.type === 'hero';
+                const isNpc = token.type === 'npc';
+                const isEnemy = token.type === 'enemies';
+                const isCrowd = token.type === 'crowd';
+                const isLoot = token.type === 'loot';
+
+                // Безопасное получение названия сущности для подписи под токеном
+                const entity = store.heroes[token.entityId] || 
+                               store.npcs[token.entityId] || 
+                               store.enemies[token.entityId] || 
+                               store.crowd[token.entityId] || 
+                               store.loot[token.entityId] || 
+                               store.interactive[token.entityId];
+                const entityName = entity?.name || 'Объект';
                 
                 return (
                   <div
@@ -310,16 +324,23 @@ const LocalMapBoard = () => {
                         store.setViewedEntityId(token.entityId); 
                         setTokenMenu(null);
                       }}
-                      className={`w-full h-full border-2 cursor-move flex items-center justify-center font-black text-sm shadow-xl select-none backdrop-blur-sm ${
+                      className={`w-full h-full border-2 cursor-move flex items-center justify-center font-black text-sm shadow-xl select-none backdrop-blur-sm transition-all ${
                         isPoi ? 'rounded-md bg-amber-400/90 border-amber-200 text-amber-950' 
                         : isCheck ? 'rotate-45 bg-fuchsia-600/90 border-fuchsia-300 text-white'
-                        : isHero ? 'rounded-full bg-indigo-600/90 border-indigo-300 text-white' 
-                        : 'rounded-full bg-red-700/90 border-red-300 text-white'
+                        : isHero ? 'rounded-full bg-indigo-600/90 border-indigo-300 text-white shadow-indigo-500/20' 
+                        : isNpc ? 'rounded-full bg-emerald-600/90 border-emerald-300 text-white shadow-emerald-500/20' // Зеленый для Действующих лиц
+                        : isEnemy ? 'rounded-full bg-rose-700/90 border-rose-400 text-white shadow-rose-500/20' // Красный для Врагов
+                        : isCrowd ? 'rounded-full bg-zinc-600/90 border-zinc-400 text-white shadow-zinc-500/20' // Серый для Массовки
+                        : 'rounded-full bg-cyan-600/90 border-cyan-300 text-white shadow-cyan-500/20' // Сине-зеленый для Лута
                       }`}
                     >
-                      <div className={`${isCheck ? '-rotate-45' : ''} drop-shadow-md`}>
-                        {isPoi ? '🔍' : isCheck ? '🎲' : '⚔️'}
+                      <div className={`${isCheck ? '-rotate-45' : ''} drop-shadow-md text-base`}>
+                        {isPoi ? '🔍' : isCheck ? '🎲' : isHero ? '🛡️' : isNpc ? '👤' : isEnemy ? '⚔️' : isCrowd ? '👥' : '💎'}
                       </div>
+                    </div>
+                    {/* Текстовая плашка с названием объекта под токеном */}
+                    <div className="absolute top-full mt-1.5 bg-black/85 border border-neutral-800 text-neutral-200 text-[10px] font-bold px-1.5 py-0.5 rounded shadow-md whitespace-nowrap max-w-[120px] truncate select-none pointer-events-none tracking-wide">
+                      {entityName}
                     </div>
                   </div>
                 );
@@ -356,6 +377,9 @@ const LocalMapBoard = () => {
           </button>
         </div>
       )}
+
+      {/* КРИТИЧЕСКИЙ РЕНДЕР МОДАЛКИ: Окно досье теперь будет физически открываться прямо поверх карты */}
+      {store.viewedEntityId && <EntityViewerModal />}
     </div>
   );
 };

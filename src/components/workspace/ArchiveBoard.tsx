@@ -362,7 +362,6 @@ export default function ArchiveBoard() {
                 </div>
                 <div className="overflow-y-auto p-6 custom-scrollbar flex-1">
                   {activeTab === 'heroes' && <HeroForm hero={selectedEntity as Hero} onUpdate={(data) => updateEntity('heroes', selectedEntity.id, data)} />}
-                  {activeTab === 'extras' && <ExtraForm extra={selectedEntity} nodes={nodes} onUpdate={(data) => updateEntity('extras', selectedEntity.id, data)} />}
                   {activeTab === 'crowd' && <CrowdForm crowd={selectedEntity} nodes={nodes} onUpdate={(data) => updateEntity('crowd', selectedEntity.id, data)} />}
                   {activeTab === 'characters' && <CharacterForm character={selectedEntity} onUpdate={(data) => updateEntity('characters', selectedEntity.id, data)} />}
                   {activeTab === 'npcs' && <NpcForm npc={selectedEntity as NPC} nodes={nodes} onUpdate={(data) => updateEntity('npcs', selectedEntity.id, data)} />}
@@ -374,7 +373,30 @@ export default function ArchiveBoard() {
                   {activeTab === 'quests' && <QuestForm quest={selectedEntity as Quest} nodes={nodes} npcs={npcsList} onUpdate={(data) => updateEntity('quests', selectedEntity.id, data)} />}
                   {activeTab === 'locations' && <LocationForm location={selectedEntity} onUpdate={(data) => updateEntity('locations', selectedEntity.id, data)} onPlaceOnMap={() => handlePlaceOnMap(selectedEntity)} />}
                   
-                  {/* ИЗОЛИРОВАННАЯ ФОРМА ДЛЯ ИНТЕРАКТИВНЫХ ОБЪЕКТОВ */}
+                  {/* ЧИСТАЯ ФОРМА ДЛЯ ДОП. МАТЕРИАЛОВ (БЕЗ ЖИТЕЛЕЙ) */}
+                  {activeTab === 'extras' && (
+                    <div className="flex flex-col gap-4 text-zinc-300">
+                      <div>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Название</label>
+                        <input
+                          type="text"
+                          value={selectedEntity.name || ''}
+                          onChange={(e) => updateEntity('extras', selectedEntity.id, { name: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Описание</label>
+                        <textarea
+                          value={selectedEntity.description || ''}
+                          onChange={(e) => updateEntity('extras', selectedEntity.id, { description: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 h-48 resize-none outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ПОЛНАЯ ФОРМА ДЛЯ ИНТЕРАКТИВНЫХ ОБЪЕКТОВ И ПРОВЕРОК */}
                   {activeTab === 'interactive' && (
                     <div className="flex flex-col gap-4 text-zinc-300">
                       <div>
@@ -387,7 +409,9 @@ export default function ArchiveBoard() {
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Описание</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                          {selectedEntity.type === 'check' ? 'Описание общее' : 'Описание'}
+                        </label>
                         <textarea
                           value={selectedEntity.description || ''}
                           onChange={(e) => updateEntity('interactive', selectedEntity.id, { description: e.target.value })}
@@ -406,15 +430,35 @@ export default function ArchiveBoard() {
                         </select>
                       </div>
                       {selectedEntity.type === 'check' && (
-                        <div>
-                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Сложность проверки (DC)</label>
-                          <input
-                            type="number"
-                            value={selectedEntity.dc || 10}
-                            onChange={(e) => updateEntity('interactive', selectedEntity.id, { dc: parseInt(e.target.value) || 0 })}
-                            className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 outline-none focus:border-indigo-500"
-                          />
-                        </div>
+                        <>
+                          <div>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Сложность проверки (DC)</label>
+                            <input
+                              type="number"
+                              value={selectedEntity.dc || 10}
+                              onChange={(e) => updateEntity('interactive', selectedEntity.id, { dc: parseInt(e.target.value) || 0 })}
+                              className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Результат успеха</label>
+                            <textarea
+                              value={selectedEntity.successResult || ''}
+                              onChange={(e) => updateEntity('interactive', selectedEntity.id, { successResult: e.target.value })}
+                              placeholder="Что увидят или получат игроки при успехе..."
+                              className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 h-24 resize-none outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Результат провала</label>
+                            <textarea
+                              value={selectedEntity.failureResult || ''}
+                              onChange={(e) => updateEntity('interactive', selectedEntity.id, { failureResult: e.target.value })}
+                              placeholder="Что произойдет при провале (ловушка, тревога)..."
+                              className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 h-24 resize-none outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                        </>
                       )}
                     </div>
                   )}

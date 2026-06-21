@@ -238,8 +238,19 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         const nextLocalMaps = { ...state.localMaps };
         const tokenId = `token-${Date.now()}`;
 
-        // Если сущности еще нет в архиве (например, новый объект), добавляем её
-        const category = type === 'poi' || type === 'check' ? 'interactive' : type as LibraryCategory;
+        // СЛОВАРЬ МАССИВОВ: Исправляет баг непоявления Действующих Лиц и Героев на карте
+        const typeToCategory: Record<string, string> = {
+          hero: 'heroes',
+          npc: 'npcs',
+          enemies: 'enemies',
+          crowd: 'crowd',
+          loot: 'loot',
+          poi: 'interactive',
+          check: 'interactive'
+        };
+        const category = typeToCategory[type] || type;
+        const currentCategoryState = state[category] || {};
+
         const newEntity = (type === 'poi' || type === 'check') ? {
           id: entity.id,
           name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
@@ -249,8 +260,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         } : entity;
 
         const updatedLibrary = {
-          ...state[category],
-          [entity.id]: { ...(state[category][entity.id] || {}), ...newEntity }
+          ...currentCategoryState,
+          [entity.id]: { ...(currentCategoryState[entity.id] || {}), ...newEntity }
         };
 
         // 1. Очистка сущности со всех других карт
@@ -281,7 +292,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
               id: entity.id,
               name: newEntity.name,
               type: type,
-              description: ''
+              description: '',
+              dc: newEntity.dc,
+              successResult: entity.successResult || '',
+              failureResult: entity.failureResult || ''
             }
           };
         }
