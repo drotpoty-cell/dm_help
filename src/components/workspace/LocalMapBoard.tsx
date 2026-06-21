@@ -1,155 +1,48 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 
-const LocalMapBoard = () => {
-  const { 
-    localMaps, 
-    activeLocalMapId,
-    updateLocalToken, 
-    spawnEntityToMap, 
-    removeLocalToken, 
-    closeLocalMap,
-    updateLocalMap,
-    updateMapCamera,
-    setViewedEntityId,
-    heroes, 
-    npcs,
-    enemies,
-    crowd,
-    currentHour
-  } = useWorkspaceStore();
-  
-  const mapData = activeLocalMapId ? localMaps[activeLocalMapId] : null;
+// =====================================================
+// 1. ХУК: Сохранение и загрузка фонов (IndexedDB)
+// =====================================================
+const initDB = () => {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open("GMAssistant_Maps", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("backgrounds");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
 
-  const debugMapSync = () => {
-    const state = useWorkspaceStore.getState();
-    const activeId = state.activeLocalMapId;
-    if (!activeId) {
-      console.warn('debugMapSync: Нет активной карты.');
-      return;
-    }
-    const map = state.localMaps[activeId];
-    if (!map) {
-      console.warn('debugMapSync: Активная карта не найдена в store.');
-      return;
-    }
+const useMapBackground = (activeLocalMapId: string | null) => {
+  const updateLocalMap = useWorkspaceStore(s => s.updateLocalMap);
 
-    const allEntities = { ...state.npcs, ...state.enemies, ...state.heroes };
-    const tokens = Object.values(map.tokens);
-    
-    const expected = Object.values(allEntities).filter((e: any) => e.locationId === activeId);
-    
-    const report: any[] = [];
-    
-    expected.forEach(e => {
-      const found = tokens.find(t => t.entityId === e.id);
-      report.push({
-        entityName: e.name,
-        entityId: e.id,
-        expectedLocation: activeId,
-        presentOnMap: !!found,
-        status: found ? 'OK' : 'MISSING'
-      });
-    });
-    
-    tokens.forEach(t => {
-      const entity = (allEntities as any)[t.entityId];
-      if (!entity) {
-        report.push({
-          entityName: 'Unknown',
-          entityId: t.entityId,
-          expectedLocation: 'N/A',
-          presentOnMap: true,
-          status: 'ORPHAN_TOKEN'
-        });
-      } else if (entity.locationId !== activeId && t.type !== 'poi' && t.type !== 'check') {
-        report.push({
-          entityName: entity.name,
-          entityId: t.entityId,
-          expectedLocation: entity.locationId,
-          presentOnMap: true,
-          status: 'MISPLACED'
-        });
-      }
-    });
-    
-    console.table(report);
-  };
-
-  React.useEffect(() => {
-    (window as any).debugMapSync = debugMapSync;
-  }, [activeLocalMapId, currentHour]);
-
-  const [tokenMenu, setTokenMenu] = React.useState<{ tokenId: string, entityId: string, x: number, y: number } | null>(null);
-  const [isPanning, setIsPanning] = React.useState(false);
-  const [panStart, setPanStart] = React.useState({ x: 0, y: 0 });
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 0 || e.button === 1) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - (mapData?.cameraX || 0), y: e.clientY - (mapData?.cameraY || 0) });
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isPanning || !activeLocalMapId) return;
-    updateMapCamera(activeLocalMapId, {
-      cameraX: e.clientX - panStart.x,
-      cameraY: e.clientY - panStart.y
-    });
-  };
-
-  const handleMouseUp = () => setIsPanning(false);
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!activeLocalMapId || !mapData) return;
-    const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
-    const newZoom = Math.min(Math.max((mapData.zoom || 1) + zoomDelta, 0.5), 3);
-    updateMapCamera(activeLocalMapId, { zoom: newZoom });
-  };
-
-
-  React.useEffect(() => {
+  useEffect(() => {
+    if (!activeLocalMapId) return;
     const loadBackground = async () => {
-      if (!activeLocalMapId) return;
       try {
         const db = await initDB();
         const transaction = db.transaction("backgrounds", "readonly");
         const store = transaction.objectStore("backgrounds");
         const request = store.get(activeLocalMapId);
-        
         request.onsuccess = () => {
-          if (request.result) {
-            updateLocalMap(activeLocalMapId, { backgroundImage: request.result });
-          }
+          if (request.result) updateLocalMap(activeLocalMapId, { backgroundImage: request.result });
         };
       } catch (error) {
         console.error("Ошибка загрузки фона из IndexedDB:", error);
       }
     };
     loadBackground();
-  }, [activeLocalMapId]);
-
-  const initDB = () => {
-    return new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open("GMAssistant_Maps", 1);
-      request.onupgradeneeded = () => request.result.createObjectStore("backgrounds");
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  };
+  }, [activeLocalMapId, updateLocalMap]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeLocalMapId) return;
-
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64String = event.target?.result as string;
       updateLocalMap(activeLocalMapId, { backgroundImage: base64String });
-      
       try {
         const db = await initDB();
         const transaction = db.transaction("backgrounds", "readwrite");
@@ -161,157 +54,196 @@ const LocalMapBoard = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleCalibrationChange = (field: 'gridSize' | 'gridOffsetX' | 'gridOffsetY' | 'backgroundScale', value: number) => {
-    if (activeLocalMapId && mapData) {
-      updateLocalMap(activeLocalMapId, { [field]: value || 0 });
-    }
+  return { handleImageUpload };
+};
+
+// =====================================================
+// 2. КОМПОНЕНТ: Сайдбар (Архив и Кнопки)
+// =====================================================
+const MapSidebar = ({ activeLocalMapId }: { activeLocalMapId: string }) => {
+  const store = useWorkspaceStore();
+  const mapData = store.localMaps[activeLocalMapId];
+  
+  const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot' | 'interactive')[] = 
+    ['heroes', 'npcs', 'enemies', 'crowd', 'loot', 'interactive'];
+
+  const categoryNames: Record<string, string> = {
+    heroes: "Герои",
+    npcs: "Действующие лица",
+    enemies: "Противники",
+    crowd: "Массовка",
+    loot: "Артефакты / Лут",
+    interactive: "Интерактивные объекты"
   };
 
-  if (!mapData || !activeLocalMapId) return null;
+  const getTokenType = (category: string, item: any): 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot' => {
+    if (category === 'heroes') return 'hero';
+    if (category === 'npcs') return 'npc';
+    if (category === 'interactive') return item.type || 'poi'; 
+    return category as any; 
+  };
+
+  return (
+    <div className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col p-4 overflow-y-auto">
+      <h2 className="text-white font-bold mb-4">Архив</h2>
+      <div className="space-y-4">
+        <button 
+          onClick={() => store.createAndSpawnInteractive(activeLocalMapId, 'poi')}
+          className="w-full bg-yellow-600 text-white px-2 py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-yellow-500 transition-colors"
+        >
+          ➕ Точка интереса (POI)
+        </button>
+        <button 
+          onClick={() => store.createAndSpawnInteractive(activeLocalMapId, 'check')}
+          className="w-full bg-fuchsia-700 text-white px-2 py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-fuchsia-600 transition-colors"
+        >
+          ➕ Проверка (Check)
+        </button>
+        <div className="border-t border-neutral-800 my-4" />
+        
+        {categories.map(category => (
+          <div key={category} className="mb-6">
+            <div className="text-xs text-neutral-500 font-bold uppercase mb-2 tracking-wider">
+              {categoryNames[category] || category}
+            </div>
+            <div className="space-y-1">
+              {Object.values((store as any)[category] || {}).map((item: any) => {
+                const isOnMap = Object.values(mapData?.tokens || {}).some((t: any) => t.entityId === item.id);
+                return (
+                  <div key={item.id} className="flex justify-between items-center text-neutral-300 text-sm p-1.5 hover:bg-neutral-800/80 rounded transition-colors group">
+                    <span className="truncate pr-2 group-hover:text-white transition-colors">{item.name}</span>
+                    <button 
+                      onClick={() => store.spawnEntityToMap(activeLocalMapId, item, getTokenType(category, item))}
+                      disabled={isOnMap}
+                      className={`px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap transition-all ${isOnMap ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-md'}`}
+                    >
+                      {isOnMap ? 'На карте' : '+'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// =====================================================
+// 3. КОМПОНЕНТ: Верхняя панель (Тулбар и Сетка)
+// =====================================================
+const MapToolbar = ({ activeLocalMapId, handleImageUpload }: { activeLocalMapId: string, handleImageUpload: (e: any) => void }) => {
+  const store = useWorkspaceStore();
+  const mapData = store.localMaps[activeLocalMapId];
+
+  const handleCalibrationChange = (field: string, value: number) => {
+    store.updateLocalMap(activeLocalMapId, { [field]: value || 0 });
+  };
+
+  if (!mapData) return null;
+
+  return (
+    <div className="absolute top-4 left-4 z-20 flex gap-2 bg-neutral-900/95 backdrop-blur-md p-3 rounded-xl shadow-2xl flex-col border border-neutral-800/50 w-64">
+      <div className="flex items-center gap-2">
+        <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all text-center flex-1 shadow-md">
+          📁 Загрузить фон
+          <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={handleImageUpload} />
+        </label>
+        {mapData.backgroundImage && (
+          <button 
+            onClick={() => store.updateLocalMap(activeLocalMapId, { backgroundImage: null })}
+            className="bg-red-900/80 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-bold transition-all shadow-md flex items-center justify-center"
+            title="Удалить фон"
+          >
+            ❌
+          </button>
+        )}
+      </div>
+      <button
+        onClick={() => store.closeLocalMap()}
+        className="bg-neutral-800 text-neutral-300 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white w-full text-sm font-bold transition-all border border-neutral-700 hover:border-red-600 shadow-md"
+      >
+        Вернуться на карту мира
+      </button>
+      <div className="flex justify-between items-center text-xs font-bold text-neutral-400 mt-2 gap-2 bg-neutral-950 p-2 rounded-lg border border-neutral-800">
+        <label className="flex items-center gap-1">Сетка: <input type="number" value={mapData.gridSize || 50} onChange={(e) => handleCalibrationChange('gridSize', parseInt(e.target.value))} className="w-10 bg-neutral-800 text-white p-1 rounded border border-neutral-700 focus:border-indigo-500 outline-none text-center"/></label>
+        <label className="flex items-center gap-1">X: <input type="number" value={mapData.gridOffsetX || 0} onChange={(e) => handleCalibrationChange('gridOffsetX', parseInt(e.target.value))} className="w-8 bg-neutral-800 text-white p-1 rounded border border-neutral-700 focus:border-indigo-500 outline-none text-center"/></label>
+        <label className="flex items-center gap-1">Y: <input type="number" value={mapData.gridOffsetY || 0} onChange={(e) => handleCalibrationChange('gridOffsetY', parseInt(e.target.value))} className="w-8 bg-neutral-800 text-white p-1 rounded border border-neutral-700 focus:border-indigo-500 outline-none text-center"/></label>
+      </div>
+    </div>
+  );
+};
+
+// =====================================================
+// 4. ГЛАВНЫЙ КОМПОНЕНТ: Интерактивная доска
+// =====================================================
+const LocalMapBoard = () => {
+  const store = useWorkspaceStore();
+  const activeLocalMapId = store.activeLocalMapId;
+  const mapData = activeLocalMapId ? store.localMaps[activeLocalMapId] : null;
+
+  const { handleImageUpload } = useMapBackground(activeLocalMapId);
+
+  const [tokenMenu, setTokenMenu] = useState<{ tokenId: string, entityId: string, x: number, y: number } | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  if (!activeLocalMapId || !mapData) return null;
 
   const gridSize = mapData.gridSize || 50;
   const offsetX = mapData.gridOffsetX || 0;
   const offsetY = mapData.gridOffsetY || 0;
   const backgroundScale = mapData.backgroundScale || 1;
 
-  // =====================================================
-  // 2. КОМПОНЕНТ: Сайдбар (Архив и Кнопки)
-  // =====================================================
-  const MapSidebar = ({ activeLocalMapId }: { activeLocalMapId: string }) => {
-    const store = useWorkspaceStore();
-    const mapData = store.localMaps[activeLocalMapId];
-    
-    const categories: ('heroes' | 'npcs' | 'enemies' | 'crowd' | 'loot' | 'interactive')[] = 
-      ['heroes', 'npcs', 'enemies', 'crowd', 'loot', 'interactive'];
-
-    const categoryNames: Record<string, string> = {
-      heroes: "Герои",
-      npcs: "Действующие лица",
-      enemies: "Противники",
-      crowd: "Массовка",
-      loot: "Артефакты / Лут",
-      interactive: "Интерактивные объекты"
-    };
-
-    // Конвертируем название категории базы данных в тип токена для карты
-    const getTokenType = (category: string, item: any): 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot' => {
-      if (category === 'heroes') return 'hero';
-      if (category === 'npcs') return 'npc';
-      if (category === 'interactive') return item.type || 'poi'; // Для интерактивов берем их личный тип (poi или check)
-      return category as any; // Остальные совпадают
-    };
-
-    return (
-      <div className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col p-4 overflow-y-auto">
-        <h2 className="text-white font-bold mb-4">Архив</h2>
-        <div className="space-y-4">
-          <button 
-            onClick={() => store.createAndSpawnInteractive(activeLocalMapId, 'poi')}
-            className="w-full bg-yellow-600 text-white px-2 py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-yellow-500 transition-colors"
-          >
-            ➕ Точка интереса (POI)
-          </button>
-          <button 
-            onClick={() => store.createAndSpawnInteractive(activeLocalMapId, 'check')}
-            className="w-full bg-fuchsia-700 text-white px-2 py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-fuchsia-600 transition-colors"
-          >
-            ➕ Проверка (Check)
-          </button>
-          <div className="border-t border-neutral-800 my-4" />
-          
-          {categories.map(category => (
-            <div key={category} className="mb-6">
-              <div className="text-xs text-neutral-500 font-bold uppercase mb-2 tracking-wider">
-                {categoryNames[category] || category}
-              </div>
-              <div className="space-y-1">
-                {Object.values((store as any)[category] || {}).map((item: any) => {
-                  const isOnMap = Object.values(mapData?.tokens || {}).some((t: any) => t.entityId === item.id);
-                  return (
-                    <div key={item.id} className="flex justify-between items-center text-neutral-300 text-sm p-1.5 hover:bg-neutral-800/80 rounded transition-colors group">
-                      <span className="truncate pr-2 group-hover:text-white transition-colors">{item.name}</span>
-                      <button 
-                        onClick={() => store.spawnEntityToMap(activeLocalMapId, item, getTokenType(category, item))}
-                        disabled={isOnMap}
-                        className={`px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap transition-all ${isOnMap ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-md'}`}
-                      >
-                        {isOnMap ? 'На карте' : '+'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0 || e.button === 1) {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - (mapData.cameraX || 0), y: e.clientY - (mapData.cameraY || 0) });
+    }
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isPanning) return;
+    store.updateMapCamera(activeLocalMapId, { cameraX: e.clientX - panStart.x, cameraY: e.clientY - panStart.y });
+  };
+  const handleMouseUp = () => setIsPanning(false);
+  const handleWheel = (e: React.WheelEvent) => {
+    const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+    const newZoom = Math.min(Math.max((mapData.zoom || 1) + zoomDelta, 0.5), 3);
+    store.updateMapCamera(activeLocalMapId, { zoom: newZoom });
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const tokenId = e.dataTransfer.getData('text/plain');
+    if (!tokenId) return;
+
     const rect = e.currentTarget.getBoundingClientRect();
     const xPixels = e.clientX - rect.left;
     const yPixels = e.clientY - rect.top;
 
-    const worldX = (xPixels - (mapData?.cameraX || 0)) / (mapData?.zoom || 1);
-    const worldY = (yPixels - (mapData?.cameraY || 0)) / (mapData?.zoom || 1);
+    const worldX = (xPixels - (mapData.cameraX || 0)) / (mapData.zoom || 1);
+    const worldY = (yPixels - (mapData.cameraY || 0)) / (mapData.zoom || 1);
 
-    const gridX = Math.floor((worldX - (mapData?.gridOffsetX || 0)) / gridSize);
-    const gridY = Math.floor((worldY - (mapData?.gridOffsetY || 0)) / gridSize);
-    updateLocalToken(activeLocalMapId, tokenId, { x: gridX, y: gridY });
-  };
-
-  const getEntityName = (token: any) => {
-    const entity = heroes[token.entityId] || npcs[token.entityId] || enemies[token.entityId] || crowd[token.entityId];
-    return entity?.name || (token.type === 'hero' ? 'Hero' : token.type === 'npc' ? 'NPC' : '?');
+    const gridX = Math.floor((worldX - offsetX) / gridSize);
+    const gridY = Math.floor((worldY - offsetY) / gridSize);
+    
+    store.updateLocalToken(activeLocalMapId, tokenId, { x: gridX, y: gridY });
   };
 
   return (
     <div 
-      className="w-full h-full flex bg-neutral-950 relative overflow-hidden"
+      className="w-full h-full flex bg-neutral-950 relative overflow-hidden font-sans"
       onClick={() => setTokenMenu(null)}
       onContextMenu={() => setTokenMenu(null)}
     >
-      <MapSidebar activeLocalMapId={activeLocalMapId!} />
+      <MapSidebar activeLocalMapId={activeLocalMapId} />
 
       <div className="flex-1 h-full relative">
-        <div className="absolute top-4 left-4 z-20 flex gap-2 bg-neutral-900 p-2 rounded shadow flex-col">
-          <div className="flex items-center gap-2">
-            <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-bold transition-colors">
-              📁 Загрузить фон карты
-              <input 
-                type="file" 
-                accept="image/png, image/jpeg, image/webp" 
-                className="hidden" 
-                onChange={handleImageUpload} 
-              />
-            </label>
-            {mapData?.backgroundImage && (
-              <button 
-                onClick={() => updateLocalMap(activeLocalMapId!, { backgroundImage: null })}
-                className="bg-red-900/80 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-bold transition-colors"
-              >
-                ❌ Убрать фон
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => closeLocalMap()}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 w-full text-sm"
-          >
-            Вернуться на карту мира
-          </button>
-          <div className="flex gap-2 text-xs text-neutral-300 mt-2">
-            <label>Сетка: <input type="number" value={gridSize} onChange={(e) => handleCalibrationChange('gridSize', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
-            <label>X: <input type="number" value={offsetX} onChange={(e) => handleCalibrationChange('gridOffsetX', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
-            <label>Y: <input type="number" value={offsetY} onChange={(e) => handleCalibrationChange('gridOffsetY', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white"/></label>
-          </div>
-        </div>
+        <MapToolbar activeLocalMapId={activeLocalMapId} handleImageUpload={handleImageUpload} />
 
         <div
-          className={`relative flex-1 w-full h-full overflow-hidden bg-neutral-950 ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+          className={`relative flex-1 w-full h-full overflow-hidden bg-[#0a0a0a] ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -319,65 +251,55 @@ const LocalMapBoard = () => {
           onMouseLeave={handleMouseUp}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          onClick={() => setTokenMenu(null)}
-          onContextMenu={(e) => { e.preventDefault(); setTokenMenu(null); }}
         >
           <div
-            className="absolute top-0 left-0 origin-top-left w-full h-full"
-            style={{
-              transform: `translate(${mapData?.cameraX || 0}px, ${mapData?.cameraY || 0}px) scale(${mapData?.zoom || 1})`
-            }}
+            className="absolute top-0 left-0 origin-top-left w-full h-full transition-transform duration-75 ease-out"
+            style={{ transform: `translate(${mapData.cameraX || 0}px, ${mapData.cameraY || 0}px) scale(${mapData.zoom || 1})` }}
           >
-            <div className="absolute inset-0 z-0">
-               {mapData?.backgroundImage && (
+            <div className="absolute inset-0 z-0 pointer-events-none">
+               {mapData.backgroundImage && (
                 <img 
                   src={mapData.backgroundImage} 
+                  alt="Map Background"
                   className="w-full h-full"
-                  style={{ 
-                    objectFit: 'contain', 
-                    objectPosition: 'center', 
-                    transform: `scale(${backgroundScale})` // КРИТИЧЕСКИЙ ФИКС ДЛЯ МАСШТАБА ФОНА
-                  }}
+                  style={{ objectFit: 'contain', objectPosition: 'center', transform: `scale(${backgroundScale})` }}
                 />
                )}
             </div>
 
             <div
-              className="absolute inset-0 z-10 pointer-events-none"
+              className="absolute inset-0 z-10 pointer-events-none opacity-40 mix-blend-overlay"
               style={{ 
-                backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)', 
-                backgroundSize: `${gridSize}px ${gridSize}px`, // ВОТ ЗДЕСЬ
+                backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.4) 1px, transparent 1px)', 
+                backgroundSize: `${gridSize}px ${gridSize}px`, 
                 backgroundPosition: `${offsetX}px ${offsetY}px`
               }}
             />
 
-            <div 
-              className="absolute inset-0 z-20 pointer-events-none"
-              onWheel={handleWheel}
-            >
-              {Object.values(mapData.tokens).map((token: any) => {
-                const name = getEntityName(token);
-                const isHero = token.type === 'hero';
-                const isNpc = token.type === 'npc';
+            <div className="absolute inset-0 z-20 pointer-events-none" onWheel={handleWheel}>
+              {Object.values(mapData.tokens || {}).map((token: any) => {
                 const isPoi = token.type === 'poi';
                 const isCheck = token.type === 'check';
+                const isHero = token.type === 'hero';
                 
                 return (
                   <div
                     key={token.id}
-                    className="absolute flex flex-col items-center pointer-events-auto"
+                    className="absolute flex flex-col items-center pointer-events-auto transition-all duration-200 hover:scale-110 hover:z-50"
                     onMouseDown={(e) => e.stopPropagation()}
                     style={{
                       left: token.x * gridSize + offsetX,
                       top: token.y * gridSize + offsetY,
                       width: (token.size || 1) * gridSize,
-                      height: (token.size || 1) * gridSize,
-                      position: 'absolute'
+                      height: (token.size || 1) * gridSize
                     }}
                   >
                     <div
                       draggable
-                      onDragStart={(e) => e.dataTransfer.setData('text/plain', token.id)}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', token.id);
+                        setTokenMenu(null);
+                      }}
                       onContextMenu={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -385,20 +307,18 @@ const LocalMapBoard = () => {
                       }}
                       onDoubleClick={(e) => {
                         e.stopPropagation();
-                        setViewedEntityId(token.entityId);
+                        store.setViewedEntityId(token.entityId); 
+                        setTokenMenu(null);
                       }}
-                      className={`w-full h-full border-2 cursor-move flex items-center justify-center font-bold text-xs shadow-md select-none ${
-                        isPoi 
-                          ? 'rounded-md bg-amber-500/80 border-amber-400 text-black' 
-                          : isCheck
-                            ? 'rotate-45 bg-fuchsia-700/80 border-fuchsia-400 text-white'
-                            : isHero 
-                              ? 'rounded-full bg-indigo-900/80 border-indigo-500 text-white' 
-                              : 'rounded-full bg-red-900/80 border-red-500 text-white'
+                      className={`w-full h-full border-2 cursor-move flex items-center justify-center font-black text-sm shadow-xl select-none backdrop-blur-sm ${
+                        isPoi ? 'rounded-md bg-amber-400/90 border-amber-200 text-amber-950' 
+                        : isCheck ? 'rotate-45 bg-fuchsia-600/90 border-fuchsia-300 text-white'
+                        : isHero ? 'rounded-full bg-indigo-600/90 border-indigo-300 text-white' 
+                        : 'rounded-full bg-red-700/90 border-red-300 text-white'
                       }`}
                     >
-                      <div className={isCheck ? '-rotate-45' : ''}>
-                        {isPoi ? '🔍' : isCheck ? '🎲' : '?'}
+                      <div className={`${isCheck ? '-rotate-45' : ''} drop-shadow-md`}>
+                        {isPoi ? '🔍' : isCheck ? '🎲' : '⚔️'}
                       </div>
                     </div>
                   </div>
@@ -411,25 +331,26 @@ const LocalMapBoard = () => {
       
       {tokenMenu && (
         <div 
-          className="fixed z-50 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl py-1 w-48 flex flex-col"
+          className="fixed z-50 bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl py-1.5 w-48 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150"
           style={{ left: tokenMenu.x, top: tokenMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
           <button 
             onClick={() => {
-              setViewedEntityId(tokenMenu.entityId);
+              store.setViewedEntityId(tokenMenu.entityId);
               setTokenMenu(null);
             }} 
-            className="px-4 py-2 text-xs font-bold text-zinc-300 hover:bg-indigo-600 hover:text-white text-left flex items-center gap-2 transition-colors"
+            className="px-4 py-3 text-xs font-bold text-neutral-200 hover:bg-indigo-600 hover:text-white text-left flex items-center gap-3 transition-colors"
           >
             📖 Открыть досье
           </button>
+          <div className="h-px bg-neutral-800 w-full my-1" />
           <button 
             onClick={() => {
-              removeLocalToken(activeLocalMapId, tokenMenu.tokenId);
+              store.removeLocalToken(activeLocalMapId, tokenMenu.tokenId);
               setTokenMenu(null);
             }} 
-            className="px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white text-left flex items-center gap-2 transition-colors"
+            className="px-4 py-3 text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white text-left flex items-center gap-3 transition-colors"
           >
             ❌ Удалить с карты
           </button>
@@ -438,3 +359,5 @@ const LocalMapBoard = () => {
     </div>
   );
 };
+
+export default LocalMapBoard;
