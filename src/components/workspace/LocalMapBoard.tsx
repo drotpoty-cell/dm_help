@@ -268,10 +268,11 @@ const LocalMapBoard = () => {
                )}
             </div>
 
+            {/* Слой сетки */}
             <div
-              className="absolute inset-0 z-10 pointer-events-none opacity-40 mix-blend-overlay"
+              className="absolute inset-0 z-10 pointer-events-none opacity-40" 
               style={{ 
-                backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.4) 1px, transparent 1px)', 
+                backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.6) 1px, transparent 1px)', 
                 backgroundSize: `${gridSize}px ${gridSize}px`, 
                 backgroundPosition: `${offsetX}px ${offsetY}px`
               }}

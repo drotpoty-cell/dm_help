@@ -77,21 +77,55 @@ export default function EntityViewerModal() {
         </div>
 
         {category === 'interactive' && (
-          <div className="space-y-4 p-4">
-            <input 
-              value={formData.name || ''} 
-              onChange={(e) => handleChange('name', e.target.value)}
-              className="w-full bg-neutral-800 text-white p-2 rounded"
-              placeholder="Название объекта"
-            />
-            <textarea 
-              value={formData.description || ''} 
-              onChange={(e) => handleChange('description', e.target.value)}
-              className="w-full bg-neutral-800 text-white p-2 rounded h-32"
-              placeholder="Описание"
-            />
+          <div className="flex flex-col gap-4 text-zinc-300">
+            <div>
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Название</label>
+              <input 
+                value={formData.name || ''} 
+                onChange={(e) => handleChange('name', e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                {formData.type === 'check' ? 'Описание общее' : 'Описание'}
+              </label>
+              <textarea 
+                value={formData.description || ''} 
+                onChange={(e) => handleChange('description', e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 h-32 resize-none outline-none focus:border-indigo-500"
+              />
+            </div>
             {formData.type === 'check' && (
-              <label className="text-white">Сложность (DC): <input type="number" value={formData.dc || 10} onChange={(e) => handleChange('dc', parseInt(e.target.value))} className="bg-neutral-800 p-1 rounded w-16"/></label>
+              <>
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Сложность (DC)</label>
+                  <input 
+                    type="number" 
+                    value={formData.dc || 10} 
+                    onChange={(e) => handleChange('dc', parseInt(e.target.value) || 0)}
+                    className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Результат успеха</label>
+                  <textarea
+                    value={formData.successResult || ''}
+                    onChange={(e) => handleChange('successResult', e.target.value)}
+                    placeholder="Что произойдет при успехе..."
+                    className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 h-24 resize-none outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Результат провала</label>
+                  <textarea
+                    value={formData.failureResult || ''}
+                    onChange={(e) => handleChange('failureResult', e.target.value)}
+                    placeholder="Что произойдет при провале..."
+                    className="w-full bg-zinc-950 border border-zinc-800 p-3 text-sm text-white rounded-xl mt-1 h-24 resize-none outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </>
             )}
           </div>
         )}
