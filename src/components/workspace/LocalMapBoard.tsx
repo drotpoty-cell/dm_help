@@ -185,7 +185,6 @@ const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) =
   const [isExpanded, setIsExpanded] = useState(true);
 
   const locationName = location?.name || "Неизвестная локация";
-  const locationDesc = location?.description || "Описание отсутствует... Создайте локацию в Архиве, чтобы добавить сюда текст атмосферы.";
 
   return (
     <div className={`absolute top-5 right-5 z-30 flex flex-col bg-neutral-900/95 backdrop-blur-md border border-neutral-800/80 rounded-2xl shadow-2xl transition-all duration-300 ${isExpanded ? 'w-96' : 'w-auto'}`}>
@@ -204,11 +203,56 @@ const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) =
       
       {isExpanded && (
         <div className="p-5 pt-0 border-t border-neutral-800/50">
-          <div className="text-base text-neutral-300 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto custom-scrollbar pr-3 mt-4 font-medium">
-            {location?.description ? (
-              locationDesc
+          <div className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto custom-scrollbar pr-3 mt-4 font-medium flex flex-col gap-4">
+            {!location ? (
+              <span className="text-neutral-600 italic">Локация не привязана к Архиву. Создайте её там, чтобы здесь появилось описание.</span>
             ) : (
-              <span className="text-neutral-600 italic">{locationDesc}</span>
+              <>
+                {/* Краткое описание */}
+                {location.description && (
+                  <div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Краткое описание</div>
+                    <div className="text-base">{location.description}</div>
+                  </div>
+                )}
+                
+                {/* Текущее состояние */}
+                {(location.status || location.state) && (
+                  <div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Текущее состояние</div>
+                    <div className="text-base text-amber-200/90">{location.status || location.state}</div>
+                  </div>
+                )}
+                
+                {/* Персонажи в локации */}
+                {location.characters && (
+                  <div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Персонажи в локации</div>
+                    <div className="text-base text-emerald-200/90">{location.characters}</div>
+                  </div>
+                )}
+                
+                {/* Секреты */}
+                {location.secrets && (
+                  <div>
+                    <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Секреты локации</div>
+                    <div className="text-base text-indigo-200/90">{location.secrets}</div>
+                  </div>
+                )}
+                
+                {/* Детальное описание */}
+                {(location.content || location.details) && (
+                  <div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Описание (Детали)</div>
+                    <div className="text-base">{location.content || location.details}</div>
+                  </div>
+                )}
+
+                {/* Заглушка, если локация есть, но все поля пустые */}
+                {!location.description && !location.status && !location.state && !location.characters && !location.secrets && !location.content && !location.details && (
+                  <span className="text-neutral-600 italic">Карточка локации пуста. Заполните её поля в Архиве.</span>
+                )}
+              </>
             )}
           </div>
         </div>
