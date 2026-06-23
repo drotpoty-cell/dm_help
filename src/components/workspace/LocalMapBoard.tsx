@@ -184,7 +184,8 @@ const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) =
   const location = store.locations[activeLocalMapId];
   const [isExpanded, setIsExpanded] = useState(true);
 
-  if (!location) return null;
+  const locationName = location?.name || "Неизвестная локация";
+  const locationDesc = location?.description || "Описание отсутствует... Создайте локацию в Архиве, чтобы добавить сюда текст атмосферы.";
 
   return (
     <div className={`absolute top-5 right-5 z-30 flex flex-col bg-neutral-900/95 backdrop-blur-md border border-neutral-800/80 rounded-2xl shadow-2xl transition-all duration-300 ${isExpanded ? 'w-96' : 'w-auto'}`}>
@@ -194,7 +195,7 @@ const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) =
       >
         <div className="flex items-center gap-3">
           <span className="text-2xl">🗺️</span>
-          {isExpanded && <h3 className="text-base font-black text-white uppercase tracking-wider truncate">{location.name}</h3>}
+          {isExpanded && <h3 className="text-base font-black text-white uppercase tracking-wider truncate">{locationName}</h3>}
         </div>
         <button className="text-neutral-400 hover:text-white transition-colors p-2 text-lg">
           {isExpanded ? '▼' : '◀'}
@@ -204,7 +205,11 @@ const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) =
       {isExpanded && (
         <div className="p-5 pt-0 border-t border-neutral-800/50">
           <div className="text-base text-neutral-300 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto custom-scrollbar pr-3 mt-4 font-medium">
-            {location.description || <span className="text-neutral-600 italic">Описание отсутствует... Вы можете добавить его в Архиве.</span>}
+            {location?.description ? (
+              locationDesc
+            ) : (
+              <span className="text-neutral-600 italic">{locationDesc}</span>
+            )}
           </div>
         </div>
       )}
@@ -377,7 +382,7 @@ const LocalMapBoard = () => {
                       </div>
                     </div>
                     {/* Текстовая плашка с названием объекта под токеном */}
-                    <div className="absolute top-full mt-1.5 bg-black/85 border border-neutral-800 text-neutral-200 text-[10px] font-bold px-1.5 py-0.5 rounded shadow-md whitespace-nowrap max-w-[120px] truncate select-none pointer-events-none tracking-wide">
+                    <div className="absolute top-full mt-2 bg-neutral-950/90 border border-neutral-700 text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-xl whitespace-nowrap max-w-[160px] truncate select-none pointer-events-none tracking-wide z-50">
                       {entityName}
                     </div>
                   </div>
