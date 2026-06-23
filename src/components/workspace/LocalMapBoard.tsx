@@ -31,7 +31,7 @@ const useMapBackground = (activeLocalMapId: string | null) => {
           if (request.result) updateLocalMap(activeLocalMapId, { backgroundImage: request.result });
         };
       } catch (error) {
-        console.error("Ошибка загрузки фона из IndexedDB:", error);
+        // Ошибка загрузки игнорируется
       }
     };
     loadBackground();
@@ -49,7 +49,7 @@ const useMapBackground = (activeLocalMapId: string | null) => {
         const transaction = db.transaction("backgrounds", "readwrite");
         transaction.objectStore("backgrounds").put(base64String, activeLocalMapId);
       } catch (error) {
-        console.error("Ошибка保存 фона в IndexedDB:", error);
+        // Ошибка сохранения фона игнорируется
       }
     };
     reader.readAsDataURL(file);
@@ -85,38 +85,38 @@ const MapSidebar = ({ activeLocalMapId }: { activeLocalMapId: string }) => {
   };
 
   return (
-    <div className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col p-4 overflow-y-auto">
-      <h2 className="text-white font-bold mb-4">Архив</h2>
-      <div className="space-y-4">
+    <div className="w-72 bg-neutral-900 border-r border-neutral-800 flex flex-col p-5 overflow-y-auto custom-scrollbar">
+      <h2 className="text-white text-lg font-black mb-6 tracking-wide">Архив</h2>
+      <div className="space-y-5">
         <button 
           onClick={() => store.createAndSpawnInteractive(activeLocalMapId, 'poi')}
-          className="w-full bg-yellow-600 text-white px-2 py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-yellow-500 transition-colors"
+          className="w-full bg-yellow-600 text-white px-3 py-4 rounded-xl text-base font-bold shadow-lg hover:bg-yellow-500 transition-colors"
         >
           ➕ Точка интереса (POI)
         </button>
         <button 
           onClick={() => store.createAndSpawnInteractive(activeLocalMapId, 'check')}
-          className="w-full bg-fuchsia-700 text-white px-2 py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-fuchsia-600 transition-colors"
+          className="w-full bg-fuchsia-700 text-white px-3 py-4 rounded-xl text-base font-bold shadow-lg hover:bg-fuchsia-600 transition-colors"
         >
           ➕ Проверка (Check)
         </button>
-        <div className="border-t border-neutral-800 my-4" />
+        <div className="border-t border-neutral-800 my-6" />
         
         {categories.map(category => (
-          <div key={category} className="mb-6">
-            <div className="text-xs text-neutral-500 font-bold uppercase mb-2 tracking-wider">
+          <div key={category} className="mb-8">
+            <div className="text-sm text-neutral-500 font-black uppercase mb-3 tracking-widest">
               {categoryNames[category] || category}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {Object.values((store as any)[category] || {}).map((item: any) => {
                 const isOnMap = Object.values(mapData?.tokens || {}).some((t: any) => t.entityId === item.id);
                 return (
-                  <div key={item.id} className="flex justify-between items-center text-neutral-300 text-sm p-1.5 hover:bg-neutral-800/80 rounded transition-colors group">
-                    <span className="truncate pr-2 group-hover:text-white transition-colors">{item.name}</span>
+                  <div key={item.id} className="flex justify-between items-center text-neutral-300 text-base p-2 hover:bg-neutral-800/80 rounded-lg transition-colors group">
+                    <span className="truncate pr-3 group-hover:text-white transition-colors">{item.name}</span>
                     <button 
                       onClick={() => store.spawnEntityToMap(activeLocalMapId, item, getTokenType(category, item))}
                       disabled={isOnMap}
-                      className={`px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap transition-all ${isOnMap ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-md'}`}
+                      className={`px-3 py-1.5 rounded-md text-sm font-bold whitespace-nowrap transition-all ${isOnMap ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-md'}`}
                     >
                       {isOnMap ? 'На карте' : '+'}
                     </button>
@@ -145,16 +145,16 @@ const MapToolbar = ({ activeLocalMapId, handleImageUpload }: { activeLocalMapId:
   if (!mapData) return null;
 
   return (
-    <div className="absolute top-4 left-4 z-20 flex gap-2 bg-neutral-900/95 backdrop-blur-md p-3 rounded-xl shadow-2xl flex-col border border-neutral-800/50 w-64">
-      <div className="flex items-center gap-2">
-        <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all text-center flex-1 shadow-md">
+    <div className="absolute top-5 left-5 z-20 flex gap-3 bg-neutral-900/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl flex-col border border-neutral-800/50 w-72">
+      <div className="flex items-center gap-3">
+        <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-xl text-base font-bold transition-all text-center flex-1 shadow-md">
           📁 Загрузить фон
           <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={handleImageUpload} />
         </label>
         {mapData.backgroundImage && (
           <button 
             onClick={() => store.updateLocalMap(activeLocalMapId, { backgroundImage: null })}
-            className="bg-red-900/80 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-bold transition-all shadow-md flex items-center justify-center"
+            className="bg-red-900/80 hover:bg-red-600 text-white px-4 py-3 rounded-xl text-base font-bold transition-all shadow-md flex items-center justify-center"
             title="Удалить фон"
           >
             ❌
@@ -163,15 +163,51 @@ const MapToolbar = ({ activeLocalMapId, handleImageUpload }: { activeLocalMapId:
       </div>
       <button
         onClick={() => store.closeLocalMap()}
-        className="bg-neutral-800 text-neutral-300 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white w-full text-sm font-bold transition-all border border-neutral-700 hover:border-red-600 shadow-md"
+        className="bg-neutral-800 text-neutral-300 px-4 py-3 rounded-xl hover:bg-red-600 hover:text-white w-full text-base font-bold transition-all border border-neutral-700 hover:border-red-600 shadow-md"
       >
         Вернуться на карту мира
       </button>
-      <div className="flex justify-between items-center text-xs font-bold text-neutral-400 mt-2 gap-2 bg-neutral-950 p-2 rounded-lg border border-neutral-800">
-        <label className="flex items-center gap-1">Сетка: <input type="number" value={mapData.gridSize || 50} onChange={(e) => handleCalibrationChange('gridSize', parseInt(e.target.value))} className="w-10 bg-neutral-800 text-white p-1 rounded border border-neutral-700 focus:border-indigo-500 outline-none text-center"/></label>
-        <label className="flex items-center gap-1">X: <input type="number" value={mapData.gridOffsetX || 0} onChange={(e) => handleCalibrationChange('gridOffsetX', parseInt(e.target.value))} className="w-8 bg-neutral-800 text-white p-1 rounded border border-neutral-700 focus:border-indigo-500 outline-none text-center"/></label>
-        <label className="flex items-center gap-1">Y: <input type="number" value={mapData.gridOffsetY || 0} onChange={(e) => handleCalibrationChange('gridOffsetY', parseInt(e.target.value))} className="w-8 bg-neutral-800 text-white p-1 rounded border border-neutral-700 focus:border-indigo-500 outline-none text-center"/></label>
+      <div className="flex justify-between items-center text-sm font-bold text-neutral-400 mt-2 gap-2 bg-neutral-950 p-3 rounded-xl border border-neutral-800">
+        <label className="flex items-center gap-2">Сетка: <input type="number" value={mapData.gridSize || 50} onChange={(e) => handleCalibrationChange('gridSize', parseInt(e.target.value))} className="w-12 bg-neutral-800 text-white p-1.5 rounded-md border border-neutral-700 focus:border-indigo-500 outline-none text-center"/></label>
+        <label className="flex items-center gap-2">X: <input type="number" value={mapData.gridOffsetX || 0} onChange={(e) => handleCalibrationChange('gridOffsetX', parseInt(e.target.value))} className="w-10 bg-neutral-800 text-white p-1.5 rounded-md border border-neutral-700 focus:border-indigo-500 outline-none text-center"/></label>
+        <label className="flex items-center gap-2">Y: <input type="number" value={mapData.gridOffsetY || 0} onChange={(e) => handleCalibrationChange('gridOffsetY', parseInt(e.target.value))} className="w-10 bg-neutral-800 text-white p-1.5 rounded-md border border-neutral-700 focus:border-indigo-500 outline-none text-center"/></label>
       </div>
+    </div>
+  );
+};
+
+// =====================================================
+// 3.5 КОМПОНЕНТ: Инфо-панель локации
+// =====================================================
+const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) => {
+  const store = useWorkspaceStore();
+  const location = store.locations[activeLocalMapId];
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  if (!location) return null;
+
+  return (
+    <div className={`absolute top-5 right-5 z-30 flex flex-col bg-neutral-900/95 backdrop-blur-md border border-neutral-800/80 rounded-2xl shadow-2xl transition-all duration-300 ${isExpanded ? 'w-96' : 'w-auto'}`}>
+      <div 
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-neutral-800/50 rounded-t-2xl transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🗺️</span>
+          {isExpanded && <h3 className="text-base font-black text-white uppercase tracking-wider truncate">{location.name}</h3>}
+        </div>
+        <button className="text-neutral-400 hover:text-white transition-colors p-2 text-lg">
+          {isExpanded ? '▼' : '◀'}
+        </button>
+      </div>
+      
+      {isExpanded && (
+        <div className="p-5 pt-0 border-t border-neutral-800/50">
+          <div className="text-base text-neutral-300 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto custom-scrollbar pr-3 mt-4 font-medium">
+            {location.description || <span className="text-neutral-600 italic">Описание отсутствует... Вы можете добавить его в Архиве.</span>}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -242,6 +278,7 @@ const LocalMapBoard = () => {
 
       <div className="flex-1 h-full relative">
         <MapToolbar activeLocalMapId={activeLocalMapId} handleImageUpload={handleImageUpload} />
+        <LocationInfoPanel activeLocalMapId={activeLocalMapId} />
 
         <div
           className={`relative flex-1 w-full h-full overflow-hidden bg-[#0a0a0a] ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
@@ -353,7 +390,7 @@ const LocalMapBoard = () => {
       
       {tokenMenu && (
         <div 
-          className="fixed z-50 bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl py-1.5 w-48 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150"
+          className="fixed z-50 bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl py-2 w-64 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150"
           style={{ left: tokenMenu.x, top: tokenMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -362,9 +399,9 @@ const LocalMapBoard = () => {
               store.setViewedEntityId(tokenMenu.entityId);
               setTokenMenu(null);
             }} 
-            className="px-4 py-3 text-xs font-bold text-neutral-200 hover:bg-indigo-600 hover:text-white text-left flex items-center gap-3 transition-colors"
+            className="px-5 py-4 text-sm font-bold text-neutral-200 hover:bg-indigo-600 hover:text-white text-left flex items-center gap-3 transition-colors"
           >
-            📖 Открыть досье
+            <span className="text-lg">📖</span> Открыть досье
           </button>
           <div className="h-px bg-neutral-800 w-full my-1" />
           <button 
@@ -372,9 +409,9 @@ const LocalMapBoard = () => {
               store.removeLocalToken(activeLocalMapId, tokenMenu.tokenId);
               setTokenMenu(null);
             }} 
-            className="px-4 py-3 text-xs font-bold text-red-400 hover:bg-red-600 hover:text-white text-left flex items-center gap-3 transition-colors"
+            className="px-5 py-4 text-sm font-bold text-red-400 hover:bg-red-600 hover:text-white text-left flex items-center gap-3 transition-colors"
           >
-            ❌ Удалить с карты
+            <span className="text-lg">❌</span> Удалить с карты
           </button>
         </div>
       )}

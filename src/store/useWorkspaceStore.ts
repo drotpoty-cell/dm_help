@@ -5,21 +5,16 @@ import { persist } from 'zustand/middleware'
 import { Node, Edge } from 'reactflow'
 import { 
   WorkspaceState, 
-  LibraryCategory, 
   LibraryState, 
-  NPC, 
-  Enemy,
+  PlotNode,
   Hero,
-  Quest, 
-  BaseEntity, 
-  ClimateType,
+  NPC,
+  Enemy,
   Combatant,
-  PlotNode
+  BaseEntity
 } from '@/types/workspace'
 
 export * from '@/types/workspace'
-
-export const MOCK_DATA = {}
 
 export const getEmptyWorldState = () => ({
   nodes: [],
@@ -684,7 +679,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         delete enemies[id];
         return { enemies };
       }),
-      // resetWorld: () => set(getEmptyWorldState())
     }),
     {
       name: 'gm-assistant-storage',
