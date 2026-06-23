@@ -177,14 +177,22 @@ const MapToolbar = ({ activeLocalMapId, handleImageUpload }: { activeLocalMapId:
 };
 
 // =====================================================
-// 3.5 КОМПОНЕНТ: Инфо-панель локации
+// 3.5 КОМПОНЕНТ: Инфо-панель локации (с жесткой привязкой)
 // =====================================================
 const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) => {
   const store = useWorkspaceStore();
-  const location = store.locations[activeLocalMapId];
+  const mapData = store.localMaps[activeLocalMapId];
+  const nodes = store.nodes;
+  
+  // 1. Умный поиск: проверяем ручную привязку -> привязку через Ноду -> прямой ID
+  const linkedId = (mapData as any)?.linkedLocationId;
+  const nodeEntityId = nodes.find(n => n.id === activeLocalMapId)?.data?.entityId;
+  const targetLocationId = linkedId || nodeEntityId || activeLocalMapId;
+  
+  const location = store.locations[targetLocationId as string];
+  const allLocations = Object.values(store.locations);
+  
   const [isExpanded, setIsExpanded] = useState(true);
-
-  const locationName = location?.name || "Неизвестная локация";
 
   return (
     <div className={`absolute top-5 right-5 z-30 flex flex-col bg-neutral-900/95 backdrop-blur-md border border-neutral-800/80 rounded-2xl shadow-2xl transition-all duration-300 ${isExpanded ? 'w-96' : 'w-auto'}`}>
@@ -192,9 +200,11 @@ const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) =
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-neutral-800/50 rounded-t-2xl transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-[85%]">
           <span className="text-2xl">🗺️</span>
-          {isExpanded && <h3 className="text-base font-black text-white uppercase tracking-wider truncate">{locationName}</h3>}
+          {isExpanded && <h3 className="text-base font-black text-white uppercase tracking-wider truncate" title={location?.name || "Привязка локации"}>
+            {location?.name || "Привязка локации"}
+          </h3>}
         </div>
         <button className="text-neutral-400 hover:text-white transition-colors p-2 text-lg">
           {isExpanded ? '▼' : '◀'}
@@ -203,58 +213,83 @@ const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) =
       
       {isExpanded && (
         <div className="p-5 pt-0 border-t border-neutral-800/50">
-          <div className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto custom-scrollbar pr-3 mt-4 font-medium flex flex-col gap-4">
-            {!location ? (
-              <span className="text-neutral-600 italic">Локация не привязана к Архиву. Создайте её там, чтобы здесь появилось описание.</span>
-            ) : (
-              <>
-                {/* Краткое описание */}
-                {location.description && (
-                  <div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Краткое описание</div>
-                    <div className="text-base">{location.description}</div>
-                  </div>
-                )}
-                
-                {/* Текущее состояние */}
-                {(location.status || location.state) && (
-                  <div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Текущее состояние</div>
-                    <div className="text-base text-amber-200/90">{location.status || location.state}</div>
-                  </div>
-                )}
-                
-                {/* Персонажи в локации */}
-                {location.characters && (
-                  <div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Персонажи в локации</div>
-                    <div className="text-base text-emerald-200/90">{location.characters}</div>
-                  </div>
-                )}
-                
-                {/* Секреты */}
-                {location.secrets && (
-                  <div>
-                    <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Секреты локации</div>
-                    <div className="text-base text-indigo-200/90">{location.secrets}</div>
-                  </div>
-                )}
-                
-                {/* Детальное описание */}
-                {(location.content || location.details) && (
-                  <div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Описание (Детали)</div>
-                    <div className="text-base">{location.content || location.details}</div>
-                  </div>
-                )}
+          {!location ? (
+            <div className="mt-4 flex flex-col gap-3">
+              <span className="text-sm text-neutral-400">Карта не привязана к Архиву. Выберите локацию:</span>
+              <select 
+                className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-xl text-sm outline-none focus:border-indigo-500 shadow-inner"
+                onChange={(e) => {
+                  if(e.target.value) {
+                    // Сохраняем жесткую привязку прямо в данные карты
+                    store.updateLocalMap(activeLocalMapId, { linkedLocationId: e.target.value } as any);
+                  }
+                }}
+                value=""
+              >
+                <option value="" disabled>-- Список локаций из Архива --</option>
+                {allLocations.map((loc: any) => (
+                  <option key={loc.id} value={loc.id}>{loc.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto custom-scrollbar pr-3 mt-4 font-medium flex flex-col gap-4">
+              {/* Краткое описание */}
+              {location.description && (
+                <div>
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Краткое описание</div>
+                  <div className="text-base">{location.description}</div>
+                </div>
+              )}
+              
+              {/* Текущее состояние */}
+              {(location.status || location.state) && (
+                <div>
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Текущее состояние</div>
+                  <div className="text-base text-amber-200/90">{location.status || location.state}</div>
+                </div>
+              )}
+              
+              {/* Персонажи в локации */}
+              {location.characters && (
+                <div>
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Персонажи в локации</div>
+                  <div className="text-base text-emerald-200/90">{location.characters}</div>
+                </div>
+              )}
+              
+              {/* Секреты */}
+              {location.secrets && (
+                <div>
+                  <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Секреты локации</div>
+                  <div className="text-base text-indigo-200/90">{location.secrets}</div>
+                </div>
+              )}
+              
+              {/* Детальное описание */}
+              {(location.content || location.details) && (
+                <div>
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Описание (Детали)</div>
+                  <div className="text-base">{location.content || location.details}</div>
+                </div>
+              )}
 
-                {/* Заглушка, если локация есть, но все поля пустые */}
-                {!location.description && !location.status && !location.state && !location.characters && !location.secrets && !location.content && !location.details && (
-                  <span className="text-neutral-600 italic">Карточка локации пуста. Заполните её поля в Архиве.</span>
-                )}
-              </>
-            )}
-          </div>
+              {/* Заглушка, если локация есть, но все поля пустые */}
+              {!location.description && !location.status && !location.state && !location.characters && !location.secrets && !location.content && !location.details && (
+                <span className="text-neutral-600 italic">Карточка локации пуста. Заполните её поля в Архиве.</span>
+              )}
+
+              {/* Кнопка отвязки */}
+              <div className="mt-4 pt-4 border-t border-neutral-800/50 flex justify-end">
+                <button 
+                  onClick={() => store.updateLocalMap(activeLocalMapId, { linkedLocationId: null } as any)}
+                  className="text-[10px] text-neutral-500 hover:text-red-400 uppercase tracking-widest font-bold transition-colors"
+                >
+                  Изменить привязку
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
