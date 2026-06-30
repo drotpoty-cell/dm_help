@@ -3,6 +3,7 @@
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { Users, Swords } from 'lucide-react'
 import { InitiativeTracker } from '../InitiativeTracker'
+import { CampaignBackupWidget } from '../CampaignBackupWidget'
 
 export default function CockpitSidebar() {
   const heroes = useWorkspaceStore((state) => state.heroes)
@@ -56,6 +57,10 @@ export default function CockpitSidebar() {
           </div>
         </div>
         {activeView === 'map' && activeLocalMapId && <InitiativeTracker />}
+      </div>
+
+      <div className="mt-auto p-4 border-t border-neutral-800">
+        <CampaignBackupWidget />
       </div>
     </div>
   )
