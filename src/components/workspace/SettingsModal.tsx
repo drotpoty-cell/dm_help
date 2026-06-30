@@ -3,6 +3,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { Textarea } from '@/components/ui/Textarea';
 import { Label } from '@/components/ui/Label';
 import { X } from 'lucide-react';
+import { CampaignBackupWidget } from './CampaignBackupWidget';
 
 export default function SettingsModal({ onClose }: { onClose: () => void }) {
   const store = useSettingsStore();
@@ -21,6 +22,8 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           <X className="w-5 h-5" />
         </button>
         <h2 className="text-xl font-bold text-white mb-2">Настройки ⚙️</h2>
+
+        <CampaignBackupWidget />
 
         <div>
           <Label>Системная роль</Label>
