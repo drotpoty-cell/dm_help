@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { Users, Swords } from 'lucide-react'
 import { InitiativeTracker } from '../InitiativeTracker'
-import { CampaignBackupWidget } from '../CampaignBackupWidget'
+import SettingsModal from '../SettingsModal'
 
 export default function CockpitSidebar() {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const heroes = useWorkspaceStore((state) => state.heroes)
   const activeView = useWorkspaceStore((state) => state.activeView)
   const activeLocalMapId = useWorkspaceStore((state) => state.activeLocalMapId)
@@ -60,8 +62,17 @@ export default function CockpitSidebar() {
       </div>
 
       <div className="mt-auto p-4 border-t border-neutral-800">
-        <CampaignBackupWidget />
+        <button 
+          onClick={() => setIsSettingsOpen(true)}
+          className="mt-auto flex items-center gap-3 px-4 py-3 text-sm font-bold text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-xl transition-colors w-full"
+        >
+          <span className="text-xl">⚙️</span> Настройки
+        </button>
       </div>
+
+      {isSettingsOpen && (
+        <SettingsModal onClose={() => setIsSettingsOpen(false)} />
+      )}
     </div>
   )
 }
