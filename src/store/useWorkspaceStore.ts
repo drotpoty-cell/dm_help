@@ -229,7 +229,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           }
         }
       })),
-      spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot') => set((state: any) => {
+      spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot', x?: number, y?: number) => set((state: any) => {
         const nextLocalMaps = { ...state.localMaps };
         const tokenId = `token-${Date.now()}`;
 
@@ -269,7 +269,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         });
 
         // 2. Создание токена
-        const newToken = { id: tokenId, entityId: entity.id, type, locationId, x: 0, y: 0, size: 1 };
+        const newToken = { id: tokenId, entityId: entity.id, type, locationId, x: x ?? 0, y: y ?? 0, size: 1 };
         
         // 3. Обновление целевой карты
         const targetMap = nextLocalMaps[locationId] || { gridSize: 60, tokens: {} };

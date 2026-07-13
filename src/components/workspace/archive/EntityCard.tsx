@@ -1,10 +1,9 @@
 'use client'
 
-import { useWorkspaceStore } from '@/store/useWorkspaceStore'
-import { Hero, NPC, Quest, Loot, Event, BaseEntity } from '@/types/workspace'
+import { Hero, NPC, Quest, Loot } from '@/types/workspace'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ReactNode } from 'react'
+import { DragEvent, ReactNode, useRef } from 'react'
 
 interface EntityCardProps {
   entity: any
@@ -28,6 +27,7 @@ const Icons: Record<string, ReactNode> = {
 }
 
 export default function EntityCard({ entity, type, isActive, onClick }: EntityCardProps) {
+  const dragStartedRef = useRef(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entity.id });
   const style = { 
     transform: CSS.Transform.toString(transform), 
@@ -35,6 +35,30 @@ export default function EntityCard({ entity, type, isActive, onClick }: EntityCa
     zIndex: isDragging ? 50 : 'auto', 
     opacity: isDragging ? 0.5 : 1 
   };
+
+  const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('[data-sort-handle]')) {
+      e.preventDefault()
+      return
+    }
+
+    const payload = JSON.stringify({ id: entity.id, type })
+    e.dataTransfer.setData('application/json', payload)
+    e.dataTransfer.setData('text/plain', payload)
+    e.dataTransfer.effectAllowed = 'copy'
+    dragStartedRef.current = true
+  }
+
+  const handleDragEnd = () => {
+    requestAnimationFrame(() => {
+      dragStartedRef.current = false
+    })
+  }
+
+  const handleClick = () => {
+    if (dragStartedRef.current) return
+    onClick()
+  }
   
   // Логика определения торговца
   const isMerchant = type === 'npcs' && entity.occupation?.toLowerCase().includes('торговец');
@@ -89,23 +113,25 @@ export default function EntityCard({ entity, type, isActive, onClick }: EntityCa
     return null;
   };
 
-  const { updateEntity } = useWorkspaceStore()
-
   return (
     <div 
       ref={setNodeRef}
       style={style}
-      onClick={onClick}
-      className={`relative p-4 rounded-xl border transition-all cursor-pointer group ${
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onClick={handleClick}
+      className={`relative p-4 rounded-xl border transition-all duration-200 cursor-grab active:cursor-grabbing group select-none ${
         isActive 
           ? 'bg-zinc-900 border-indigo-500 shadow-lg shadow-indigo-500/10' 
-          : 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700 hover:scale-[1.01] hover:bg-zinc-900/60'
+          : 'bg-zinc-900/40 border-zinc-800 hover:border-indigo-500/50 hover:scale-[1.02] hover:bg-zinc-900/60'
       }`}
     >
       <div 
         {...attributes} 
-        {...listeners} 
-        className="absolute top-2 right-2 cursor-grab text-zinc-600 hover:text-zinc-300"
+        {...listeners}
+        data-sort-handle
+        className="absolute top-2 right-2 cursor-grab active:cursor-grabbing text-zinc-600 hover:text-indigo-400 transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import EntityViewerModal from '@/components/workspace/EntityViewerModal';
 
@@ -84,6 +84,16 @@ const MapSidebar = ({ activeLocalMapId }: { activeLocalMapId: string }) => {
     return category as any; 
   };
 
+  // ==== Новый: Обработчик dragstart для сущностей из архива ====
+  const handleSidebarDragStart = (item: any, category: string, e: React.DragEvent) => {
+    // Пакуем минимум: id и type (тип токена, чтобы на карте потом вывести правильно)
+    const type = getTokenType(category, item);
+    const dragObj = { id: item.id, type };
+    e.dataTransfer.setData('application/json', JSON.stringify(dragObj));
+    // Позволяем fallback для старых реализаций (при dnd внутри карты)
+    e.dataTransfer.setData('text/plain', item.id);
+  };
+
   return (
     <div className="w-72 bg-neutral-900 border-r border-neutral-800 flex flex-col p-5 overflow-y-auto custom-scrollbar">
       <h2 className="text-white text-lg font-black mb-6 tracking-wide">Архив</h2>
@@ -111,7 +121,10 @@ const MapSidebar = ({ activeLocalMapId }: { activeLocalMapId: string }) => {
               {Object.values((store as any)[category] || {}).map((item: any) => {
                 const isOnMap = Object.values(mapData?.tokens || {}).some((t: any) => t.entityId === item.id);
                 return (
-                  <div key={item.id} className="flex justify-between items-center text-neutral-300 text-base p-2 hover:bg-neutral-800/80 rounded-lg transition-colors group">
+                  <div key={item.id} className="flex justify-between items-center text-neutral-300 text-base p-2 hover:bg-neutral-800/80 rounded-lg transition-colors group"
+                    draggable
+                    onDragStart={e => handleSidebarDragStart(item, category, e)}
+                  >
                     <span className="truncate pr-3 group-hover:text-white transition-colors">{item.name}</span>
                     <button 
                       onClick={() => store.spawnEntityToMap(activeLocalMapId, item, getTokenType(category, item))}
@@ -301,11 +314,14 @@ const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) =
 // =====================================================
 const LocalMapBoard = () => {
   const store = useWorkspaceStore();
+  const setViewedEntityId = useWorkspaceStore(s => s.setViewedEntityId);
   const activeLocalMapId = store.activeLocalMapId;
   const mapData = activeLocalMapId ? store.localMaps[activeLocalMapId] : null;
 
   const { handleImageUpload } = useMapBackground(activeLocalMapId);
 
+  const mapRef = useRef<HTMLDivElement>(null);
+  const tokenDragRef = useRef(false);
   const [tokenMenu, setTokenMenu] = useState<{ tokenId: string, entityId: string, x: number, y: number } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -334,22 +350,71 @@ const LocalMapBoard = () => {
     store.updateMapCamera(activeLocalMapId, { zoom: newZoom });
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const tokenId = e.dataTransfer.getData('text/plain');
-    if (!tokenId) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const xPixels = e.clientX - rect.left;
-    const yPixels = e.clientY - rect.top;
-
+  const clientToGridCoords = (clientX: number, clientY: number) => {
+    if (!mapRef.current) return null;
+    const rect = mapRef.current.getBoundingClientRect();
+    const xPixels = clientX - rect.left;
+    const yPixels = clientY - rect.top;
     const worldX = (xPixels - (mapData.cameraX || 0)) / (mapData.zoom || 1);
     const worldY = (yPixels - (mapData.cameraY || 0)) / (mapData.zoom || 1);
+    return {
+      x: Math.floor((worldX - offsetX) / gridSize),
+      y: Math.floor((worldY - offsetY) / gridSize),
+    };
+  };
 
-    const gridX = Math.floor((worldX - offsetX) / gridSize);
-    const gridY = Math.floor((worldY - offsetY) / gridSize);
-    
-    store.updateLocalToken(activeLocalMapId, tokenId, { x: gridX, y: gridY });
+  const resolveArchiveEntity = (payload: { id: string; type: string }) => {
+    const categoryMap: Record<string, string> = {
+      hero: 'heroes', heroes: 'heroes',
+      npc: 'npcs', npcs: 'npcs',
+      enemies: 'enemies',
+      crowd: 'crowd',
+      loot: 'loot',
+      poi: 'interactive', check: 'interactive', interactive: 'interactive',
+    };
+    const category = categoryMap[payload.type] || payload.type;
+    const entity = (store as any)[category]?.[payload.id];
+    if (!entity) return null;
+
+    let tokenType: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot';
+    if (payload.type === 'heroes' || payload.type === 'hero') tokenType = 'hero';
+    else if (payload.type === 'npcs' || payload.type === 'npc') tokenType = 'npc';
+    else if (payload.type === 'interactive') tokenType = entity.type || 'poi';
+    else tokenType = payload.type as typeof tokenType;
+
+    return { entity, tokenType };
+  };
+
+  const parseArchiveDragPayload = (dataTransfer: DataTransfer): { id: string; type: string } | null => {
+    const tryParse = (raw: string) => {
+      if (!raw) return null;
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed?.id && parsed?.type ? parsed : null;
+      } catch {
+        return null;
+      }
+    };
+    return tryParse(dataTransfer.getData('application/json')) ?? tryParse(dataTransfer.getData('text/plain'));
+  };
+
+  const handleMapBoardDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+
+    const archivePayload = parseArchiveDragPayload(e.dataTransfer);
+    const gridCoords = clientToGridCoords(e.clientX, e.clientY);
+    if (!gridCoords) return;
+
+    if (archivePayload) {
+      const resolved = resolveArchiveEntity(archivePayload);
+      if (!resolved) return;
+      store.spawnEntityToMap(activeLocalMapId, resolved.entity, resolved.tokenType, gridCoords.x, gridCoords.y);
+      return;
+    }
+
+    const tokenId = e.dataTransfer.getData('text/plain');
+    if (!tokenId || !mapData.tokens?.[tokenId]) return;
+    store.updateLocalToken(activeLocalMapId, tokenId, { x: gridCoords.x, y: gridCoords.y });
   };
 
   return (
@@ -365,14 +430,15 @@ const LocalMapBoard = () => {
         <LocationInfoPanel activeLocalMapId={activeLocalMapId} />
 
         <div
+          ref={mapRef}
           className={`relative flex-1 w-full h-full overflow-hidden bg-[#0a0a0a] ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
+          onDrop={handleMapBoardDrop}
         >
           <div
             className="absolute top-0 left-0 origin-top-left w-full h-full transition-transform duration-75 ease-out"
@@ -433,18 +499,25 @@ const LocalMapBoard = () => {
                     <div
                       draggable
                       onDragStart={(e) => {
+                        tokenDragRef.current = true;
                         e.dataTransfer.setData('text/plain', token.id);
+                        setTokenMenu(null);
+                      }}
+                      onDragEnd={() => {
+                        requestAnimationFrame(() => {
+                          tokenDragRef.current = false;
+                        });
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (tokenDragRef.current) return;
+                        setViewedEntityId(token.entityId);
                         setTokenMenu(null);
                       }}
                       onContextMenu={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         setTokenMenu({ tokenId: token.id, entityId: token.entityId, x: e.clientX, y: e.clientY });
-                      }}
-                      onDoubleClick={(e) => {
-                        e.stopPropagation();
-                        store.setViewedEntityId(token.entityId); 
-                        setTokenMenu(null);
                       }}
                       className={`w-full h-full border-2 cursor-move flex items-center justify-center font-black text-sm shadow-xl select-none backdrop-blur-sm transition-all ${
                         isPoi ? 'rounded-md bg-amber-400/90 border-amber-200 text-amber-950' 
@@ -480,7 +553,7 @@ const LocalMapBoard = () => {
         >
           <button 
             onClick={() => {
-              store.setViewedEntityId(tokenMenu.entityId);
+              setViewedEntityId(tokenMenu.entityId);
               setTokenMenu(null);
             }} 
             className="px-5 py-4 text-sm font-bold text-neutral-200 hover:bg-indigo-600 hover:text-white text-left flex items-center gap-3 transition-colors"

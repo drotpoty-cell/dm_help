@@ -238,7 +238,7 @@ export interface WorkspaceState {
   updateMapCamera: (locationId: string, camera: { cameraX?: number; cameraY?: number; zoom?: number }) => void;
   updateLocalToken: (locationId: string, tokenId: string, data: Partial<BattleToken>) => void;
   createAndSpawnInteractive: (locationId: string, type: 'poi' | 'check') => void;
-  spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot') => void;
+  spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot', x?: number, y?: number) => void;
   removeLocalToken: (locationId: string, tokenId: string) => void;
 
   importAIData: (data: any) => void;
