@@ -1,4 +1,6 @@
-import { Node, Edge } from 'reactflow'
+import type { UISlice } from '@/store/slices/createUISlice'
+import type { LibrarySlice } from '@/store/slices/createLibrarySlice'
+import type { MapSlice } from '@/store/slices/createMapSlice'
 
 export interface PlotNode {
   id: string;
@@ -193,15 +195,13 @@ export interface CombatState {
   participants: Combatant[];
 }
 
-export interface WorkspaceState {
-  nodes: Node[]
-  edges: Edge[]
+export interface WorkspaceState extends UISlice, LibrarySlice, MapSlice {
   story: StoryPart[]
-  plotNodes: Record<string, PlotNode>;
+  plotNodes: Record<string, PlotNode>
 
   currentDay: number
   currentHour: number
-  
+
   weather: WeatherState
   setWeather: (weather: Partial<WeatherState>) => void
   generateForecast: (days: number) => void
@@ -209,77 +209,27 @@ export interface WorkspaceState {
   partyLocationId: string | null
   setPartyLocation: (id: string | null) => void
 
-  heroes: Record<string, Hero>
-  npcs: Record<string, NPC>
-  enemies: Record<string, Enemy>
-  quests: Record<string, Quest>
-  locations: Record<string, BaseEntity>
-  secrets: Record<string, BaseEntity>
-  loot: Record<string, Loot>
-  events: Record<string, Event>
-  characters: Record<string, any>
-  extras: Record<string, any>
-  bestiary: Record<string, any>
-  interactive: Record<string, any>
-  factions: Record<string, any>
-  crowd: Record<string, any>
+  combat: CombatState
+  startCombat: (mapId: string) => void
+  endCombat: () => void
+  nextTurn: () => void
+  updateCombatantInitiative: (tokenId: string, initiative: number) => void
 
-  combat: CombatState;
-  startCombat: (mapId: string) => void;
-  endCombat: () => void;
-  nextTurn: () => void;
-  updateCombatantInitiative: (tokenId: string, initiative: number) => void;
+  openLocalMap: (locationId: string) => void
+  closeLocalMap: () => void
+  updateLocalMap: (locationId: string, data: Partial<LocalMapData>) => void
+  createAndSpawnInteractive: (locationId: string, type: 'poi' | 'check') => void
 
-  localMaps: Record<string, LocalMapData>; // Ключ — locationId
-  activeLocalMapId: string | null;
-  openLocalMap: (locationId: string) => void;
-  closeLocalMap: () => void;
-  updateLocalMap: (locationId: string, data: Partial<LocalMapData>) => void;
-  updateMapCamera: (locationId: string, camera: { cameraX?: number; cameraY?: number; zoom?: number }) => void;
-  updateLocalToken: (locationId: string, tokenId: string, data: Partial<BattleToken>) => void;
-  createAndSpawnInteractive: (locationId: string, type: 'poi' | 'check') => void;
-  spawnEntityToMap: (locationId: string, entity: any, type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'crowd' | 'loot', x?: number, y?: number) => void;
-  removeLocalToken: (locationId: string, tokenId: string) => void;
-
-  importAIData: (data: any) => void;
-  setNodes: (nodes: Node[]) => void
-  setEdges: (edges: Edge[]) => void
   updateEdgeData: (edgeId: string, data: any) => void
   setStory: (story: StoryPart[]) => void
-  setLibrary: (library: any) => void 
 
   advanceTime: (hours: number) => void
 
-  addEntity: (category: LibraryCategory, entity: any) => void
-  updateEntity: (category: LibraryCategory, id: string, data: any) => void
-  deleteEntity: (category: LibraryCategory, id: string) => void
-  addEnemy: (enemy: Enemy) => void;
-  updateEnemy: (id: string, data: Partial<Enemy>) => void;
-  deleteEnemy: (id: string) => void;
+  addPlotNode: (node: PlotNode) => void
+  updatePlotNode: (id: string, data: Partial<PlotNode>) => void
+  deletePlotNode: (id: string) => void
 
-  addPlotNode: (node: PlotNode) => void;
-  updatePlotNode: (id: string, data: Partial<PlotNode>) => void;
-  deletePlotNode: (id: string) => void;
-
-  updateQuestStatus: (questId: string, newStatus: EntityStatus) => void
-  updateHero: (id: string, data: Partial<Hero>) => void
-  updateNpc: (id: string, data: Partial<NPC>) => void
   attachToRegion: (childId: string, regionId: string | null) => void
-  clearNeedsUpdate: (type: 'node' | 'npc' | 'enemy', targetId: string) => void
-  viewedEntityId: string | null
-  setViewedEntityId: (id: string | null) => void
-
-  activeView: string
-  setActiveView: (view: string) => void
-
-  activeWorldId: string | null;
-  savedWorlds: Record<string, any>;
-  switchWorld: (newId: string) => void;
-  
-  scratchpad: string
-  isScratchpadOpen: boolean
-  setScratchpad: (text: string) => void
-  toggleScratchpad: () => void
 }
 
 export type LibraryState = Pick<
