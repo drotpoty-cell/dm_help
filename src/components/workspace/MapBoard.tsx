@@ -5,8 +5,10 @@ import ReactFlow, { Background, Controls, applyNodeChanges, applyEdgeChanges, No
 import 'reactflow/dist/style.css';
 
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import { nodeTypes } from '@/components/workspace/CustomNodes';
+import { nodeTypes as legacyNodeTypes } from '@/components/workspace/CustomNodes';
+import MapNode from '@/components/workspace/MapNode';
 import TravelEdge from '@/components/workspace/CustomEdges';
+import RouteEdge from '@/components/workspace/RouteEdge';
 import ContextMenu from '@/components/workspace/ContextMenu';
 import Sidebar from '@/components/workspace/Sidebar';
 import CombatTracker from '@/components/workspace/CombatTracker';
@@ -21,8 +23,8 @@ const MapBoard = () => {
 
   const [isArchivePanelOpen, setIsArchivePanelOpen] = useState(false);
   
-  const memoNodeTypes = useMemo(() => nodeTypes, []);
-  const memoEdgeTypes = useMemo(() => ({ travel: TravelEdge }), []);
+  const nodeTypes = useMemo(() => ({ ...legacyNodeTypes, custom: MapNode }), []);
+  const edgeTypes = useMemo(() => ({ travel: TravelEdge, custom: RouteEdge }), []);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ id: string, x: number, y: number, overContainers: Node[] } | null>(null);
@@ -31,8 +33,11 @@ const MapBoard = () => {
 
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes(applyNodeChanges(changes, nodes)), [nodes, setNodes]);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges(applyEdgeChanges(changes, edges)), [edges, setEdges]);
-  const onConnect = useCallback((params: Connection | Edge) => setEdges(addEdge({ ...params, type: 'travel', data: { days: 0, hours: 0 } }, edges)), [edges, setEdges]);
-
+  const onConnect = useCallback(
+    (params: Connection | Edge) =>
+      setEdges(addEdge({ ...params, type: 'custom', data: { days: 0, hours: 0 } }, edges)),
+    [edges, setEdges],
+  );
   const availableLocations = useMemo(() => {
     return Object.values(locations).filter(
       (loc) => !nodes.some((node) => node.data?.entityId === loc.id)
@@ -42,9 +47,15 @@ const MapBoard = () => {
   const addLocationNode = (loc: any) => {
     const newNode = {
       id: `node-${Date.now()}`,
-      type: 'safe',
+      type: 'custom',
       position: { x: 100, y: 100 },
-      data: { label: loc.name, entityId: loc.id, description: loc.description || '' }
+      data: {
+        title: loc.name,
+        label: loc.name,
+        mapImage: loc.mapImage || null,
+        entityId: loc.id,
+        description: loc.description || '',
+      },
     };
     setNodes([...nodes, newNode]);
     setIsArchivePanelOpen(false);
@@ -135,7 +146,7 @@ const MapBoard = () => {
 
       <ReactFlow
         nodes={nodes} edges={edges}
-        nodeTypes={memoNodeTypes} edgeTypes={memoEdgeTypes}
+        nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
         onNodeClick={(_, n) => { setSelectedNodeId(n.id); setMenu(null); }}
         onNodeDoubleClick={(_, n) => handleNodeDoubleClick(n)}
