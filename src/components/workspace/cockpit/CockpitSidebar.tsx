@@ -56,7 +56,7 @@ export default function CockpitSidebar() {
   )
 
   const filteredItems = useMemo(() => {
-    const items = Object.values(library[activeTab] || {}) as any[]
+    const items = Object.values(library[activeTab as keyof typeof library] || {}) as any[]
     const normalized = query.trim().toLowerCase()
     const filtered = normalized
       ? items.filter((e) => {
