@@ -16,6 +16,7 @@ export interface MapSlice {
   edges: Edge[]
   localMaps: Record<string, LocalMapData>
   activeLocalMapId: string | null
+  mapNavigationStack: string[]
 
   setNodes: (nodes: Node[]) => void
   onNodesChange: (changes: NodeChange[]) => void
@@ -39,16 +40,25 @@ export interface MapSlice {
   ) => void
   updateMapBackground: (locationId: string, backgroundImage: string | null) => void
   clearLocalMapTokens: (locationId: string) => void
+  openLocalMap: (locationId: string) => void
+  diveIntoMap: (locationId: string) => void
+  mapsUpTo: (index: number) => void
+  closeLocalMap: () => void
+  updateLocalMap: (locationId: string, data: Partial<LocalMapData>) => void
+  createAndSpawnInteractive: (locationId: string, type: 'poi' | 'check') => void
+  updateEdgeData: (edgeId: string, data: any) => void
+  attachToRegion: (childId: string, regionId: string | null) => void
 }
 
 export const getEmptyMapState = (): Pick<
   MapSlice,
-  'nodes' | 'edges' | 'localMaps' | 'activeLocalMapId'
+  'nodes' | 'edges' | 'localMaps' | 'activeLocalMapId' | 'mapNavigationStack'
 > => ({
   nodes: [],
   edges: [],
   localMaps: {},
   activeLocalMapId: null,
+  mapNavigationStack: [],
 })
 
 export const createMapSlice: StateCreator<WorkspaceState, [], [], MapSlice> = (set) => ({
@@ -243,5 +253,119 @@ export const createMapSlice: StateCreator<WorkspaceState, [], [], MapSlice> = (s
           [locationId]: { ...map, tokens: {} },
         },
       }
+    }),
+
+  openLocalMap: (locationId) =>
+    set((state) => {
+      const localMaps = { ...state.localMaps }
+      if (!localMaps[locationId]) {
+        localMaps[locationId] = { backgroundImage: null, gridSize: 60, tokens: {} }
+      }
+      return {
+        localMaps,
+        activeLocalMapId: locationId,
+        mapNavigationStack: [locationId],
+      }
+    }),
+
+  diveIntoMap: (locationId) =>
+    set((state) => {
+      const localMaps = { ...state.localMaps }
+      if (!localMaps[locationId]) {
+        localMaps[locationId] = { backgroundImage: null, gridSize: 60, tokens: {} }
+      }
+      return {
+        localMaps,
+        activeLocalMapId: locationId,
+        mapNavigationStack: [...state.mapNavigationStack, locationId],
+      }
+    }),
+
+  mapsUpTo: (index) =>
+    set((state) => {
+      if (index < 0 || index >= state.mapNavigationStack.length) return state
+      const mapNavigationStack = state.mapNavigationStack.slice(0, index + 1)
+      const activeLocalMapId = mapNavigationStack[mapNavigationStack.length - 1] ?? null
+      return { mapNavigationStack, activeLocalMapId }
+    }),
+
+  closeLocalMap: () => set({ activeLocalMapId: null, mapNavigationStack: [] }),
+
+  updateLocalMap: (locationId, data) =>
+    set((state) => {
+      const existingMap = state.localMaps[locationId] || {
+        gridSize: 60,
+        tokens: {},
+        backgroundImage: null,
+      }
+      return {
+        localMaps: {
+          ...state.localMaps,
+          [locationId]: { ...existingMap, ...data },
+        },
+      }
+    }),
+
+  createAndSpawnInteractive: (locationId, type) =>
+    set((state) => {
+      if (!locationId) return state
+
+      const newEntityId = `interactive-${Date.now()}`
+      const newEntity = {
+        id: newEntityId,
+        name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
+        description: '',
+        type,
+        dc: type === 'check' ? 10 : undefined,
+        locationId,
+      }
+
+      const tokenId = `token-${Date.now()}`
+      const newToken = { id: tokenId, entityId: newEntityId, type, locationId, x: 0, y: 0, size: 1 }
+
+      const targetMap = state.localMaps[locationId] || { gridSize: 60, tokens: {} }
+
+      return {
+        interactive: { ...state.interactive, [newEntityId]: newEntity },
+        localMaps: {
+          ...state.localMaps,
+          [locationId]: {
+            ...targetMap,
+            tokens: { ...targetMap.tokens, [tokenId]: newToken },
+          },
+        },
+      }
+    }),
+
+  updateEdgeData: (edgeId, data) =>
+    set((state) => ({
+      edges: state.edges.map((e: Edge) =>
+        e.id === edgeId ? { ...e, data: { ...e.data, ...data } } : e
+      ),
+    })),
+
+  attachToRegion: (childId, regionId) =>
+    set((state) => {
+      const childIndex = state.nodes.findIndex((n: Node) => n.id === childId)
+      if (childIndex === -1) return state
+      const child = state.nodes[childIndex]
+      const newNodes = [...state.nodes]
+      if (regionId === null) {
+        newNodes[childIndex] = { ...child, parentId: undefined, extent: undefined }
+      } else {
+        const region = state.nodes.find((n: Node) => n.id === regionId)
+        if (region) {
+          newNodes[childIndex] = {
+            ...child,
+            parentId: regionId,
+            position: {
+              x: child.position.x - region.position.x,
+              y: child.position.y - region.position.y,
+            },
+            extent: 'parent',
+          }
+        }
+      }
+      return { nodes: newNodes }
     }),
 })

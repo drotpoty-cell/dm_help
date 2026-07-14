@@ -2,18 +2,44 @@
 
 import type { WorkspaceState, LibraryState } from '@/types/workspace'
 import { getEmptyMapState } from './slices/createMapSlice'
+import type { CombatSlice } from './slices/createCombatSlice'
+import type { SystemSlice } from './slices/createSystemSlice'
 
 export type { WorkspaceState, LibraryState, LibraryCategory } from '@/types/workspace'
 
+export const getEmptyCombatState = (): Pick<CombatSlice, 'combat'> => ({
+  combat: { isActive: false, turnIndex: 0, participants: [] },
+})
+
+export const getEmptySystemState = (): Pick<
+  SystemSlice,
+  'weather' | 'currentDay' | 'currentHour' | 'story' | 'plotNodes' | 'partyLocationId'
+> => ({
+  story: [],
+  plotNodes: {},
+  partyLocationId: null,
+  currentDay: 1,
+  currentHour: 8,
+  weather: {
+    mode: 'disabled' as const,
+    condition: 'Ясно',
+    temp: 20,
+    interval: 24,
+    hoursSinceChange: 0,
+    climate: 'temperate' as const,
+    forecast: {},
+  },
+})
+
 export const getEmptyWorldState = () => ({
   ...getEmptyMapState(),
-  story: [],
+  ...getEmptySystemState(),
+  ...getEmptyCombatState(),
   heroes: {},
   npcs: {},
   enemies: {},
   crowd: {},
   locations: {},
-  plotNodes: {},
   extras: {},
   quests: {},
   loot: {},
@@ -27,21 +53,8 @@ export const getEmptyWorldState = () => ({
   activeView: 'map' as const,
   scratchpad: '',
   isScratchpadOpen: false,
-  partyLocationId: null,
-  currentDay: 1,
-  currentHour: 8,
   activeWorldId: null,
   savedWorlds: {},
-  combat: { isActive: false, turnIndex: 0, participants: [] },
-  weather: {
-    mode: 'disabled' as const,
-    condition: 'Ясно',
-    temp: 20,
-    interval: 24,
-    hoursSinceChange: 0,
-    climate: 'temperate' as const,
-    forecast: {},
-  },
 })
 
 export const getEmptyLibraryState = (): LibraryState => {

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import EntityViewerModal from '@/components/workspace/EntityViewerModal';
 
 // =====================================================
 // 1. ХУК: Сохранение и загрузка фонов (IndexedDB)
@@ -315,6 +314,7 @@ const LocationInfoPanel = ({ activeLocalMapId }: { activeLocalMapId: string }) =
 const LocalMapBoard = () => {
   const store = useWorkspaceStore();
   const setViewedEntityId = useWorkspaceStore(s => s.setViewedEntityId);
+  const diveIntoMap = useWorkspaceStore(s => s.diveIntoMap);
   const activeLocalMapId = store.activeLocalMapId;
   const mapData = activeLocalMapId ? store.localMaps[activeLocalMapId] : null;
 
@@ -511,7 +511,11 @@ const LocalMapBoard = () => {
                       onClick={(e) => {
                         e.stopPropagation();
                         if (tokenDragRef.current) return;
-                        setViewedEntityId(token.entityId);
+                        if (token.type === 'location' || token.type === 'locations') {
+                          diveIntoMap(token.entityId);
+                        } else {
+                          setViewedEntityId(token.entityId);
+                        }
                         setTokenMenu(null);
                       }}
                       onContextMenu={(e) => {
@@ -573,8 +577,6 @@ const LocalMapBoard = () => {
         </div>
       )}
 
-      {/* КРИТИЧЕСКИЙ РЕНДЕР МОДАЛКИ: Окно досье теперь будет физически открываться прямо поверх карты */}
-      {store.viewedEntityId && <EntityViewerModal />}
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import type { UISlice } from '@/store/slices/createUISlice'
 import type { LibrarySlice } from '@/store/slices/createLibrarySlice'
 import type { MapSlice } from '@/store/slices/createMapSlice'
+import type { CombatSlice } from '@/store/slices/createCombatSlice'
+import type { SystemSlice } from '@/store/slices/createSystemSlice'
 
 export interface PlotNode {
   id: string;
@@ -195,42 +197,7 @@ export interface CombatState {
   participants: Combatant[];
 }
 
-export interface WorkspaceState extends UISlice, LibrarySlice, MapSlice {
-  story: StoryPart[]
-  plotNodes: Record<string, PlotNode>
-
-  currentDay: number
-  currentHour: number
-
-  weather: WeatherState
-  setWeather: (weather: Partial<WeatherState>) => void
-  generateForecast: (days: number) => void
-
-  partyLocationId: string | null
-  setPartyLocation: (id: string | null) => void
-
-  combat: CombatState
-  startCombat: (mapId: string) => void
-  endCombat: () => void
-  nextTurn: () => void
-  updateCombatantInitiative: (tokenId: string, initiative: number) => void
-
-  openLocalMap: (locationId: string) => void
-  closeLocalMap: () => void
-  updateLocalMap: (locationId: string, data: Partial<LocalMapData>) => void
-  createAndSpawnInteractive: (locationId: string, type: 'poi' | 'check') => void
-
-  updateEdgeData: (edgeId: string, data: any) => void
-  setStory: (story: StoryPart[]) => void
-
-  advanceTime: (hours: number) => void
-
-  addPlotNode: (node: PlotNode) => void
-  updatePlotNode: (id: string, data: Partial<PlotNode>) => void
-  deletePlotNode: (id: string) => void
-
-  attachToRegion: (childId: string, regionId: string | null) => void
-}
+export interface WorkspaceState extends UISlice, LibrarySlice, MapSlice, CombatSlice, SystemSlice {}
 
 export type LibraryState = Pick<
   WorkspaceState,

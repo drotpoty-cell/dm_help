@@ -1,5 +1,6 @@
 'use client'
 
+import { ChevronRight } from 'lucide-react'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 
 interface TopBarProps {
@@ -29,9 +30,13 @@ export default function TopBar({ campaignId, viewMode, onViewChange, onSave, onS
   const currentHour = useWorkspaceStore(state => state.currentHour)
   const weather = useWorkspaceStore(state => state.weather)
   const advanceTime = useWorkspaceStore(state => state.advanceTime)
+  const mapNavigationStack = useWorkspaceStore(state => state.mapNavigationStack)
+  const mapsUpTo = useWorkspaceStore(state => state.mapsUpTo)
+  const locations = useWorkspaceStore(state => state.locations)
   
   const formattedHour = currentHour.toString().padStart(2, '0') + ':00'
   const isDaytime = currentHour >= 6 && currentHour < 18
+  const showMapBreadcrumbs = viewMode === 'map' && mapNavigationStack.length > 0
 
   const navItems = [
     { id: 'map', label: 'Карта' },
@@ -44,25 +49,61 @@ export default function TopBar({ campaignId, viewMode, onViewChange, onSave, onS
   return (
     <div className="h-16 bg-zinc-950 border-b border-zinc-900 flex items-center justify-between px-6 z-30 shrink-0 relative">
       
-      {/* ЛЕВАЯ ЧАСТЬ: Навигация */}
-      <div className="flex gap-1">
-        {navItems.map(item => (
-          <button 
-            key={item.id}
-            onClick={() => onViewChange(item.id as any)} 
-            className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-              viewMode === item.id 
-                ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' 
-                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 border border-transparent'
-            }`}
+      {/* ЛЕВАЯ ЧАСТЬ: Навигация + breadcrumbs матрёшки */}
+      <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
+        <div className="flex gap-1 shrink-0">
+          {navItems.map(item => (
+            <button 
+              key={item.id}
+              onClick={() => onViewChange(item.id as any)} 
+              className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                viewMode === item.id 
+                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' 
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 border border-transparent'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {showMapBreadcrumbs && (
+          <nav
+            aria-label="Навигация по картам"
+            className="flex items-center gap-1 min-w-0 overflow-x-auto custom-scrollbar pl-3 border-l border-zinc-800"
           >
-            {item.label}
-          </button>
-        ))}
+            {mapNavigationStack.map((locationId, index) => {
+              const loc = locations[locationId] as { name?: string; title?: string } | undefined
+              const label = loc?.name || loc?.title || 'Неизвестная локация'
+              const isCurrent = index === mapNavigationStack.length - 1
+
+              return (
+                <div key={`${locationId}-${index}`} className="flex items-center gap-1 shrink-0">
+                  {index > 0 && (
+                    <ChevronRight className="w-3.5 h-3.5 text-zinc-700 shrink-0" aria-hidden />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => mapsUpTo(index)}
+                    disabled={isCurrent}
+                    title={label}
+                    className={`max-w-[140px] truncate text-[11px] tracking-wide transition-colors ${
+                      isCurrent
+                        ? 'text-indigo-400 font-bold cursor-default'
+                        : 'text-zinc-500 hover:text-indigo-400 font-medium'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                </div>
+              )
+            })}
+          </nav>
+        )}
       </div>
 
       {/* ЦЕНТР: Время и Погода */}
-      <div className="flex items-center bg-zinc-950/80 rounded-2xl border border-zinc-800/60 shadow-[0_4px_20px_rgba(0,0,0,0.5)] p-1.5 backdrop-blur-md">
+      <div className="flex items-center bg-zinc-950/80 rounded-2xl border border-zinc-800/60 shadow-[0_4px_20px_rgba(0,0,0,0.5)] p-1.5 backdrop-blur-md shrink-0">
         
         {/* Минус время — теперь яркие, рабочие и красивые */}
         <div className="flex gap-1 pr-4 border-r border-zinc-800/50">
@@ -124,7 +165,7 @@ export default function TopBar({ campaignId, viewMode, onViewChange, onSave, onS
       </div>
 
       {/* Кнопка сохранения */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0 ml-4">
         <button
           onClick={onSettingsOpen}
           className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-all"

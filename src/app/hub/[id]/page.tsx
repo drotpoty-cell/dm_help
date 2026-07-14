@@ -7,7 +7,6 @@ import CockpitHeader from '@/components/workspace/cockpit/CockpitHeader';
 import { InspectorPanel } from '@/components/workspace/cockpit/InspectorPanel';
 import CockpitSidebar from '@/components/workspace/cockpit/CockpitSidebar';
 import { TimelineBar } from '@/components/workspace/cockpit/TimelineBar';
-import ArchiveBoard from '@/components/workspace/ArchiveBoard';
 import CalendarBoard from '@/components/workspace/CalendarBoard';
 import WeatherBoard from '@/components/workspace/WeatherBoard';
 import LocalMapBoard from '@/components/workspace/LocalMapBoard';
@@ -44,7 +43,6 @@ export default function WorkspacePage({ params }: { params: { id: string } }) {
             activeLocalMapId ? <LocalMapBoard /> : <MapBoard />
           )}
           {activeView === 'story' && <StoryBoard />}
-          {activeView === 'archive' && <ArchiveBoard />}
           {activeView === 'calendar' && <CalendarBoard />}
           {activeView === 'weather' && <WeatherBoard />}
           {activeView === 'heroes' && <HeroesBoard />}
