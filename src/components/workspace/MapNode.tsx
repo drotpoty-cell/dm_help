@@ -1,8 +1,10 @@
 'use client'
 
-import { memo, type DragEvent } from 'react'
+import { memo, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { Handle, Position, type NodeProps } from 'reactflow'
+import { ImageIcon } from 'lucide-react'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
+import { createClient } from '@/utils/supabase/client'
 
 export type MapNodeData = {
   title?: string
@@ -58,10 +60,36 @@ function MapNode({ id, data }: NodeProps<MapNodeData>) {
   const title = data.title || data.label || 'Без названия'
   const mapImage = data.mapImage
   const locationKey = data.entityId || id
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [isUploading, setIsUploading] = useState(false)
 
   const tokensMap = useWorkspaceStore((state) => state.localMaps[locationKey]?.tokens)
   const tokens = Object.values(tokensMap || {})
   const spawnEntityToMap = useWorkspaceStore((state) => state.spawnEntityToMap)
+  const updateNodeData = useWorkspaceStore((state) => state.updateNodeData)
+
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const supabase = createClient()
+      const fileName = `${id}-${Date.now()}-${file.name}`
+
+      const { error } = await supabase.storage.from('maps').upload(fileName, file)
+      if (error) throw error
+
+      const { data: publicUrlData } = supabase.storage.from('maps').getPublicUrl(fileName)
+      updateNodeData(id, 'mapImage', publicUrlData.publicUrl)
+    } catch (err) {
+      console.error('Ошибка загрузки изображения карты:', err)
+    } finally {
+      setIsUploading(false)
+      e.target.value = ''
+    }
+  }
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -133,13 +161,38 @@ function MapNode({ id, data }: NodeProps<MapNodeData>) {
           ))}
         </div>
       ) : (
-        <div className="min-w-[160px] max-w-[240px] px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-700/80 shadow-xl shadow-black/40">
+        <div className="group relative min-w-[160px] max-w-[240px] px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-700/80 shadow-xl shadow-black/40">
           <div className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-1.5">
             Локация
           </div>
-          <div className="text-sm font-bold text-zinc-100 leading-snug truncate">
+          <div className="text-sm font-bold text-zinc-100 leading-snug truncate pr-6">
             {title}
           </div>
+
+          <button
+            type="button"
+            title="Загрузить фон"
+            disabled={isUploading}
+            className="nodrag nopan absolute top-1.5 right-1.5 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-white hover:bg-zinc-800 disabled:opacity-100 disabled:pointer-events-none disabled:text-zinc-400"
+            onClick={(e) => {
+              e.stopPropagation()
+              if (!isUploading) fileInputRef.current?.click()
+            }}
+          >
+            {isUploading ? (
+              <span className="text-[9px] font-bold whitespace-nowrap">Загрузка...</span>
+            ) : (
+              <ImageIcon className="w-3.5 h-3.5" />
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={isUploading}
+            onChange={handleImageUpload}
+          />
         </div>
       )}
 

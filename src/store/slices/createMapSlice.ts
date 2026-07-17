@@ -85,6 +85,7 @@ export const createMapSlice: StateCreator<WorkspaceState, [], [], MapSlice> = (s
         const updateData: Record<string, any> = {}
         if (field === 'label') updateData.name = value
         if (field === 'description') updateData.description = value
+        if (field === 'mapImage') updateData.mapImage = value
 
         if (Object.keys(updateData).length > 0) {
           return {
