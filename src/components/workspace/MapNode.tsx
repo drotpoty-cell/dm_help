@@ -70,11 +70,18 @@ function MapNode({ id, data }: NodeProps<MapNodeData>) {
   const updateNodeData = useWorkspaceStore((state) => state.updateNodeData)
 
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    console.log('--- 1. Функция вызвана ---')
 
-    setIsUploading(true)
+    const file = e.target.files?.[0]
+    if (!file) {
+      console.log('--- 2. Файл не выбран ---')
+      return
+    }
+
+    console.log('--- 3. Файл найден, начинаем загрузку ---', file.name)
+
     try {
+      setIsUploading(true)
       const supabase = createClient()
       const fileName = `${id}-${Date.now()}-${file.name}`
 
@@ -83,8 +90,8 @@ function MapNode({ id, data }: NodeProps<MapNodeData>) {
 
       const { data: publicUrlData } = supabase.storage.from('maps').getPublicUrl(fileName)
       updateNodeData(id, 'mapImage', publicUrlData.publicUrl)
-    } catch (err) {
-      console.error('Ошибка загрузки изображения карты:', err)
+    } catch (error) {
+      console.error('--- 4. ОШИБКА в блоке try-catch ---', error)
     } finally {
       setIsUploading(false)
       e.target.value = ''
