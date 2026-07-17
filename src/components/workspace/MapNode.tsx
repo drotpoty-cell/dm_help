@@ -57,6 +57,7 @@ function resolveEntity(payload: { id: string; type: string }) {
 }
 
 function MapNode({ id, data }: NodeProps<MapNodeData>) {
+  console.log('MapNode рендерится')
   const title = data.title || data.label || 'Без названия'
   const mapImage = data.mapImage
   const locationKey = data.entityId || id
@@ -182,6 +183,8 @@ function MapNode({ id, data }: NodeProps<MapNodeData>) {
             disabled={isUploading}
             className="nodrag nopan absolute top-1.5 right-1.5 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-white hover:bg-zinc-800 disabled:opacity-100 disabled:pointer-events-none disabled:text-zinc-400"
             onClick={(e) => {
+              console.log('Кнопка загрузки нажата')
+              console.log('Ref current:', fileInputRef.current)
               e.stopPropagation()
               if (!isUploading) fileInputRef.current?.click()
             }}
