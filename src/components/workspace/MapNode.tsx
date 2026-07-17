@@ -181,8 +181,8 @@ function MapNode({ id, data }: NodeProps<MapNodeData>) {
             type="button"
             title="Загрузить фон"
             disabled={isUploading}
-            className="nodrag nopan absolute top-1.5 right-1.5 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-white hover:bg-zinc-800 disabled:opacity-100 disabled:pointer-events-none disabled:text-zinc-400"
-            onClick={(e) => {
+            className="nodrag nopan pointer-events-auto absolute top-1.5 right-1.5 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-white hover:bg-zinc-800 disabled:opacity-100 disabled:pointer-events-none disabled:text-zinc-400"
+            onPointerDown={(e) => {
               console.log('Кнопка загрузки нажата')
               console.log('Ref current:', fileInputRef.current)
               e.stopPropagation()
