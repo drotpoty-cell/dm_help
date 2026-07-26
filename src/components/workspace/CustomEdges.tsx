@@ -1,0 +1,267 @@
+'use client'
+
+import { useState } from 'react'
+import { generateId } from '@/utils/id'
+import { BaseEdge, EdgeLabelRenderer, getBezierPath } from 'reactflow'
+import { useWorkspaceStore } from '@/store/useWorkspaceStore'
+import { generateAiText } from '@/utils/aiClient'
+import { toast } from 'sonner'
+import { confirmToast } from '@/utils/confirmToast'
+import { Loader2 } from 'lucide-react'
+
+export default function TravelEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, markerEnd, data }: any) {
+  const edges = useWorkspaceStore(state => state.edges)
+  const setEdges = useWorkspaceStore(state => state.setEdges)
+  const updateEdgeData = useWorkspaceStore(state => state.updateEdgeData)
+  const nodes = useWorkspaceStore(state => state.nodes)
+  
+  // Достаем нужные данные для истории
+  const partyLocationId = useWorkspaceStore(state => state.partyLocationId)
+  const currentDay = useWorkspaceStore(state => state.currentDay)
+  const addEntity = useWorkspaceStore(state => state.addEntity)
+  
+  const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [editDays, setEditDays] = useState(data?.days || 0)
+  const [editHours, setEditHours] = useState(data?.hours || 0)
+  const [eventType, setEventType] = useState<'peaceful' | 'hostile' | 'random'>('random');
+  const weather = useWorkspaceStore((state) => state.weather);
+  
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [encounterData, setEncounterData] = useState<{ roll: number, text: string, sourceName: string, targetName: string } | null>(null)
+
+  const onDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    confirmToast('Удалить эту дорогу?', () => {
+      setEdges(edges.filter((edge) => edge.id !== id))
+    })
+  }
+
+  const onSave = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    updateEdgeData(id, { days: editDays, hours: editHours })
+    setIsEditing(false)
+  }
+
+  const onCancel = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsEditing(false)
+    setEditDays(data?.days || 0)
+    setEditHours(data?.hours || 0)
+  }
+
+  const handleRollEncounter = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    const roll = Math.floor(Math.random() * 20) + 1
+
+    const nodeA = nodes.find(n => n.id === source)
+    const nodeB = nodes.find(n => n.id === target)
+    
+    const isReversed = partyLocationId === target
+    
+    const sourceNode = isReversed ? nodeB : nodeA
+    const targetNode = isReversed ? nodeA : nodeB
+
+    const sourceName = sourceNode?.data?.label || 'Неизвестное место'
+    const targetName = targetNode?.data?.label || 'Неизвестное место'
+    const sourceDesc = sourceNode?.data?.description || ''
+    const targetDesc = targetNode?.data?.description || ''
+
+    toast.info(`🗺️ Маршрут в коде: из "${sourceName}" в "${targetName}"`, {
+      description: `Кубик: ${roll}. Переворот пути: ${isReversed ? 'Да' : 'Нет'}. Отправляем ИИ...`,
+      duration: 4000
+    })
+
+    setIsGenerating(true)
+    setEncounterData(null)
+
+    try {
+      let toneInstruction = "";
+      if (eventType === 'peaceful') {
+        toneInstruction = "\nИНСТРУКЦИЯ: Это событие строго МИРНОЕ. Отряд не должен получить урон. Это может быть полезная находка, бродячий торговец или красивое природное явление.";
+      } else if (eventType === 'hostile') {
+        toneInstruction = "\nИНСТРУКЦИЯ: Это событие строго ВРАЖДЕБНОЕ и ОПАСНОЕ. Засада монстров, скрытая ловушка или агрессивная магия.";
+      } else if (eventType === 'random') {
+        toneInstruction = "\nИНСТРУКЦИЯ: Выбери характер события случайно (оно может быть как опасным, так и мирным).";
+      }
+
+      if (weather?.condition) {
+        toneInstruction += `\nПОГОДА: Сейчас ${weather.condition}, климат ${weather.climate}. Обязательно вплети погоду в описание.`;
+      }
+
+      const prompt = `Игроки путешествуют из точки "${sourceName}" (${sourceDesc}) в точку "${targetName}" (${targetDesc}).
+Результат броска d20 на случайное дорожное событие: ${roll} из 20.
+${toneInstruction}
+
+Ты — Dungeon Master. Твоя задача — сгенерировать живое описание путешествия строго по следующим правилам:
+
+1. СТРОГОЕ НАПРАВЛЕНИЕ (КРИТИЧЕСКИ ВАЖНО):
+Игроки выходят ИМЕННО из "${sourceName}" и направляются В "${targetName}". Художественный текст должен четко отражать это движение (они оставляют первое место позади и приближаются ко второму). Не меняй их местами!
+
+2. ОБЯЗАТЕЛЬНЫЙ РАЗДЕЛ "### 🌲 Атмосфера пути":
+Опиши сам переход, смену пейзажа, погоду, дорожную рутину, запахи или звуки, которые логично связывают эти два места. (2-4 предложения). Мастер должен зачитать это игрокам в любом случае.
+
+3. ЕСЛИ БРОСОК ${roll} РАВЕН 15 ИЛИ ВЫШЕ:
+Происшествий нет. Опиши в первом разделе, как отряд благополучно и спокойно добирается до места назначения. Больше никаких разделов не нужно.
+
+4. ЕСЛИ БРОСОК ${roll} МЕНЬШЕ 15:
+Добавь раздел "### ⚠️ Происшествие в дороге". Опиши неожиданную встречу или препятствие в зависимости от броска (чем меньше число, тем опаснее ситуация. 1 — критический провал, засада). 
+Исходя из природы созданного тобой события, ОБЯЗАТЕЛЬНО добавь ОДИН из следующих механических блоков в самый конец:
+- Если это ВРАГИ/МОНСТРЫ: Добавь блок "⚔️ Боевые статы:" (укажи кратко AC, HP, основные атаки и их урон).
+- Если это ТОРГОВЕЦ: Добавь блок "💰 Ассортимент товаров:" (список из 2-3 предметов с ценами в gp).
+- Если это МЕСТНЫЕ ЖИТЕЛИ/ПУТНИКИ: Добавь блок "💬 О чем говорят:" (конкретные цитаты, слухи или зацепки к миру).
+- Если это ТЕЛЕГА/ЗАБРОШЕННОЕ МЕСТО/НАХОДКА: Добавь блок "📦 Содержимое (Лут):" (что ценного или странного они могут там вытащить).
+
+Верни только готовый, красиво структурированный художественный текст без лишних мета-комментариев и кавычек.`
+
+      const response = await generateAiText(prompt)
+      
+      setEncounterData({ roll, text: response, sourceName, targetName })
+    } catch (error) {
+      console.error(error)
+      toast.error('Не удалось сгенерировать событие')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const closeEncounter = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    if (encounterData) {
+      // 1. Создаем запись в Архиве Календаря
+      const newEvent = {
+        id: generateId('event-enc'),
+        name: `В пути: ${encounterData.sourceName} ➔ ${encounterData.targetName}`,
+        description: `**Результат кубика: ${encounterData.roll}**\n\n${encounterData.text}`,
+        startDay: currentDay,
+        duration: data?.days > 0 ? data.days : 1, 
+        status: 'completed' 
+      }
+      addEntity('events', newEvent)
+
+      // 2. АВТОМАТИЧЕСКОЕ СПИСАНИЕ ВРЕМЕНИ (Дни и часы)
+      const hoursToAdd = (data?.days || 0) * 24 + (data?.hours || 0)
+      
+      if (hoursToAdd > 0) {
+        useWorkspaceStore.setState((state) => {
+          let newHour = state.currentHour + hoursToAdd
+          let newDay = state.currentDay
+
+          if (newHour >= 24) {
+            const daysToAdd = Math.floor(newHour / 24)
+            newDay += daysToAdd
+            newHour = newHour % 24
+          }
+
+          return {
+            currentHour: newHour,
+            currentDay: newDay
+          }
+        })
+        
+        // Красивое уведомление о списании
+        const dayStr = data?.days > 0 ? `${data.days} дн. ` : ''
+        const hourStr = data?.hours > 0 ? `${data.hours} ч.` : ''
+        toast.success(`Событие в Архиве. Путь занял: ${dayStr}${hourStr}`)
+      } else {
+        toast.success('Событие записано в Архив сюжетов!')
+      }
+    }
+    
+    setEncounterData(null)
+  }
+
+  const hasTime = data?.days > 0 || data?.hours > 0
+
+  return (
+    <>
+      <BaseEdge 
+        path={edgePath} 
+        markerEnd={markerEnd} 
+        style={{ ...style, strokeWidth: 2, stroke: hasTime ? '#6366f1' : '#52525b', opacity: hasTime ? 0.8 : 0.5 }} 
+      />
+      
+      <EdgeLabelRenderer>
+        <div
+          style={{
+            position: 'absolute',
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            pointerEvents: 'all',
+          }}
+          className="nodrag nopan flex flex-col items-center justify-center z-50"
+        >
+          {isEditing ? (
+            <div className="bg-zinc-950/90 backdrop-blur-md border border-indigo-500/50 shadow-2xl rounded-lg p-2.5 flex gap-3 items-center" onClick={(e) => e.stopPropagation()}>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Дни</label>
+                <input type="number" min="0" value={editDays} onChange={(e) => setEditDays(parseInt(e.target.value) || 0)} className="w-14 bg-zinc-900 border border-zinc-700 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 font-mono text-center" />
+              </div>
+              <div className="text-zinc-600 font-bold mt-3">:</div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Часы</label>
+                <input type="number" min="0" max="23" value={editHours} onChange={(e) => setEditHours(parseInt(e.target.value) || 0)} className="w-14 bg-zinc-900 border border-zinc-700 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 font-mono text-center" />
+              </div>
+              <div className="flex flex-col gap-1 ml-1 mt-3">
+                <button onClick={onSave} className="w-5 h-5 flex items-center justify-center rounded bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/40 font-bold text-xs transition-colors">✓</button>
+                <button onClick={onCancel} className="w-5 h-5 flex items-center justify-center rounded bg-red-500/20 text-red-500 hover:bg-red-500/40 font-bold text-xs transition-colors">✕</button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group relative">
+              <button 
+                onClick={handleRollEncounter} 
+                disabled={isGenerating}
+                className="opacity-0 group-hover:opacity-100 transition-all bg-zinc-900 hover:bg-indigo-600 border border-zinc-700 hover:border-indigo-500 text-zinc-400 hover:text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Сгенерировать историю пути"
+              >
+                {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : '🎲'}
+              </button>
+
+              <select
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value as any)}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-zinc-950 border border-zinc-700 text-xs rounded outline-none text-zinc-300 ml-1 px-1 py-0.5 cursor-pointer hover:border-indigo-500"
+                title="Тональность события"
+              >
+                <option value="random">🎲 Случайно</option>
+                <option value="peaceful">🕊️ Мирно</option>
+                <option value="hostile">⚔️ Враждебно</option>
+              </select>
+
+              <div className="relative flex items-center justify-center cursor-pointer">
+                <div onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className={`flex items-center justify-center transition-all bg-zinc-900 border hover:border-indigo-500 hover:bg-zinc-800 ${hasTime ? 'px-2.5 py-1 rounded-md border-indigo-500/30 shadow-lg shadow-indigo-900/20' : 'w-4 h-4 rounded-full border-zinc-700'}`}>
+                  {hasTime ? (
+                    <span className="text-[10px] font-bold text-indigo-300 font-mono whitespace-nowrap">
+                      {data.days > 0 && `${data.days}д `}{data.hours > 0 && `${data.hours}ч`}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-500 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">⏱</span>
+                  )}
+                </div>
+                <button onClick={onDelete} className={`absolute text-zinc-500 hover:text-red-500 text-[10px] font-black transition-opacity ${hasTime ? '-top-2.5 -right-2.5 opacity-0 group-hover:opacity-100 bg-zinc-900 rounded-full w-4 h-4 flex items-center justify-center border border-zinc-700 shadow-md' : '-top-3 -right-3 opacity-0 group-hover:opacity-100 bg-zinc-900 rounded-full w-4 h-4 flex items-center justify-center border border-zinc-700 shadow-md'}`} title="Удалить дорогу">✕</button>
+              </div>
+            </div>
+          )}
+
+          {encounterData && (
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 w-96 bg-zinc-950/95 backdrop-blur-xl border border-indigo-500/50 rounded-xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-3" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center border-b border-indigo-900/50 pb-3">
+                 <div className="flex items-center gap-2">
+                   <span className="text-lg">🎲</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Кубик Судьбы: {encounterData.roll}</span>
+                 </div>
+                 <button onClick={closeEncounter} className="text-zinc-500 hover:text-white transition-colors">✕</button>
+              </div>
+              <div className="text-xs text-zinc-300 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar whitespace-pre-wrap font-medium">{encounterData.text}</div>
+              <button onClick={closeEncounter} className="mt-2 w-full bg-indigo-600/10 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/20 py-2.5 rounded-lg text-[10px] uppercase font-black tracking-widest transition-colors">Продолжить путь</button>
+            </div>
+          )}
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  )
+}

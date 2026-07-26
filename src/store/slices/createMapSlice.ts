@@ -1,0 +1,382 @@
+'use client'
+
+import type { StateCreator } from 'zustand'
+import { generateId } from '@/utils/id'
+import {
+  applyNodeChanges,
+  applyEdgeChanges,
+  type Node,
+  type Edge,
+  type NodeChange,
+  type EdgeChange,
+} from 'reactflow'
+import type { WorkspaceState, LocalMapData, BattleToken } from '@/types/workspace'
+
+export interface MapSlice {
+  nodes: Node[]
+  edges: Edge[]
+  localMaps: Record<string, LocalMapData>
+  activeLocalMapId: string | null
+  mapNavigationStack: string[]
+
+  setNodes: (nodes: Node[]) => void
+  onNodesChange: (changes: NodeChange[]) => void
+  setEdges: (edges: Edge[]) => void
+  onEdgesChange: (changes: EdgeChange[]) => void
+  updateNodeData: (nodeId: string, field: string, value: any) => void
+  addNode: (node: Node) => void
+  placeLocationOnMap: (locationId: string, position?: { x: number; y: number }) => void
+  deleteNode: (id: string) => void
+  spawnEntityToMap: (
+    locationId: string,
+    entity: any,
+    type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'extra' | 'loot',
+    x?: number,
+    y?: number
+  ) => void
+  updateLocalToken: (locationId: string, tokenId: string, data: Partial<BattleToken>) => void
+  removeLocalToken: (locationId: string, tokenId: string) => void
+  updateMapCamera: (
+    locationId: string,
+    camera: { cameraX?: number; cameraY?: number; zoom?: number }
+  ) => void
+  clearLocalMapTokens: (locationId: string) => void
+  openLocalMap: (locationId: string) => void
+  diveIntoMap: (locationId: string) => void
+  mapsUpTo: (index: number) => void
+  closeLocalMap: () => void
+  updateLocalMap: (locationId: string, data: Partial<LocalMapData>) => void
+  createAndSpawnInteractive: (locationId: string, type: 'poi' | 'check') => void
+  updateEdgeData: (edgeId: string, data: any) => void
+  attachToRegion: (childId: string, regionId: string | null) => void
+}
+
+export const getEmptyMapState = (): Pick<
+  MapSlice,
+  'nodes' | 'edges' | 'localMaps' | 'activeLocalMapId' | 'mapNavigationStack'
+> => ({
+  nodes: [],
+  edges: [],
+  localMaps: {},
+  activeLocalMapId: null,
+  mapNavigationStack: [],
+})
+
+export const createMapSlice: StateCreator<WorkspaceState, [], [], MapSlice> = (set, get) => ({
+  ...getEmptyMapState(),
+
+  setNodes: (nodes) => set({ nodes }),
+
+  onNodesChange: (changes) =>
+    set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) })),
+
+  setEdges: (edges) => set({ edges }),
+
+  onEdgesChange: (changes) =>
+    set((state) => ({ edges: applyEdgeChanges(changes, state.edges) })),
+
+  updateNodeData: (nodeId, field, value) =>
+    set((state) => {
+      const node = state.nodes.find((n) => n.id === nodeId)
+      const nodes = state.nodes.map((n) =>
+        n.id === nodeId ? { ...n, data: { ...n.data, [field]: value } } : n
+      )
+
+      if (node?.data?.entityId) {
+        const updateData: Record<string, any> = {}
+        if (field === 'label') updateData.name = value
+        if (field === 'description') updateData.description = value
+        if (field === 'mapImage') updateData.mapImage = value
+
+        if (Object.keys(updateData).length > 0) {
+          return {
+            nodes,
+            locations: {
+              ...state.locations,
+              [node.data.entityId]: {
+                ...state.locations[node.data.entityId],
+                ...updateData,
+              },
+            },
+          }
+        }
+      }
+
+      return { nodes }
+    }),
+
+  addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
+
+  // Кладёт уже существующую сущность-локацию из библиотеки на холст карты в виде узла.
+  // Раньше эта логика жила только внутри MapBoard (addLocationNode) и была недоступна
+  // из карточки локации в инспекторе — теперь это общее действие стора.
+  placeLocationOnMap: (locationId, position) => {
+    const state = get()
+    const location = state.locations[locationId]
+    if (!location) return
+    if (state.nodes.some((n) => n.data?.entityId === locationId)) return // уже на карте
+
+    const newNode = {
+      id: generateId('node'),
+      type: 'custom',
+      position: position || { x: 100, y: 100 },
+      data: {
+        title: location.name,
+        label: location.name,
+        mapImage: location.mapImage || null,
+        entityId: location.id,
+        description: location.description || '',
+      },
+    }
+    set({ nodes: [...state.nodes, newNode] })
+  },
+
+  deleteNode: (id) =>
+    set((state) => ({
+      nodes: state.nodes.filter((n) => n.id !== id),
+      edges: state.edges.filter((e) => e.source !== id && e.target !== id),
+    })),
+
+  updateMapCamera: (locationId, camera) =>
+    set((state) => ({
+      localMaps: {
+        ...state.localMaps,
+        [locationId]: {
+          ...state.localMaps[locationId],
+          ...camera,
+        },
+      },
+    })),
+
+  updateLocalToken: (locationId, tokenId, data) =>
+    set((state) => ({
+      localMaps: {
+        ...state.localMaps,
+        [locationId]: {
+          ...state.localMaps[locationId],
+          tokens: {
+            ...state.localMaps[locationId]?.tokens,
+            [tokenId]: { ...state.localMaps[locationId]?.tokens[tokenId], ...data },
+          },
+        },
+      },
+    })),
+
+  spawnEntityToMap: (locationId, entity, type, x, y) =>
+    set((state) => {
+      const nextLocalMaps = { ...state.localMaps }
+      const tokenId = generateId('token')
+
+      const typeToCategory: Record<string, string> = {
+        hero: 'heroes',
+        npc: 'characters',
+        enemies: 'enemies',
+        extra: 'extras',
+        loot: 'loot',
+        poi: 'interactive',
+        check: 'interactive',
+      }
+      const category = typeToCategory[type] || type
+      const currentCategoryState =
+        (state[category as keyof WorkspaceState] as Record<string, any>) || {}
+
+      const newEntity =
+        type === 'poi' || type === 'check'
+          ? {
+              id: entity.id,
+              name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
+              description: '',
+              dc: type === 'check' ? 10 : undefined,
+              type,
+            }
+          : entity
+
+      const updatedLibrary = {
+        ...currentCategoryState,
+        [entity.id]: { ...(currentCategoryState[entity.id] || {}), ...newEntity },
+      }
+
+      Object.keys(nextLocalMaps).forEach((locId) => {
+        if (nextLocalMaps[locId]?.tokens) {
+          nextLocalMaps[locId].tokens = Object.fromEntries(
+            Object.entries(nextLocalMaps[locId].tokens).filter(([, t]) => t.entityId !== entity.id)
+          )
+        }
+      })
+
+      const newToken = {
+        id: tokenId,
+        entityId: entity.id,
+        type,
+        locationId,
+        x: x ?? 0,
+        y: y ?? 0,
+        size: 1,
+      } as const
+
+      const targetMap = nextLocalMaps[locationId] || { gridSize: 60, tokens: {} }
+      nextLocalMaps[locationId] = {
+        ...targetMap,
+        tokens: { ...targetMap.tokens, [tokenId]: newToken as any },
+      }
+
+      let nextInteractive = state.interactive
+      if (type === 'poi' || type === 'check') {
+        nextInteractive = {
+          ...state.interactive,
+          [entity.id]: {
+            id: entity.id,
+            name: newEntity.name,
+            type,
+            description: '',
+            dc: newEntity.dc,
+            successResult: entity.successResult || '',
+            failureResult: entity.failureResult || '',
+          },
+        }
+      }
+
+      return { localMaps: nextLocalMaps, [category]: updatedLibrary, interactive: nextInteractive }
+    }),
+
+  removeLocalToken: (locationId, tokenId) =>
+    set((state) => {
+      const nextTokens = { ...state.localMaps[locationId]?.tokens }
+      delete nextTokens[tokenId]
+      return {
+        localMaps: {
+          ...state.localMaps,
+          [locationId]: {
+            ...state.localMaps[locationId],
+            tokens: nextTokens,
+          },
+        },
+      }
+    }),
+
+  clearLocalMapTokens: (locationId) =>
+    set((state) => {
+      const map = state.localMaps[locationId]
+      if (!map) return state
+      return {
+        localMaps: {
+          ...state.localMaps,
+          [locationId]: { ...map, tokens: {} },
+        },
+      }
+    }),
+
+  openLocalMap: (locationId) =>
+    set((state) => {
+      const localMaps = { ...state.localMaps }
+      if (!localMaps[locationId]) {
+        localMaps[locationId] = { backgroundImage: null, gridSize: 60, tokens: {} }
+      }
+      return {
+        localMaps,
+        activeLocalMapId: locationId,
+        mapNavigationStack: [locationId],
+      }
+    }),
+
+  diveIntoMap: (locationId) =>
+    set((state) => {
+      const localMaps = { ...state.localMaps }
+      if (!localMaps[locationId]) {
+        localMaps[locationId] = { backgroundImage: null, gridSize: 60, tokens: {} }
+      }
+      return {
+        localMaps,
+        activeLocalMapId: locationId,
+        mapNavigationStack: [...state.mapNavigationStack, locationId],
+      }
+    }),
+
+  mapsUpTo: (index) =>
+    set((state) => {
+      if (index < 0 || index >= state.mapNavigationStack.length) return state
+      const mapNavigationStack = state.mapNavigationStack.slice(0, index + 1)
+      const activeLocalMapId = mapNavigationStack[mapNavigationStack.length - 1] ?? null
+      return { mapNavigationStack, activeLocalMapId }
+    }),
+
+  closeLocalMap: () => set({ activeLocalMapId: null, mapNavigationStack: [] }),
+
+  updateLocalMap: (locationId, data) =>
+    set((state) => {
+      const existingMap = state.localMaps[locationId] || {
+        gridSize: 60,
+        tokens: {},
+        backgroundImage: null,
+      }
+      return {
+        localMaps: {
+          ...state.localMaps,
+          [locationId]: { ...existingMap, ...data },
+        },
+      }
+    }),
+
+  createAndSpawnInteractive: (locationId, type) =>
+    set((state) => {
+      if (!locationId) return state
+
+      const newEntityId = generateId('interactive')
+      const newEntity = {
+        id: newEntityId,
+        name: type === 'poi' ? 'Новая точка интереса' : 'Новая проверка',
+        description: '',
+        type,
+        dc: type === 'check' ? 10 : undefined,
+        locationId,
+      }
+
+      const tokenId = generateId('token')
+      const newToken = { id: tokenId, entityId: newEntityId, type, locationId, x: 0, y: 0, size: 1 }
+
+      const targetMap = state.localMaps[locationId] || { gridSize: 60, tokens: {} }
+
+      return {
+        interactive: { ...state.interactive, [newEntityId]: newEntity },
+        localMaps: {
+          ...state.localMaps,
+          [locationId]: {
+            ...targetMap,
+            tokens: { ...targetMap.tokens, [tokenId]: newToken },
+          },
+        },
+      }
+    }),
+
+  updateEdgeData: (edgeId, data) =>
+    set((state) => ({
+      edges: state.edges.map((e: Edge) =>
+        e.id === edgeId ? { ...e, data: { ...e.data, ...data } } : e
+      ),
+    })),
+
+  attachToRegion: (childId, regionId) =>
+    set((state) => {
+      const childIndex = state.nodes.findIndex((n: Node) => n.id === childId)
+      if (childIndex === -1) return state
+      const child = state.nodes[childIndex]
+      const newNodes = [...state.nodes]
+      if (regionId === null) {
+        newNodes[childIndex] = { ...child, parentId: undefined, extent: undefined }
+      } else {
+        const region = state.nodes.find((n: Node) => n.id === regionId)
+        if (region) {
+          newNodes[childIndex] = {
+            ...child,
+            parentId: regionId,
+            position: {
+              x: child.position.x - region.position.x,
+              y: child.position.y - region.position.y,
+            },
+            extent: 'parent',
+          }
+        }
+      }
+      return { nodes: newNodes }
+    }),
+})

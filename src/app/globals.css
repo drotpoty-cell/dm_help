@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes dashdraw {
+  from { stroke-dashoffset: 20; }
+  to { stroke-dashoffset: 0; }
+}
+
+.react-flow__edge-path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Скелетон-плейсхолдер для фонов карт, пока их preload ещё не завершён (blur-up), —
+   см. useImagePreload в MapNode.tsx. Именно поэтому эта анимация в globals.css, а не
+   инлайн-стилем: @keyframes нельзя объявить через Tailwind-утилиты напрямую. */
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Базовые стили содержимого Tiptap (RichTextEditor.tsx) — без плагина
+   @tailwindcss/typography, поэтому вложенные h1/h2/h3/ul/ol/blockquote внутри
+   contentEditable-контента нуждаются в явных стилях. Единственное другое место кроме
+   этого файла, где разрешён кастомный CSS. */
+.tiptap-content p { margin: 0.5em 0; }
+.tiptap-content p:first-child { margin-top: 0; }
+.tiptap-content p:last-child { margin-bottom: 0; }
+.tiptap-content h1, .tiptap-content h2, .tiptap-content h3 {
+  font-weight: 800;
+  color: #e4e4e7;
+  margin: 0.8em 0 0.4em;
+}
+.tiptap-content h1 { font-size: 1.4em; }
+.tiptap-content h2 { font-size: 1.2em; }
+.tiptap-content h3 { font-size: 1.05em; }
+.tiptap-content ul, .tiptap-content ol {
+  padding-left: 1.4em;
+  margin: 0.5em 0;
+}
+.tiptap-content ul { list-style: disc; }
+.tiptap-content ol { list-style: decimal; }
+.tiptap-content blockquote {
+  border-left: 3px solid #6366f1;
+  padding-left: 1em;
+  color: #a1a1aa;
+  font-style: italic;
+  margin: 0.6em 0;
+}
+.tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #52525b;
+  pointer-events: none;
+  height: 0;
+}
+.tiptap-content .mention {
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+  padding: 0.05em 0.4em;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tiptap-content .mention:hover {
+  background: #6366f1;
+  color: white;
+}

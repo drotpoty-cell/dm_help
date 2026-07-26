@@ -1,0 +1,48 @@
+# ПРАВИЛА ПРОЕКТА "GM's Second Brain"
+
+Ты — эксперт Next.js и TypeScript. Твоя задача — помогать в разработке инструмента для мастеров НРИ.
+
+### ТЕХНОЛОГИЧЕСКИЙ СТЕК
+- Framework: Next.js (App Router, src/app)
+- UI: React (Client Components по умолчанию)
+- Styles: Tailwind CSS 4. Кастомный CSS запрещён почти везде — ЕДИНСТВЕННОЕ разрешённое
+  исключение: `src/app/globals.css`, и только для того, что нельзя выразить через Tailwind
+  напрямую (кастомные `@keyframes` — `dashdraw`, `float`, `shimmer` — и стили для
+  contentEditable-контента Tiptap, который Tailwind не достаёт вложенными классами).
+- Logic: TypeScript (интерфейсы для всех пропсов; `types/workspace.ts` — общие типы сущностей)
+- Database: Supabase (JSONB-снапшот в колонке `map_data`, см. `hooks/useCampaignSync.ts`)
+- Maps: reactflow (мировая карта) + собственный canvas-рендер сетки/токенов (тактическая карта)
+- State: Zustand со слайсами (`store/slices/*`), персист через `localStorage`
+- Rich text: Tiptap (`components/ui/RichTextEditor.tsx`) — с @mention, см. PROJECT_MAP.md 4.4
+- Notifications: sonner (`utils/confirmToast.ts` — замена confirm()/alert(), НЕ блокирующая)
+
+### АРХИТЕКТУРА (актуально после Блоков 1–4 — см. PROJECT_MAP.md, это подробное описание)
+- Состояние — Zustand-стор со слайсами (`useWorkspaceStore.ts` = комбинация всех
+  `createXSlice`), НЕ пропсы от единого оркестратора. Любой компонент подписывается на стор
+  напрямую через `useWorkspaceStore(selector)`.
+- `hub/[id]/page.tsx` — точка входа страницы кампании: гидратация стора, синхронизация с
+  Supabase (`useCampaignSync`) и рендер верхнеуровневых вкладок (`activeView`), но НЕ хранит
+  и не прокидывает состояние сущностей вниз через пропсы.
+- Вкладки верхнего уровня — `activeView`: `dashboard | archive | map | story | calendar |
+  weather`. Правило "один экран, никаких split-панелей" ОТМЕНЕНО в Блоке 4 — плавающие
+  панели поверх вкладки разрешены и используются намеренно (Мастер-дашборд, виджет боя,
+  InspectorPanel и т.д.). Подробности — PROJECT_MAP.md, раздел 4.4.
+- Сохранение в Supabase — один JSON-снапшот через `buildCampaignSnapshot` в
+  `useCampaignSync.ts`, debounce, last-write-wins. Тяжёлые base64-данные (фон тактической
+  карты) в этот снапшот никогда не попадают — они только в IndexedDB, см. `hooks/useMapBackground.ts`.
+
+### ПРАВИЛА КОДА
+1. Используй стрелочные функции: `const Name = () => { ... }`.
+2. Стили только через Tailwind классы (исключение — см. выше про globals.css).
+3. Для интерактивных элементов внутри reactflow-канваса всегда используй `e.stopPropagation()`,
+   чтобы не кликать сквозь карту.
+4. Отступы: 2 пробела.
+5. Меняешь форму сущности (добавил/переименовал поле) — обнови `types/workspace.ts` И
+   `buildCampaignSnapshot` в `useCampaignSync.ts`, иначе поле не переживёт синхронизацию.
+6. Замена native `confirm()`/`alert()` — только через `utils/confirmToast.ts` / `sonner`,
+   никогда напрямую `window.confirm`/`window.alert`.
+
+### ВАЖНО
+Никогда не предлагай изменение структуры базы данных SQL. Все данные мира живут внутри
+JSON в `map_data` (кроме фонов тактических карт — они в IndexedDB на клиенте, никогда в
+Supabase, см. PROJECT_MAP.md раздел 4.3).
