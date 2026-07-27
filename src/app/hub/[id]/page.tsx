@@ -63,7 +63,7 @@ export default function WorkspacePage({ params }: { params: Promise<{ id: string
       </main>
 
       {/* Нижняя панель (Таймлайн) */}
-      <footer className="h-14 border-t border-neutral-800 shrink-0">
+      <footer className="h-36 border-t border-neutral-800 shrink-0">
         <TimelineBar />
       </footer>
     </div>

@@ -202,8 +202,8 @@ export type LibraryCategory = 'heroes' | 'quests' | 'locations' | 'loot' | 'even
 
 export interface BattleToken {
   id: string; // уникальный ID токена на карте
-  entityId: string; // ссылка на героя или NPC
-  type: 'hero' | 'npc' | 'monster' | 'poi' | 'check' | 'enemies' | 'extra' | 'loot';
+  entityId: string; // ссылка на героя, NPC или (Блок 2) вложенную локацию
+  type: 'hero' | 'npc' | 'monster' | 'poi' | 'check' | 'enemies' | 'extra' | 'loot' | 'location';
   locationId?: string; // текущая локация
   x: number; // координата колонки (например, 0, 1, 2)
   y: number; // координата строки

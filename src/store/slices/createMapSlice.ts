@@ -30,7 +30,7 @@ export interface MapSlice {
   spawnEntityToMap: (
     locationId: string,
     entity: any,
-    type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'extra' | 'loot',
+    type: 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'extra' | 'loot' | 'location',
     x?: number,
     y?: number
   ) => void
@@ -175,6 +175,7 @@ export const createMapSlice: StateCreator<WorkspaceState, [], [], MapSlice> = (s
         loot: 'loot',
         poi: 'interactive',
         check: 'interactive',
+        location: 'locations',
       }
       const category = typeToCategory[type] || type
       const currentCategoryState =

@@ -28,7 +28,8 @@ function TacticalTokenNode({ data }: NodeProps<TacticalTokenNodeData>) {
   const removeLocalToken = useWorkspaceStore((s) => s.removeLocalToken)
   const entity = useWorkspaceStore((s) =>
     s.heroes[token.entityId] || s.characters[token.entityId] || s.enemies[token.entityId] ||
-    s.extras[token.entityId] || s.loot[token.entityId] || s.interactive[token.entityId]
+    s.extras[token.entityId] || s.loot[token.entityId] || s.interactive[token.entityId] ||
+    s.locations[token.entityId]
   )
   const name = entity?.name || 'Объект'
   const size = (token.size || 1) * gridSize
@@ -39,6 +40,7 @@ function TacticalTokenNode({ data }: NodeProps<TacticalTokenNodeData>) {
   const isNpc = token.type === 'npc'
   const isEnemy = token.type === 'enemies'
   const isExtra = token.type === 'extra'
+  const isLocation = token.type === 'location'
 
   const shapeClass = isPoi
     ? 'rounded-md bg-amber-400/90 border-amber-200 text-amber-950'
@@ -52,9 +54,14 @@ function TacticalTokenNode({ data }: NodeProps<TacticalTokenNodeData>) {
             ? 'rounded-full bg-rose-700/90 border-rose-400 text-white shadow-rose-500/30'
             : isExtra
               ? 'rounded-full bg-zinc-600/90 border-zinc-400 text-white shadow-zinc-500/30'
-              : 'rounded-full bg-cyan-600/90 border-cyan-300 text-white shadow-cyan-500/30'
+              : isLocation
+                // Блок 2: вложенная локация ("портал") — визуально отличается от обычных
+                // токенов (шестиугольная рамка вместо круга/квадрата), чтобы сразу читалось
+                // как "сюда можно провалиться", а не как персонаж/предмет на доске.
+                ? 'rounded-lg bg-violet-700/90 border-violet-300 text-white shadow-violet-500/40'
+                : 'rounded-full bg-cyan-600/90 border-cyan-300 text-white shadow-cyan-500/30'
 
-  const icon = isPoi ? '🔍' : isCheck ? '🎲' : isHero ? '🛡️' : isNpc ? '👤' : isEnemy ? '⚔️' : isExtra ? '👥' : '💎'
+  const icon = isPoi ? '🔍' : isCheck ? '🎲' : isHero ? '🛡️' : isNpc ? '👤' : isEnemy ? '⚔️' : isExtra ? '👥' : isLocation ? '🌀' : '💎'
 
   return (
     <div className="group relative flex flex-col items-center" style={{ width: size, height: size }}>
@@ -64,8 +71,8 @@ function TacticalTokenNode({ data }: NodeProps<TacticalTokenNodeData>) {
           e.stopPropagation()
           setViewedEntityId(token.entityId)
         }}
-        className={`w-full h-full border-2 cursor-move flex items-center justify-center font-black shadow-xl select-none backdrop-blur-sm transition-transform hover:scale-110 ${shapeClass}`}
-        title={name}
+        className={`w-full h-full border-2 cursor-move flex items-center justify-center font-black shadow-xl select-none backdrop-blur-sm transition-transform hover:scale-110 ${shapeClass} ${isLocation ? 'ring-2 ring-violet-400/40 ring-offset-2 ring-offset-neutral-950' : ''}`}
+        title={isLocation ? `${name} — двойной клик, чтобы провалиться внутрь` : name}
       >
         <div className={`${isCheck ? '-rotate-45' : ''} drop-shadow-md text-base`}>{icon}</div>
       </button>

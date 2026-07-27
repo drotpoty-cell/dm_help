@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
+import { wouldCreateLocationCycle } from '@/utils/locationGraph'
 
 const CATEGORIES: ('heroes' | 'characters' | 'enemies' | 'extras' | 'loot' | 'interactive')[] = [
   'heroes', 'characters', 'enemies', 'extras', 'loot', 'interactive',
@@ -15,7 +17,7 @@ const CATEGORY_NAMES: Record<string, string> = {
   interactive: 'Интерактивные объекты',
 }
 
-function getTokenType(category: string, item: any): 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'extra' | 'loot' {
+function getTokenType(category: string, item: any): 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'extra' | 'loot' | 'location' {
   if (category === 'heroes') return 'hero'
   if (category === 'characters') return 'npc'
   if (category === 'extras') return 'extra'
@@ -87,6 +89,42 @@ export default function TacticalSpawnPanel({ locationId, onClose }: { locationId
               </div>
             </div>
           ))}
+
+          {/* Блок 2: вложенные локации-порталы — та же карточка локации может стоять
+              токеном внутри тактической доски ДРУГОЙ локации ("Таверна" внутри "Города"). */}
+          <div>
+            <div className="text-[10px] text-violet-400/80 font-black uppercase mb-2 tracking-widest">
+              🌀 Локации (вложенность)
+            </div>
+            <div className="space-y-1">
+              {Object.values(store.locations || {})
+                .filter((loc: any) => loc.id !== locationId)
+                .map((loc: any) => {
+                  const isOnMap = Object.values(mapData?.tokens || {}).some((t: any) => t.entityId === loc.id)
+                  return (
+                    <div key={loc.id} className="flex justify-between items-center text-neutral-300 text-xs p-1.5 hover:bg-violet-500/[0.06] rounded-lg group">
+                      <span className="truncate pr-2 group-hover:text-white transition-colors">{loc.name}</span>
+                      <button
+                        onClick={() => {
+                          if (wouldCreateLocationCycle(loc.id, locationId, store.localMaps)) {
+                            toast.error('🌀 Нарушение пространственно-временного континуума: эта локация уже содержит текущую карту.')
+                            return
+                          }
+                          store.spawnEntityToMap(locationId, loc, 'location')
+                        }}
+                        disabled={isOnMap}
+                        className={`px-2 py-1 rounded-md text-[10px] font-bold whitespace-nowrap transition-all ${isOnMap ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed' : 'bg-violet-700 text-white hover:bg-violet-600 shadow-md'}`}
+                      >
+                        {isOnMap ? 'На доске' : '+'}
+                      </button>
+                    </div>
+                  )
+                })}
+              {Object.values(store.locations || {}).filter((loc: any) => loc.id !== locationId).length === 0 && (
+                <div className="text-[10px] text-neutral-600 italic px-1.5">Больше локаций в Архиве нет.</div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

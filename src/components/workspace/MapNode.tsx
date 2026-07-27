@@ -1,12 +1,11 @@
 'use client'
 
 import { memo, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
-import { Handle, Position, useReactFlow, type NodeProps } from 'reactflow'
+import { Handle, Position, type NodeProps } from 'reactflow'
 import { ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { uploadEntityImage, ImageUploadError } from '@/utils/uploadEntityImage'
-import { useMapBackground, MapBackgroundError } from '@/hooks/useMapBackground'
 
 export type MapNodeData = {
   title?: string
@@ -21,9 +20,6 @@ export type MapNodeData = {
   label?: string
 }
 
-/** Размеры тактической доски в единицах канваса (не px экрана — реальный масштаб даёт zoom). */
-export const TACTICAL_WIDTH = 960
-export const TACTICAL_HEIGHT = 680
 /** Размеры компактной карточки локации на глобальной карте. */
 const COMPACT_WIDTH = 220
 
@@ -56,9 +52,9 @@ function useImagePreload(src: string | null | undefined): boolean {
   return src != null && loadedSrc === src
 }
 
-type TokenType = 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'extra' | 'loot'
+type TokenType = 'hero' | 'npc' | 'poi' | 'check' | 'enemies' | 'extra' | 'loot' | 'location'
 
-function parseDragPayload(dataTransfer: DataTransfer): { id: string; type: string } | null {
+export function parseDragPayload(dataTransfer: DataTransfer): { id: string; type: string } | null {
   const tryParse = (raw: string) => {
     if (!raw) return null
     try {
@@ -71,7 +67,7 @@ function parseDragPayload(dataTransfer: DataTransfer): { id: string; type: strin
   return tryParse(dataTransfer.getData('application/json')) ?? tryParse(dataTransfer.getData('text/plain'))
 }
 
-function resolveEntity(payload: { id: string; type: string }) {
+export function resolveEntity(payload: { id: string; type: string }) {
   const state = useWorkspaceStore.getState() as any
   const categoryMap: Record<string, string> = {
     hero: 'heroes', heroes: 'heroes',
@@ -80,6 +76,7 @@ function resolveEntity(payload: { id: string; type: string }) {
     extra: 'extras', extras: 'extras',
     loot: 'loot',
     poi: 'interactive', check: 'interactive', interactive: 'interactive',
+    location: 'locations', locations: 'locations',
   }
   const category = categoryMap[payload.type] || payload.type
   const entity = state[category]?.[payload.id]
@@ -90,6 +87,8 @@ function resolveEntity(payload: { id: string; type: string }) {
   else if (payload.type === 'characters' || payload.type === 'npc') tokenType = 'npc'
   else if (payload.type === 'extras' || payload.type === 'extra') tokenType = 'extra'
   else if (payload.type === 'interactive') tokenType = entity.type || 'poi'
+  // Block 2: карточка локации из Архива/сайдбара -> вложенный токен-портал.
+  else if (payload.type === 'locations' || payload.type === 'location') tokenType = 'location'
   else tokenType = payload.type as TokenType
 
   return { entity, tokenType }
@@ -99,24 +98,19 @@ function MapNode({ id, data }: NodeProps<MapNodeData>) {
   const title = data.title || data.label || 'Без названия'
   const locationKey = data.entityId || id
 
-  // Bug 1 fix: тактический режим теперь ПОЛНОСТЬЮ отвязан от уровня зума канваса — он
-  // включается только двойным кликом (см. GameTable.diveIntoMap) и выключается только явно
-  // (кнопка "Карта мира" / Escape). Раньше `zoom >= TACTICAL_ZOOM_THRESHOLD` заставлял узел
-  // схлопываться обратно в карточку при обычном отдалении камеры, чтобы посмотреть на край
-  // тактической доски — это и было живым багом.
+  // Просто индикатор — "тактическая доска этой локации сейчас открыта где-то поверх стола"
+  // (см. TacticalCanvas.tsx в GameTable.tsx). Сама доска больше НЕ рендерится внутри узла —
+  // Блок 1 требует полной изоляции слоёв: тактика теперь отдельный fullscreen-оверлей, а не
+  // разросшийся узел на глобальном канвасе.
   const activeLocalMapId = useWorkspaceStore((s) => s.activeLocalMapId)
   const isFocused = activeLocalMapId === locationKey
-  const isTactical = isFocused
 
-  return isTactical ? (
-    <TacticalBoard locationKey={locationKey} title={title} />
-  ) : (
+  return (
     <>
-      {/* Bug 2 fix: точки подключения для маршрутов между локациями — были невидимы
-          (opacity-0) и однонаправленны (только низ->верх), из-за чего связи было
-          невозможно провести. Теперь 4 стороны, any-to-any — тот же проверенный паттерн,
-          что и у легаси-узлов в CustomNodes.tsx (видимая точка-target снизу, прозрачный
-          source поверх неё того же размера, чтобы с неё же можно было потащить связь). */}
+      {/* Точки подключения для маршрутов между локациями — 4 стороны, any-to-any (тот же
+          проверенный паттерн, что и у легаси-узлов в CustomNodes.tsx: видимая точка-target,
+          прозрачный source поверх неё того же размера, чтобы с неё же можно было потащить
+          связь). */}
       <Handle type="target" position={Position.Top} id="t-top" className="!bg-neutral-500 !w-2 !h-2 !border !border-neutral-950 !z-10" />
       <Handle type="source" position={Position.Top} id="s-top" className="!bg-transparent !border-none !w-2 !h-2 !z-20" />
       <Handle type="target" position={Position.Bottom} id="t-bot" className="!bg-neutral-500 !w-2 !h-2 !border !border-neutral-950 !z-10" />
@@ -279,155 +273,6 @@ function CompactCard({
           </span>
         )}
       </div>
-    </div>
-  )
-}
-
-/**
- * Микроуровень (Блок 2, п.2): узел "проваливается" в полноразмерную тактическую доску —
- * фон (IndexedDB/Архив, см. useMapBackground.ts), боевая сетка, мини-тулбар калибровки.
- * Сами токены сюда НЕ рендерятся — это отдельные reactflow-узлы с parentId на этот узел
- * (Блок 3), их генерирует GameTable.tsx; здесь только "сцена", на которой они стоят.
- */
-function TacticalBoard({ locationKey, title }: { locationKey: string; title: string }) {
-  const { fitView } = useReactFlow()
-  const closeLocalMap = useWorkspaceStore((s) => s.closeLocalMap)
-  const mapData = useWorkspaceStore((s) => s.localMaps[locationKey])
-  const updateLocalMap = useWorkspaceStore((s) => s.updateLocalMap)
-  const allLocations = useWorkspaceStore((s) => Object.values(s.locations))
-
-  // Карта не всегда 1:1 совпадает с архивной локацией (узел мог быть создан без entityId,
-  // либо ГМ перепривязал карту вручную) — linkedLocationId побеждает, как и в прежнем
-  // LocalMapBoard (resolveTargetLocationId).
-  const resolvedLocationId = mapData?.linkedLocationId || locationKey
-  const location = useWorkspaceStore((s) => s.locations[resolvedLocationId])
-
-  const {
-    backgroundImage, hasCustomBackground, archiveImage, isLoading: isBgLoading,
-    isUploading: isBgUploading, uploadBackground, resetToArchiveImage,
-  } = useMapBackground(resolvedLocationId)
-
-  const gridSize = mapData?.gridSize || 50
-  const offsetX = mapData?.gridOffsetX || 0
-  const offsetY = mapData?.gridOffsetY || 0
-  const backgroundScale = mapData?.backgroundScale || 1
-  const [isToolbarOpen, setIsToolbarOpen] = useState(false)
-
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      await uploadBackground(file)
-    } catch (error) {
-      const message = error instanceof MapBackgroundError ? error.message : 'Не удалось загрузить фон боевой карты'
-      console.error('Ошибка загрузки локального фона боевой карты:', error)
-      toast.error(message)
-    } finally {
-      e.target.value = ''
-    }
-  }
-
-  const handleExit = () => {
-    closeLocalMap()
-    fitView({ duration: 600, padding: 0.3 })
-  }
-
-  return (
-    <div
-      className="nodrag nopan relative rounded-2xl border border-indigo-500/30 shadow-2xl shadow-black/70 overflow-hidden bg-neutral-950 ring-1 ring-white/[0.04]"
-      style={{ width: TACTICAL_WIDTH, height: TACTICAL_HEIGHT }}
-      onWheelCapture={(e) => e.stopPropagation()}
-    >
-      {/* Фон: приоритет — кастомный локальный (IndexedDB) -> автофон Архива -> пусто.
-          Логика полностью совпадает с прежним LocalMapBoard, просто переехала внутрь узла. */}
-      <div className="absolute inset-0 pointer-events-none">
-        {isBgLoading && !backgroundImage && <div className="absolute inset-0 animate-shimmer bg-neutral-900" />}
-        {backgroundImage && (
-          <img
-            src={backgroundImage}
-            alt={`Тактическая карта: ${title}`}
-            className="w-full h-full"
-            style={{ objectFit: 'contain', objectPosition: 'center', transform: `scale(${backgroundScale})` }}
-          />
-        )}
-      </div>
-
-      {/* Боевая сетка */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-40"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.5) 1px, transparent 1px)',
-          backgroundSize: `${gridSize}px ${gridSize}px`,
-          backgroundPosition: `${offsetX}px ${offsetY}px`,
-        }}
-      />
-
-      {/* Заголовок + мини-тулбар (сжатый вариант старого MapToolbar из LocalMapBoard) */}
-      <div className="absolute top-3 left-3 z-20 flex flex-col gap-2 max-w-[280px]">
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-lg bg-neutral-950/90 border border-white/10 text-white text-xs font-black tracking-wide shadow-lg backdrop-blur-sm truncate max-w-[180px]">
-            {title}
-          </span>
-          <button
-            onClick={() => setIsToolbarOpen((v) => !v)}
-            className="w-7 h-7 rounded-lg bg-neutral-950/90 border border-white/10 text-neutral-300 hover:text-white text-xs shadow-lg backdrop-blur-sm"
-            title="Настройки фона и сетки"
-          >
-            ⚙️
-          </button>
-        </div>
-
-        {isToolbarOpen && (
-          <div className="flex flex-col gap-2 bg-neutral-950/95 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-2xl w-64">
-            <div className="flex items-center gap-2">
-              <label className={`cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-2 rounded-lg text-[11px] font-bold text-center flex-1 ${isBgUploading || isBgLoading ? 'opacity-60 pointer-events-none' : ''}`}>
-                {isBgUploading ? '⏳ Обработка…' : hasCustomBackground ? '📁 Заменить фон' : '📁 Загрузить фон'}
-                <input type="file" accept="image/png, image/jpeg, image/webp, image/gif" className="hidden" onChange={handleImageUpload} disabled={isBgUploading || isBgLoading} />
-              </label>
-              {hasCustomBackground && (
-                <button onClick={resetToArchiveImage} className="bg-red-900/80 hover:bg-red-600 text-white px-2.5 py-2 rounded-lg text-xs font-bold" title="Вернуться к автофону из Архива">✕</button>
-              )}
-            </div>
-            <div className="text-[9px] leading-snug text-neutral-400">
-              {hasCustomBackground
-                ? '⚡ Локальный фон (офлайн, только этот браузер).'
-                : archiveImage
-                  ? '🖼️ Автофон из карточки локации (в облаке).'
-                  : 'У локации нет изображения.'}
-            </div>
-            {!location && (
-              <div className="flex flex-col gap-1 pt-1 border-t border-white/10">
-                <span className="text-[9px] text-neutral-400">Карта не привязана к Архиву:</span>
-                <select
-                  className="w-full bg-neutral-900 border border-white/10 text-white text-[10px] p-1.5 rounded-lg outline-none focus:border-indigo-500"
-                  onChange={(e) => { if (e.target.value) updateLocalMap(locationKey, { linkedLocationId: e.target.value }) }}
-                  value=""
-                >
-                  <option value="" disabled>-- Выбрать локацию --</option>
-                  {allLocations.map((loc: any) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
-                </select>
-              </div>
-            )}
-            <div className="flex items-center gap-2 pt-1 border-t border-white/10">
-              <span className="text-[10px] text-neutral-400 whitespace-nowrap">Сетка {gridSize}px</span>
-              <input
-                type="range" min={20} max={150} step={1} value={gridSize}
-                onChange={(e) => updateLocalMap(locationKey, { gridSize: parseInt(e.target.value, 10) })}
-                className="flex-1 accent-indigo-500"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <button
-        onClick={handleExit}
-        className="nodrag absolute top-3 right-3 z-20 bg-neutral-950/90 border border-white/10 text-neutral-300 hover:text-white hover:border-red-500/50 text-[11px] font-bold px-3 py-2 rounded-lg shadow-lg backdrop-blur-sm transition-colors"
-        title="Вернуться на глобальную карту"
-      >
-        ← Карта мира
-      </button>
     </div>
   )
 }

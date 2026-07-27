@@ -11,16 +11,16 @@ import {
   PointerSensor, useDraggable, useSensor, useSensors,
 } from '@dnd-kit/core';
 
+import { toast } from 'sonner';
+
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { nodeTypes as legacyNodeTypes } from '@/components/workspace/CustomNodes';
 import MapNode from '@/components/workspace/MapNode';
-import TacticalTokenNode from '@/components/workspace/TacticalTokenNode';
 import TravelEdge from '@/components/workspace/CustomEdges';
 import RouteEdge from '@/components/workspace/RouteEdge';
 import ContextMenu from '@/components/workspace/ContextMenu';
 import Sidebar from '@/components/workspace/Sidebar';
-import BattleTrackerWidget from '@/components/workspace/BattleTrackerWidget';
-import TacticalSpawnPanel from '@/components/workspace/TacticalSpawnPanel';
+import TacticalCanvas from '@/components/workspace/TacticalCanvas';
 import CalendarWidget from '@/components/workspace/cockpit/CalendarWidget';
 import WeatherWidget from '@/components/workspace/cockpit/WeatherWidget';
 import WeatherBanner from '@/components/workspace/cockpit/WeatherBanner';
@@ -63,9 +63,9 @@ const DraggableLocationCard = ({ loc, onQuickAdd }: { loc: any; onQuickAdd: () =
   );
 };
 
-type PanelKey = 'weather' | 'calendar' | 'battle';
+type PanelKey = 'weather' | 'calendar';
 
-/** Кнопка-тумблер плавающей панели на тулбаре (Блок 1: закрыть/открыть по кнопке/хоткею). */
+/** Кнопка-тумблер плавающей панели на тулбаре. */
 const PanelToggle = ({ label, hotkey, active, onClick }: { label: string; hotkey: string; active: boolean; onClick: () => void }) => (
   <button
     onClick={onClick}
@@ -80,7 +80,7 @@ const PanelToggle = ({ label, hotkey, active, onClick }: { label: string; hotkey
   </button>
 );
 
-/** Bug 3: эти "статусы" из ContextMenu — это данные (`data.mode`) на карточке MapNode, а не
+/** Эти "статусы" из ContextMenu — это данные (`data.mode`) на карточке MapNode, а не
  *  отдельные reactflow-типы узлов (см. changeNodeType ниже). */
 const LOCATION_MODES = new Set(['safe', 'tense', 'hostile', 'mystery']);
 
@@ -95,16 +95,18 @@ const GameTableInner = () => {
     nodes, edges, setNodes, setEdges,
     attachToRegion, setPartyLocation,
     locations, placeLocationOnMap,
-    localMaps, updateLocalToken,
     activeLocalMapId, diveIntoMap, closeLocalMap,
   } = useWorkspaceStore();
 
   const [isArchivePanelOpen, setIsArchivePanelOpen] = useState(false);
-  const [isSpawnPanelOpen, setIsSpawnPanelOpen] = useState(true);
-  const [openPanels, setOpenPanels] = useState<Record<PanelKey, boolean>>({ weather: true, calendar: true, battle: false });
+  const [openPanels, setOpenPanels] = useState<Record<PanelKey, boolean>>({ weather: true, calendar: true });
   const togglePanel = useCallback((key: PanelKey) => setOpenPanels((p) => ({ ...p, [key]: !p[key] })), []);
 
-  const nodeTypes = useMemo(() => ({ ...legacyNodeTypes, custom: MapNode, token: TacticalTokenNode }), []);
+  const nodeTypes = useMemo(() => ({ ...legacyNodeTypes, custom: MapNode }), []);
+  // Блок 3: новые связи по умолчанию создаются как 'travel' (TravelEdge) — полноценный
+  // интерактивный бейдж времени в пути с popover-редактированием и генератором событий в
+  // пути, а не статичная 'custom' (RouteEdge), которая только показывала цифру без
+  // возможности её поменять. RouteEdge остаётся зарегистрированным для старых сохранений.
   const edgeTypes = useMemo(() => ({ travel: TravelEdge, custom: RouteEdge }), []);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -115,97 +117,36 @@ const GameTableInner = () => {
   const [draggedLocationId, setDraggedLocationId] = useState<string | null>(null);
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  // Bug 1 fix: тактический режим больше не зависит от useViewport().zoom вообще — только от
-  // того, что ГМ явно "провалился" в локацию (двойной клик, см. handleNodeDoubleClick) и ещё
-  // не вышел из неё (кнопка "Карта мира" / Escape, см. useEffect с хоткеями ниже). Обычный
-  // скролл камеры больше никак не сворачивает и не разворачивает тактическую доску.
+  // Блок 1: тактический режим — полностью отдельный fullscreen-слой (см. TacticalCanvas.tsx),
+  // а не расширение узла на этом же канвасе. Глобальный стол при этом не размонтируется —
+  // он остаётся позади, просто скрывается под сильным blur и перестаёт быть интерактивным
+  // (см. className ниже), чтобы клики/скролл не проваливались на него сквозь оверлей.
   const isTacticalActive = !!activeLocalMapId;
 
-  const [dragOverrides, setDragOverrides] = useState<Record<string, { x: number; y: number }>>({});
-
-  const tokenNodes = useMemo(() => {
-    const result: Node[] = [];
-    for (const node of nodes) {
-      const locationKey = (node.data as any)?.entityId || node.id;
-      const map = localMaps[locationKey];
-      if (!map?.tokens) continue;
-      const gridSize = map.gridSize || 50;
-      // Токены локации видимы и интерактивны, только пока ГМ реально находится в её
-      // тактическом режиме — иначе на столе одновременно маячили бы токены всех боёв сразу.
-      const visible = activeLocalMapId === locationKey;
-      Object.values(map.tokens).forEach((token) => {
-        const flowId = `token-${token.id}`;
-        result.push({
-          id: flowId,
-          type: 'token',
-          parentId: node.id,
-          extent: 'parent',
-          position: dragOverrides[flowId] ?? { x: token.x * gridSize, y: token.y * gridSize },
-          data: { token, locationId: locationKey, gridSize },
-          hidden: !visible,
-          draggable: visible,
-          selectable: visible,
-          zIndex: 1001,
-        });
-      });
+  // Блок 3: сохранение фокуса камеры глобального слоя. Поскольку глобальный канвас во время
+  // тактического режима просто блюрится/блокируется (Блок 1), а не размонтируется, его
+  // viewport физически не может измениться, пока ГМ внутри тактики — значит, "сохранить
+  // прямо перед diveIntoMap" эквивалентно "сохранить в момент, когда activeLocalMapId только
+  // что стал не-null". Отслеживаем именно этот переход, а не оборачиваем каждый отдельный
+  // вызов diveIntoMap — точек входа несколько (двойной клик, ContextMenu).
+  const savedViewportRef = useRef<{ x: number; y: number; zoom: number } | null>(null);
+  const wasTacticalRef = useRef(false);
+  useEffect(() => {
+    if (activeLocalMapId && !wasTacticalRef.current) {
+      savedViewportRef.current = reactFlowInstance.getViewport();
+    } else if (!activeLocalMapId && wasTacticalRef.current && savedViewportRef.current) {
+      reactFlowInstance.setViewport(savedViewportRef.current, { duration: 500 });
     }
-    return result;
-  }, [nodes, localMaps, activeLocalMapId, dragOverrides]);
+    wasTacticalRef.current = !!activeLocalMapId;
+  }, [activeLocalMapId, reactFlowInstance]);
 
-  const flowNodes = useMemo(() => {
-    // Bug 1 fix: узел активной (тактической) локации получает zIndex поверх всех остальных
-    // карточек на столе — иначе соседние компактные карточки перекрывали развёрнутую доску.
-    const boosted = nodes.map((n) => {
-      const locationKey = (n.data as any)?.entityId || n.id;
-      return locationKey === activeLocalMapId ? { ...n, zIndex: 1000 } : n;
-    });
-    return [...boosted, ...tokenNodes];
-  }, [nodes, tokenNodes, activeLocalMapId]);
-
-  // Маршруты и время в пути — атрибут глобальной карты (Блок 2: макроуровень); в
-  // тактическом режиме они визуально не нужны и только мешали бы боевой сетке.
-  const flowEdges = useMemo(() => edges.map((e) => (isTacticalActive ? { ...e, hidden: true } : e)), [edges, isTacticalActive]);
-
-  const onNodesChange = useCallback((changes: NodeChange[]) => {
-    const locationChanges: NodeChange[] = [];
-    changes.forEach((change) => {
-      const changeId = (change as { id?: string }).id;
-      if (!changeId?.startsWith('token-')) {
-        locationChanges.push(change);
-        return;
-      }
-      // Токены: во время активного перетаскивания просто отражаем текущую (ещё не
-      // привязанную к сетке) позицию визуально — финальный, снеппящийся к сетке коммит в
-      // стор происходит в onNodeDragStop ниже (Bug 4), а не здесь. Полагаться на то, что
-      // именно в onNodesChange прилетит финальный change с dragging:false, ненадёжно —
-      // onNodeDragStop reactflow вызывает гарантированно ровно один раз на отпускание мыши.
-      if (change.type === 'position' && change.position && change.dragging) {
-        setDragOverrides((prev) => ({ ...prev, [changeId]: change.position! }));
-      }
-    });
-    if (locationChanges.length) setNodes(applyNodeChanges(locationChanges, nodes));
-  }, [nodes, setNodes]);
-
-  // Bug 4 fix: строгий снеппинг токена к сетке при отпускании — Math.round(coord/gridSize)
-  // приводит пиксельную позицию к ближайшей ячейке, после чего то же самое значение (уже в
-  // единицах сетки) улетает в стор. node.position здесь — координата ОТНОСИТЕЛЬНО родителя
-  // (см. parentId/extent:'parent' в tokenNodes), то есть именно то, что нужно.
-  const onNodeDragStop = useCallback((_: React.MouseEvent, node: Node) => {
-    if (node.type !== 'token') return;
-    const { locationId, gridSize, token } = node.data as any;
-    const snappedGridX = Math.round(node.position.x / gridSize);
-    const snappedGridY = Math.round(node.position.y / gridSize);
-    updateLocalToken(locationId, token.id, { x: snappedGridX, y: snappedGridY });
-    setDragOverrides((prev) => {
-      const next = { ...prev };
-      delete next[node.id];
-      return next;
-    });
-  }, [updateLocalToken]);
-
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => setNodes(applyNodeChanges(changes, nodes)),
+    [nodes, setNodes],
+  );
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges(applyEdgeChanges(changes, edges)), [edges, setEdges]);
   const onConnect = useCallback(
-    (params: Connection | Edge) => setEdges(addEdge({ ...params, type: 'custom', data: { days: 0, hours: 0 } }, edges)),
+    (params: Connection | Edge) => setEdges(addEdge({ ...params, type: 'travel', data: { days: 0, hours: 0 } }, edges)),
     [edges, setEdges],
   );
 
@@ -243,21 +184,38 @@ const GameTableInner = () => {
     setIsArchivePanelOpen(false);
   }, [placeLocationOnMap, reactFlowInstance]);
 
-  // Двойной клик по локации — семантический "провал" в тактический режим (Блок 2):
-  // плавно летим камерой к узлу и приближаемся выше TACTICAL_ZOOM_THRESHOLD, узел сам
-  // разворачивается в боевую доску (см. MapNode.tsx), никакой отдельной вкладки/страницы.
+  // Блок 1: двойной клик по локации — единственный вход в тактический режим. Никакой
+  // привязки к камере/зуму глобального канваса — открывается независимый fullscreen-слой.
   const handleNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
     if (node.type !== 'custom') return;
     const locationKey = (node.data as any)?.entityId || node.id;
-    // Узел без привязанной сущности Архива — тактическая доска всё равно поддерживается
-    // (см. TacticalBoard в MapNode.tsx, поле linkedLocationId), просто без автофона/карточки
-    // локации, пока ГМ не привяжет её вручную через мини-тулбар доски.
     diveIntoMap(locationKey);
-    const width = node.width || 220;
-    const height = node.height || 120;
-    reactFlowInstance.setCenter(node.position.x + width / 2, node.position.y + height / 2, { zoom: 2, duration: 650 });
-    setOpenPanels((p) => ({ ...p, battle: true }));
-  }, [diveIntoMap, reactFlowInstance]);
+  }, [diveIntoMap]);
+
+  // Блок 2: setPartyLocation (createSystemSlice.ts) уже сам умеет автоматически двигать
+  // мировое время вперёд на время в пути по ребру (с поправкой на непогоду) — просто делал
+  // это молча. Здесь оборачиваем вызов, чтобы "предложить" результат ГМу явно: тост с
+  // итогом + кнопка "Отменить время", если поездка оказалась не той, что он ожидал.
+  const handleMoveParty = useCallback((nodeId: string) => {
+    const before = useWorkspaceStore.getState();
+    const beforeDay = before.currentDay;
+    const beforeHour = before.currentHour;
+    setPartyLocation(nodeId);
+    const after = useWorkspaceStore.getState();
+    const deltaHours = (after.currentDay - beforeDay) * 24 + (after.currentHour - beforeHour);
+    if (deltaHours > 0) {
+      const days = Math.floor(deltaHours / 24);
+      const hours = deltaHours % 24;
+      const parts = [days > 0 ? `${days} дн.` : null, hours > 0 ? `${hours} ч.` : null].filter(Boolean).join(' ');
+      toast(`🕐 Партия в пути: время сдвинуто на ${parts} — теперь День ${after.currentDay}, ${String(after.currentHour).padStart(2, '0')}:00`, {
+        action: {
+          label: 'Отменить время',
+          onClick: () => useWorkspaceStore.getState().advanceTime(-deltaHours),
+        },
+      });
+    }
+    setMenu(null);
+  }, [setPartyLocation]);
 
   const changeNodeType = useCallback((id: string, newType: string) => {
     setNodes(nodes.map((n) => {
@@ -265,8 +223,7 @@ const GameTableInner = () => {
       if (LOCATION_MODES.has(newType)) {
         // Раньше это меняло n.type на легаси-компонент (safe/tense/hostile/mystery из
         // CustomNodes.tsx) с совершенно другой версткой — карточка "прыгала" и теряла
-        // тактильный дизайн/фон/токены. Теперь статус — это просто данные на той же
-        // единой карточке MapNode (см. MODE_BADGES в MapNode.tsx).
+        // тактильный дизайн. Теперь статус — это просто данные на той же карточке MapNode.
         return { ...n, type: 'custom', data: { ...n.data, mode: newType } };
       }
       let style = n.style || {};
@@ -284,7 +241,6 @@ const GameTableInner = () => {
   }, [nodes, edges, setNodes, setEdges]);
 
   const onNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
-    if (node.type === 'token') return; // у токенов свой упрощённый UI (кнопка ✕), не общий контекстный
     event.preventDefault();
     if (!paneRef.current) return;
     const pane = paneRef.current.getBoundingClientRect();
@@ -301,8 +257,8 @@ const GameTableInner = () => {
     setMenu({ id: node.id, x: event.clientX - pane.left, y: event.clientY - pane.top, overContainers });
   }, [nodes]);
 
-  // Хоткеи тулбара (Блок 1): переключение плавающих панелей, Escape — выйти из тактического
-  // режима. Игнорируем нажатия, когда фокус в текстовом поле/редакторе.
+  // Хоткеи тулбара: переключение плавающих панелей, Escape — выйти из тактического режима
+  // (Блок 1). Игнорируем нажатия, когда фокус в текстовом поле/редакторе.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -310,26 +266,25 @@ const GameTableInner = () => {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
       if (e.key === 'Escape' && activeLocalMapId) {
         closeLocalMap();
-        reactFlowInstance.fitView({ duration: 600, padding: 0.3 });
         return;
       }
       const key = e.key.toLowerCase();
       if (key === 'w') togglePanel('weather');
       if (key === 'c') togglePanel('calendar');
-      if (key === 'b') togglePanel('battle');
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeLocalMapId, closeLocalMap, reactFlowInstance, togglePanel]);
+  }, [activeLocalMapId, closeLocalMap, togglePanel]);
 
   const draggedLocation = draggedLocationId ? locations[draggedLocationId] : null;
-  const showBattlePanel = openPanels.battle || isTacticalActive;
 
   return (
     <DndContext sensors={dndSensors} onDragStart={handleDndDragStart} onDragEnd={handleDndDragEnd}>
-      <div className="w-full h-full relative bg-neutral-950" ref={paneRef}>
-        {/* Тулбар: локации из Архива (только на глобальной карте) + тумблеры плавающих панелей */}
-        <div className="absolute top-4 left-4 z-40 flex items-center gap-2 flex-wrap">
+      <div className="w-full h-full relative bg-neutral-950 overflow-hidden" ref={paneRef}>
+        {/* Тулбар: локации из Архива (только на глобальной карте) + тумблеры плавающих панелей.
+            Остаётся поверх blur'а даже в тактическом режиме — панели погоды/календаря/боя
+            общие для всего стола, не только для глобального слоя. */}
+        <div className="absolute top-4 left-4 z-[60] flex items-center gap-2 flex-wrap">
           {!activeLocalMapId && (
             <button
               onClick={() => setIsArchivePanelOpen(!isArchivePanelOpen)}
@@ -340,11 +295,10 @@ const GameTableInner = () => {
           )}
           <PanelToggle label="🌦️ Погода" hotkey="w" active={openPanels.weather} onClick={() => togglePanel('weather')} />
           <PanelToggle label="📅 Календарь" hotkey="c" active={openPanels.calendar} onClick={() => togglePanel('calendar')} />
-          <PanelToggle label="⚔️ Трекер боя" hotkey="b" active={showBattlePanel} onClick={() => togglePanel('battle')} />
         </div>
 
         {isArchivePanelOpen && !activeLocalMapId && (
-          <div className="absolute top-16 left-4 z-40 w-72 h-[calc(100%-5rem)] bg-neutral-950/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="absolute top-16 left-4 z-[60] w-72 h-[calc(100%-5rem)] bg-neutral-950/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
             <div className="p-3 border-b border-white/10 font-bold text-white flex justify-between items-center">
               <span>Доступные локации</span>
               <button onClick={() => setIsArchivePanelOpen(false)} className="text-neutral-500 hover:text-white">✕</button>
@@ -362,49 +316,49 @@ const GameTableInner = () => {
           </div>
         )}
 
-        <ReactFlow
-          nodes={flowNodes} edges={flowEdges}
-          nodeTypes={nodeTypes} edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
-          onNodeDragStop={onNodeDragStop}
-          onNodeClick={(_, n) => { if (n.type === 'token') return; setSelectedNodeId(n.id); setMenu(null); }}
-          onNodeDoubleClick={handleNodeDoubleClick}
-          onNodeContextMenu={onNodeContextMenu}
-          onPaneClick={() => { setSelectedNodeId(null); setMenu(null); }}
-          minZoom={0.2}
-          maxZoom={2.5}
-          fitView
+        {/* Блок 1: глобальный слой уходит под сильный backdrop-blur и перестаёт быть
+            интерактивным, пока открыт тактический режим — визуально "детективная доска"
+            остаётся видна позади, но не мешает и не путается с тактической сеткой поверх. */}
+        <div
+          className={`absolute inset-0 transition-all duration-500 ${
+            isTacticalActive ? 'blur-xl scale-[0.98] opacity-30 pointer-events-none' : ''
+          }`}
         >
-          <Background color="#141417" gap={25} size={1} />
-          <Controls className="!bg-neutral-950/90 !border-white/10 !shadow-2xl" />
-          {menu && (
-            <ContextMenu
-              menu={menu} nodes={nodes} onChangeType={changeNodeType}
-              onAttach={attachToRegion} onDelete={deleteNode}
-              onMoveParty={(nodeId) => { setPartyLocation(nodeId); setMenu(null); }}
-              onClose={() => setMenu(null)}
-            />
-          )}
-        </ReactFlow>
-
-        {selectedNodeId && <Sidebar selectedNodeId={selectedNodeId} onClose={() => setSelectedNodeId(null)} />}
-        {activeLocalMapId && isSpawnPanelOpen && (
-          <TacticalSpawnPanel locationId={activeLocalMapId} onClose={() => setIsSpawnPanelOpen(false)} />
-        )}
-        {activeLocalMapId && !isSpawnPanelOpen && (
-          <button
-            onClick={() => setIsSpawnPanelOpen(true)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-neutral-950/90 border border-white/10 text-neutral-300 hover:text-white text-xs font-bold px-2 py-3 rounded-xl shadow-xl"
-            title="Показать панель добавления сущностей"
+          <ReactFlow
+            nodes={nodes} edges={edges}
+            nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+            onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
+            onNodeClick={(_, n) => { setSelectedNodeId(n.id); setMenu(null); }}
+            onNodeDoubleClick={handleNodeDoubleClick}
+            onNodeContextMenu={onNodeContextMenu}
+            onPaneClick={() => { setSelectedNodeId(null); setMenu(null); }}
+            minZoom={0.2}
+            maxZoom={2.5}
+            fitView
           >
-            ▶
-          </button>
-        )}
+            <Background color="#141417" gap={25} size={1} />
+            <Controls className="!bg-neutral-950/90 !border-white/10 !shadow-2xl" />
+            {menu && (
+              <ContextMenu
+                menu={menu} nodes={nodes} onChangeType={changeNodeType}
+                onAttach={attachToRegion} onDelete={deleteNode}
+                onMoveParty={handleMoveParty}
+                onClose={() => setMenu(null)}
+              />
+            )}
+          </ReactFlow>
+
+          {selectedNodeId && <Sidebar selectedNodeId={selectedNodeId} onClose={() => setSelectedNodeId(null)} />}
+        </div>
+
+        {/* Блок 1: изолированный fullscreen тактический слой. key=activeLocalMapId гарантирует
+            чистый remount внутреннего состояния (тулбары, драг-оверрайды) при проваливании
+            на следующий уровень вложенности (Блок 2). */}
+        {activeLocalMapId && <TacticalCanvas key={activeLocalMapId} locationId={activeLocalMapId} />}
 
         {!isTacticalActive && openPanels.weather && <WeatherBanner />}
         {openPanels.calendar && <CalendarWidget />}
         {openPanels.weather && <WeatherWidget />}
-        {showBattlePanel && activeLocalMapId && <BattleTrackerWidget locationId={activeLocalMapId} />}
       </div>
 
       <DragOverlay dropAnimation={null}>
