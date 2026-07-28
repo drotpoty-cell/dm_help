@@ -143,16 +143,16 @@ export default function EntityCard({ entity, type, isActive, onClick }: EntityCa
           <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
         </svg>
       </div>
-      <div className="flex justify-between items-start gap-2 mb-2 pr-6">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <span className={`${isActive ? 'text-indigo-400' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
+      <div className="flex justify-between items-start gap-2 mb-2 pr-6 min-w-0">
+        <div className="flex items-center gap-2 overflow-hidden min-w-0">
+          <span className={`shrink-0 ${isActive ? 'text-indigo-400' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
             {Icons[type as keyof typeof Icons] || Icons.locations}
           </span>
-          <h3 className={`font-bold text-sm truncate ${isActive ? 'text-white' : 'text-zinc-300'}`}>
+          <h3 className={`font-bold text-sm truncate min-w-0 ${isActive ? 'text-white' : 'text-zinc-300'}`}>
             {'title' in entity ? (entity as Quest).title : entity.name}
           </h3>
         </div>
-        {renderBadge()}
+        <div className="shrink-0">{renderBadge()}</div>
       </div>
 
       <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2 mb-3">

@@ -58,7 +58,7 @@ export const createUISlice: StateCreator<WorkspaceState, [], [], UISlice> = (set
 
   switchWorld: (newId) =>
     set((state) => {
-      if (!useWorkspaceStore.persist?.hasHydrated?.()) return state
+      if (!useWorkspaceStore.persist?.hasHydrated()) return state
       if (state.activeWorldId === newId) return state
 
       const newSavedWorlds = { ...state.savedWorlds }

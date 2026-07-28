@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { createClient } from '@/utils/supabase/client'
 import { hasLegacyLibraryData } from '@/utils/migrateLegacyLibrary'
+import { sanitizeCampaignSnapshot } from '@/utils/sanitizeCampaignSnapshot'
 
 export type CampaignSyncStatus = 'loading' | 'idle' | 'saving' | 'saved' | 'error'
 
@@ -110,7 +111,7 @@ export function useCampaignSync(campaignId: string | null, hydrated: boolean) {
         if (error) {
           console.error('Не удалось загрузить кампанию из облака:', error)
         } else if (data?.map_data && Object.keys(data.map_data).length > 0) {
-          useWorkspaceStore.setState(data.map_data)
+          useWorkspaceStore.setState(sanitizeCampaignSnapshot(data.map_data))
         }
       }
 

@@ -115,15 +115,15 @@ export default function ArchiveBoard() {
             {query ? 'Ничего не найдено' : 'В этой категории пока пусто'}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
             {items.map((entity) => (
               <div
                 key={entity.id}
                 onClick={() => setViewedEntityId(entity.id)}
-                className="bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800 hover:border-indigo-600/50 rounded-xl p-4 cursor-pointer transition-colors group flex flex-col gap-1.5 min-h-[92px]"
+                className="bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800 hover:border-indigo-600/50 rounded-xl p-4 cursor-pointer transition-colors group flex flex-col gap-1.5 min-h-[92px] min-w-0"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-bold text-sm text-zinc-100 truncate">{entity.title || entity.name || 'Без имени'}</span>
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                  <span className="font-bold text-sm text-zinc-100 truncate min-w-0">{entity.title || entity.name || 'Без имени'}</span>
                   {!isReadOnly && (
                     <button
                       onClick={(e) => handleDelete(e, entity.id, entity.title || entity.name || 'запись')}

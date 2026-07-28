@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { Textarea } from '@/components/ui/Textarea';
@@ -135,6 +136,23 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
         >
           Сохранить настройки
         </button>
+
+        <div className="border-t border-zinc-900 pt-4 text-[10px] text-zinc-600 leading-relaxed space-y-1.5">
+          <p>
+            Независимый фан-инструмент для ведения настольных ролевых игр (в духе D&D и
+            совместимых с OGL систем). Не аффилирован с правообладателями настольных систем,
+            некоммерческое личное использование.
+          </p>
+          <p>
+            <Link href="/privacy" className="text-indigo-400/80 hover:text-indigo-300 underline underline-offset-2">
+              Политика конфиденциальности
+            </Link>
+            {' · '}
+            <a href="mailto:dmitriy671games@list.ru" className="text-indigo-400/80 hover:text-indigo-300 underline underline-offset-2">
+              dmitriy671games@list.ru
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

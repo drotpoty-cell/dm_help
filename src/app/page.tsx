@@ -69,6 +69,21 @@ export default function Home() {
         </div>
       </main>
 
+      <footer className="w-full max-w-6xl px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-zinc-600 border-t border-zinc-900">
+        <span>
+          Независимый фан-инструмент для ведения настольных ролевых игр. Не аффилирован с
+          Wizards of the Coast; названия и механики систем упоминаются в контексте
+          fair use для личного некоммерческого использования.
+        </span>
+        <div className="flex items-center gap-4 shrink-0">
+          <Link href="/privacy" className="hover:text-zinc-400 transition-colors underline underline-offset-2">
+            Политика конфиденциальности
+          </Link>
+          <a href="mailto:dmitriy671games@list.ru" className="hover:text-zinc-400 transition-colors">
+            dmitriy671games@list.ru
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }
